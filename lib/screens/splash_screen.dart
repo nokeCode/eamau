@@ -24,12 +24,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Scaffold(
       backgroundColor: Colors.white,
 
       body: Stack(
         children: [
 
+          //première cercle bleu en haut
           Positioned(
             top: -80,
             right: -80,
@@ -43,6 +45,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
           ),
 
+          //dexième cercle bleu en bas
           Positioned(
             bottom: -80,
             left: -80,
@@ -56,6 +59,21 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
           ),
 
+          // Blob jaune/crème – milieu droite
+          Positioned(
+            top: size.height * 0.28,
+            right: -size.width * 0.08,
+            child: Container(
+              width: size.width * 0.40,
+              height: size.width * 0.40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5EDBB).withOpacity(0.70),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+
+          //contenu centrale logo + texte
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
