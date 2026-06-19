@@ -48,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
           //dexième cercle bleu en bas
           Positioned(
-            bottom: -80,
+            bottom: 100,
             left: -80,
             child: Container(
               width: 200,
@@ -73,8 +73,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
           // Blob jaune/crème – milieu droite
           Positioned(
-            top: size.height * 0.28,
-            right: -size.width * 0.08,
+            top: size.height * 0.18,
+            right: -size.width * 0.2,
             child: Container(
               width: size.width * 0.40,
               height: size.width * 0.40,
@@ -128,7 +128,10 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Column(
               children: [
 
-                CircularProgressIndicator(),
+                CircularProgressIndicator(
+                  color : Colors.white,
+                ),
+
 
                 SizedBox(height: 12),
 
@@ -136,6 +139,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   "Chargement ...",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
+                    color: Colors.white
                   ),
                 ),
               ],
