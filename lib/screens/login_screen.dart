@@ -185,6 +185,7 @@ class LoginScreen extends StatelessWidget {
 
                     const SizedBox(height: 5),
 
+                    //le texte d'inscription
                     RichText(
                       textAlign: TextAlign.center,
                       text: TextSpan(
@@ -217,7 +218,7 @@ class LoginScreen extends StatelessWidget {
             ),
           ),
 
-          // 3. Vague du haut (Superposée et nettoyée)
+          //Vague du haut (Superposée et nettoyée)
           Positioned(
             top: 0,
             left: 0,
