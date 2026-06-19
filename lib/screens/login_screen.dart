@@ -40,15 +40,14 @@ class LoginScreen extends StatelessWidget {
 
             // image du batiment en backgroud
             Positioned(
-              right: -30,
-              top: 110,
+              right: -40,
+              top: 0,
               child: Opacity(
                 opacity: 0.7,
                 child: Image.asset(
                   'assets/images/building_bg1.jpg',
-                  fit: BoxFit.contain,
                   width: 500,
-
+                  height: 700,
                 ),
               ),
             ),
