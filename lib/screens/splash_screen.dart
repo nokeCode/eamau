@@ -33,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
           //première cercle bleu en haut
           Positioned(
-            top: -80,
+            top: -8,
             right: -80,
             child: Container(
               width: 250,
