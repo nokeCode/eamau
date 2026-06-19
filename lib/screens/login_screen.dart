@@ -10,40 +10,15 @@ class LoginScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
 
-      body: SafeArea(
-        child: Stack(
+      body: Stack(
           children: [
-
-
-            //wave shape du haut
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SvgPicture.asset(
-                'assets/images/login_waveshap_haut.svg',
-                fit: BoxFit.cover,
-              ),
-            ),
-
-            //wave shape du bas
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: SvgPicture.asset(
-                'assets/images/login_bas_wave.svg',
-                fit: BoxFit.cover,
-              ),
-            ),
-
 
             // image du batiment en backgroud
             Positioned(
               right: -40,
               top: -10,
               child: Opacity(
-                opacity: 0.7,
+                opacity: 1,
                 child: Image.asset(
                   'assets/images/building_bg1.jpg',
                   fit: BoxFit.fill,
@@ -52,12 +27,14 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
             ),
-
-            SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 25),
-                child: Column(
-                  children: [
+            
+            //contenu principal
+            SafeArea(
+              child:SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25),
+                  child: Column(
+                    children: [
                       const SizedBox(height: 20),
 
                       // Logo
@@ -239,11 +216,37 @@ class LoginScreen extends StatelessWidget {
 
                       const SizedBox(height: 30),
                     ],
+                  ),
                 ),
               ),
             ),
+
+            //wave shape du haut
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 250,
+              child: SvgPicture.asset(
+                'assets/images/login_waveshap_haut.svg',
+                fit: BoxFit.contain,
+                width: 150,
+                height: 204,
+
+              ),
+            ),
+
+            //wave shape du bas
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: SvgPicture.asset(
+                'assets/images/login_bas_wave.svg',
+                fit: BoxFit.cover,
+              ),
+            ),
+
           ],
-        ),
       ),
     );
   }
