@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -56,6 +57,17 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: Colors.blue.shade50,
                 shape: BoxShape.circle,
               ),
+            ),
+          ),
+
+          //wave shape du bas
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: SvgPicture.asset(
+              'assets/images/slash_waveshape.svg',
+              fit: BoxFit.fill,
             ),
           ),
 
