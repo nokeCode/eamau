@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'EAMAU',
-      home: const SplashScreen(),
+      home: const HomeScreen(),
     );
   }
 }

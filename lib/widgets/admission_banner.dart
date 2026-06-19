@@ -6,7 +6,7 @@ class AdmissionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 190,
+      height: 260,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
       ),
@@ -15,7 +15,7 @@ class AdmissionBanner extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: Image.asset(
-              'assets/images/admission_building.jpg',
+              'assets/images/building.jpg',
               width: double.infinity,
               height: double.infinity,
               fit: BoxFit.cover,
