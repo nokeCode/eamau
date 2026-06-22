@@ -23,23 +23,38 @@ class VerificationScreen extends StatelessWidget {
 
                 /// HEADER
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(
-                        Icons.arrow_back_ios,
-                        color: Colors.blue,
+                    Image.asset(
+                      'assets/logos/eamau_logo.gif',
+                      width: 75,
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'EAMAU',
+                            style: TextStyle(
+                              color: Color(0xFF1682F8),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                            ),
+                          ),
+
+                          Text(
+                            "École Africaine des\nMétiers de l'Architecture\net de l'Urbanisme",
+                            style: TextStyle(
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
-
-                const SizedBox(height: 8),
-
-                /// LOGO
-                Image.asset(
-                  "assets/images/logo_eamau.png",
-                  height: 80,
                 ),
 
                 const SizedBox(height: 20),
@@ -58,7 +73,7 @@ class VerificationScreen extends StatelessWidget {
 
                 /// ILLUSTRATION
                 Image.asset(
-                  "assets/images/security_verification.png",
+                  "assets/images/security_verification.jpg",
                   height: 180,
                 ),
 
@@ -78,35 +93,28 @@ class VerificationScreen extends StatelessWidget {
 
                 /// EMAIL BOX
                 Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 20,
-                    horizontal: 20,
-                  ),
-
+                  height: 70,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.grey,
-                    borderRadius: BorderRadius.circular(14),
+                    color: const Color(0xFFF2F4F8),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-
-                  child: Row(
+                  child: const Row(
                     children: [
-
-                      Image.asset(
-                        "assets/icons/mail.png",
-                        height: 30,
+                      Icon(
+                        Icons.email_outlined,
+                        color: Color(0xFF1682F8),
+                        size: 30,
                       ),
 
-                      const SizedBox(width: 20),
+                      SizedBox(width: 12),
 
-                      const Expanded(
-                        child: Text(
-                          "mail******@gmail.com",
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      Text(
+                        "mail******@gmail.com",
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
