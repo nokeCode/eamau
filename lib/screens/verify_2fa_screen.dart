@@ -1,10 +1,33 @@
 import 'package:flutter/material.dart';
+import '../widgets/otp_box.dart';
 
-class VerificationScreen extends StatelessWidget {
+class VerificationScreen extends StatefulWidget {
   const VerificationScreen({super.key});
 
   @override
+  State<VerificationScreen> createState() =>
+      _VerificationScreenState();
+}
+
+class _VerificationScreenState extends State<VerificationScreen> {
+
+  final List<TextEditingController> controllers =
+  List.generate(
+    6,
+        (_) => TextEditingController(),
+  );
+
+  @override
+  void dispose() {
+    for (var controller in controllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: Colors.white,
 
@@ -34,7 +57,8 @@ class VerificationScreen extends StatelessWidget {
 
                     const Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
                         children: [
                           Text(
                             'EAMAU',
@@ -59,9 +83,8 @@ class VerificationScreen extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                /// TITRE
                 const Text(
-                  "Vérification de securité",
+                  "Vérification de sécurité",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 34,
@@ -71,7 +94,6 @@ class VerificationScreen extends StatelessWidget {
 
                 const SizedBox(height: 25),
 
-                /// ILLUSTRATION
                 Image.asset(
                   "assets/images/security_verification.jpg",
                   height: 180,
@@ -79,9 +101,8 @@ class VerificationScreen extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                /// MESSAGE
                 const Text(
-                  "un conde de vérification a été\nenvoyé à votre adresse e-mail",
+                  "Un code de vérification a été\nenvoyé à votre adresse e-mail",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 22,
@@ -94,11 +115,16 @@ class VerificationScreen extends StatelessWidget {
                 /// EMAIL BOX
                 Container(
                   height: 70,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                  ),
+
                   decoration: BoxDecoration(
                     color: const Color(0xFFF2F4F8),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius:
+                    BorderRadius.circular(16),
                   ),
+
                   child: const Row(
                     children: [
                       Icon(
@@ -123,10 +149,10 @@ class VerificationScreen extends StatelessWidget {
 
                 const SizedBox(height: 25),
 
-                Align(
+                const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    "Saisir du code reçu",
+                    "Saisir le code reçu",
                     style: TextStyle(
                       fontSize: 18,
                     ),
@@ -139,17 +165,37 @@ class VerificationScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment:
                   MainAxisAlignment.spaceBetween,
+
                   children: List.generate(
                     6,
-                        (index) => _otpBox(),
+                        (index) => OtpBox(
+                      controller:
+                      controllers[index],
+
+                      onChanged: (value) {
+
+                        if (value.length == 1 &&
+                            index < 5) {
+                          FocusScope.of(context)
+                              .nextFocus();
+                        }
+
+                        if (value.isEmpty &&
+                            index > 0) {
+                          FocusScope.of(context)
+                              .previousFocus();
+                        }
+                      },
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 30),
 
-                /// TIMER
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment:
+                  MainAxisAlignment.center,
+
                   children: const [
 
                     Icon(
@@ -160,15 +206,18 @@ class VerificationScreen extends StatelessWidget {
                     SizedBox(width: 10),
 
                     Text(
-                      "renvoyer le code dans ",
-                      style: TextStyle(fontSize: 14),
+                      "Renvoyer le code dans ",
+                      style: TextStyle(
+                        fontSize: 14,
+                      ),
                     ),
 
                     Text(
                       "00:54",
                       style: TextStyle(
                         color: Colors.blue,
-                        fontWeight: FontWeight.w500,
+                        fontWeight:
+                        FontWeight.w500,
                       ),
                     ),
                   ],
@@ -183,7 +232,8 @@ class VerificationScreen extends StatelessWidget {
                     "Renvoyer le code",
                     style: TextStyle(
                       color: Colors.blue,
-                      fontWeight: FontWeight.bold,
+                      fontWeight:
+                      FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
@@ -191,20 +241,37 @@ class VerificationScreen extends StatelessWidget {
 
                 const SizedBox(height: 40),
 
-                /// BOUTON
                 SizedBox(
                   width: double.infinity,
                   height: 58,
 
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
 
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
+                      String otp =
+                      controllers
+                          .map(
+                            (controller) =>
+                        controller.text,
+                      )
+                          .join();
 
-                      shape: RoundedRectangleBorder(
+                      print(otp);
+                    },
+
+                    style:
+                    ElevatedButton.styleFrom(
+                      backgroundColor:
+                      const Color(
+                        0xFF18336E,
+                      ),
+
+                      shape:
+                      RoundedRectangleBorder(
                         borderRadius:
-                        BorderRadius.circular(14),
+                        BorderRadius.circular(
+                          14,
+                        ),
                       ),
                     ),
 
@@ -213,7 +280,8 @@ class VerificationScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                        fontWeight:
+                        FontWeight.w600,
                       ),
                     ),
                   ),
@@ -222,7 +290,7 @@ class VerificationScreen extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 const Text(
-                  "vous n’avez pas reçu le code ?\nvérifier vos courriers indésirable.",
+                  "Vous n’avez pas reçu le code ?\nVérifiez vos courriers indésirables.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.grey,
@@ -235,27 +303,6 @@ class VerificationScreen extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  static Widget _otpBox() {
-    return Container(
-      width: 46,
-      height: 56,
-
-      alignment: Alignment.center,
-
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Color(0xFFD9DEE7),
-        ),
-      ),
-
-      child: const Text(
-        "",
-        style: TextStyle(fontSize: 24),
       ),
     );
   }
