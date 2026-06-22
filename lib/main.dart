@@ -3,6 +3,7 @@ import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/verify_2fa_screen.dart';
+import 'screens/news_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'EAMAU',
-      home: const VerificationScreen(),
+      home: const NewsScreen(),
     );
   }
 }
