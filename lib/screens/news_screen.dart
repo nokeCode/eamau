@@ -4,6 +4,7 @@ import '../models/news_model.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../widgets/feature_news_card.dart';
 import '../widgets/featured_news_card.dart';
+import '../widgets/featured_news_carousel.dart';
 import '../widgets/news_card.dart';
 import '../widgets/news_header.dart';
 
@@ -62,7 +63,10 @@ class NewsScreen extends StatelessWidget {
                 child: Column(
                   children: [
 
-                    const FeaturedNewsCard(),
+                    Transform.translate(
+                      offset: const Offset(0, -35),
+                      child: const FeaturedNewsCarousel(),
+                    ),
 
                     const SizedBox(height: 25),
 

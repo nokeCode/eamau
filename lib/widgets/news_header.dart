@@ -7,25 +7,41 @@ class NewsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF0B7EFF),
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(
         24,
         20,
         24,
-        20,
+        60,
+      ),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF0A84FF),
+            Color(0xFF4AA3FF),
+            Color(0xFFEAF4FF),
+            Colors.white,
+          ],
+          stops: [
+            0.0,
+            0.45,
+            0.85,
+            1.0,
+          ],
+        ),
       ),
       child: Column(
         children: [
-
           Row(
             children: [
-
               Image.asset(
                 "assets/logos/eamau_logo.gif",
-                height: 42,
+                height: 45,
               ),
 
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
 
               const Expanded(
                 child: Text(
@@ -39,18 +55,23 @@ class NewsHeader extends StatelessWidget {
                 ),
               ),
 
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(
-                  Icons.notifications,
-                  color: Colors.black54,
-                  size: 28,
+              Container(
+                height: 42,
+                width: 42,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                  BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.notifications_none,
+                  color: Colors.black87,
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 28),
 
           const NewsCategoryTabs(),
         ],
