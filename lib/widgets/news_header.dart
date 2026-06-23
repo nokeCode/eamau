@@ -12,25 +12,7 @@ class NewsHeader extends StatelessWidget {
         top: MediaQuery.of(context).padding.top + 20,
         left: 24,
         right: 24,
-        bottom: 160,
-      ),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF1682F8),
-            Color(0xFF1682F8),
-            Color(0xFFEAF4FF),
-            Colors.white,
-          ],
-          stops: [
-            0.0,
-            0.45,
-            0.85,
-            1.0,
-          ],
-        ),
+        bottom: 20,
       ),
       child: Column(
         children: [

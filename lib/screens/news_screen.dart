@@ -51,62 +51,85 @@ class NewsScreen extends StatelessWidget {
       bottomNavigationBar:
       const CustomBottomNav(),
 
-      body: Column(
+      body: Stack(
+        children: [
 
-          children: [
-
-            const NewsHeader(),
-
-            Expanded(
-              child: SingleChildScrollView(
-                padding:
-                const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-
-                    Transform.translate(
-                      offset: const Offset(0, -35),
-                      child: const FeaturedNewsCarousel(),
-                    ),
-
-                    const SizedBox(height: 25),
-
-                    Row(
-                      mainAxisAlignment:
-                      MainAxisAlignment
-                          .spaceBetween,
-                      children: [
-
-                        const Text(
-                          "Dernière Actualité",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight:
-                            FontWeight.bold,
-                          ),
-                        ),
-
-                        TextButton(
-                          onPressed: () {},
-                          child:
-                          const Text("Voir Tout"),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    ...news.map(
-                          (item) =>
-                          NewsCard(news: item),
-                    ),
-                  ],
-                ),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF0A84FF),
+                  Colors.white,
+                ],
+                stops: [
+                  0.45,
+                  0.55,
+                ],
               ),
             ),
-          ],
-        ),
+          ),
 
+          SafeArea(
+            child: Column(
+              children: [
+
+                const NewsHeader(),
+
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                      child: Column(
+                        children: [
+
+                          const SizedBox(height: 10),
+
+                          const FeaturedNewsCarousel(),
+
+                          const SizedBox(height: 25),
+
+                          Row(
+                            mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                "Dernière Actualité",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+
+                              TextButton(
+                                onPressed: () {},
+                                child: const Text(
+                                  "Voir Tout",
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 15),
+
+                          ...news.map(
+                                (item) => NewsCard(
+                              news: item,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
