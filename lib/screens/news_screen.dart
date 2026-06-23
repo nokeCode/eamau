@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../models/news_model.dart';
-import '../widgets/custom_bottom_nav.dart';
-import '../widgets/feature_news_card.dart';
-import '../widgets/featured_news_card.dart';
-import '../widgets/featured_news_carousel.dart';
-import '../widgets/news_card.dart';
-import '../widgets/news_header.dart';
+import '../widgets/news/custom_bottom_nav.dart';
+import '../widgets/news/feature_news_card.dart';
+import '../widgets/news/featured_news_card.dart';
+import '../widgets/news/featured_news_carousel.dart';
+import '../widgets/news/news_card.dart';
+import '../widgets/news/news_header.dart';
 
 class NewsScreen extends StatelessWidget {
   const NewsScreen({super.key});
