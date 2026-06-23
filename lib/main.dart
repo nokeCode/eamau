@@ -1,3 +1,4 @@
+import 'package:eamau/screens/news_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'EAMAU',
-      home: const NewsScreen(),
+      home: const NewsDetailScreen(),
     );
   }
 }
