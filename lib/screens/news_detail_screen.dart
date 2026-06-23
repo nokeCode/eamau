@@ -33,7 +33,7 @@ class NewsDetailScreen extends StatelessWidget {
                   CrossAxisAlignment.start,
                   children: [
                     Image.asset(
-                      "assets/images/news.jpg",
+                      "assets/images/actualite2.jpg",
                       width: double.infinity,
                       height: 220,
                       fit: BoxFit.cover,

@@ -10,6 +10,7 @@ class NewsDetailHeader extends StatelessWidget {
         IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_ios),
+          color: Colors.white,
         ),
         const Expanded(
           child: Text(
@@ -18,12 +19,14 @@ class NewsDetailHeader extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
           ),
         ),
         IconButton(
           onPressed: () {},
           icon: const Icon(Icons.ios_share),
+          color: Colors.white,
         ),
       ],
     );
