@@ -8,19 +8,19 @@ class NewsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
-        24,
-        20,
-        24,
-        60,
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 20,
+        left: 24,
+        right: 24,
+        bottom: 160,
       ),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF0A84FF),
-            Color(0xFF4AA3FF),
+            Color(0xFF1682F8),
+            Color(0xFF1682F8),
             Color(0xFFEAF4FF),
             Colors.white,
           ],
@@ -74,6 +74,7 @@ class NewsHeader extends StatelessWidget {
           const SizedBox(height: 28),
 
           const NewsCategoryTabs(),
+
         ],
       ),
     );

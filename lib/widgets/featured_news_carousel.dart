@@ -28,11 +28,11 @@ class _FeaturedNewsCarouselState extends State<FeaturedNewsCarousel> {
               });
             },
             children: const [
-              FeaturedNewsCard(image: "assets/images/campus.jpg"),
-
               FeaturedNewsCard(image: "assets/images/actualite1.jpg"),
 
               FeaturedNewsCard(image: "assets/images/actualite2.jpg"),
+
+              FeaturedNewsCard(image: "assets/images/actualite3.jpg"),
             ],
           ),
         ),

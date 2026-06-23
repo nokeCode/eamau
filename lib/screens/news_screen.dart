@@ -46,12 +46,13 @@ class NewsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      extendBodyBehindAppBar: true,
 
       bottomNavigationBar:
       const CustomBottomNav(),
 
-      body: SafeArea(
-        child: Column(
+      body: Column(
+
           children: [
 
             const NewsHeader(),
@@ -105,7 +106,7 @@ class NewsScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
+
     );
   }
 }

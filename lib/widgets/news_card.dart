@@ -54,6 +54,8 @@ class NewsCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
 
                 const SizedBox(height: 5),
