@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-
-import '../widgets/home_header.dart';
-import '../widgets/search_bar_widget.dart';
-import '../widgets/admission_banner.dart';
-import '../widgets/menu_card.dart';
+import '../widgets/home/home_header.dart';
+import '../widgets/home/search_bar_widget.dart';
+import '../widgets/home/admission_banner.dart';
+import '../widgets/home/menu_card.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
