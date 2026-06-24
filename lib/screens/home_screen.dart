@@ -167,14 +167,15 @@ class HomeScreen extends StatelessWidget {
           ),
 
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_box_outlined),
-            label: 'Ajouter',
+            icon: Icon(Icons.newspaper_outlined),
+            label: 'Actualités',
           ),
 
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_none),
-            label: 'Notification',
+            icon: Icon(Icons.emoji_events_outlined),
+            label: 'Concours',
           ),
+
 
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
