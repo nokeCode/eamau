@@ -3,6 +3,7 @@ import '../widgets/home/home_header.dart';
 import '../widgets/home/search_bar_widget.dart';
 import '../widgets/home/admission_banner.dart';
 import '../widgets/home/menu_card.dart';
+import '../routes/app_routes.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -41,13 +42,19 @@ class HomeScreen extends StatelessWidget {
                 mainAxisSpacing: 10,
                 childAspectRatio: 0.7,
 
-                children: const [
+                children: [
 
                   MenuCard(
-                    icon: Icons.article,
+                    icon: Icons.newspaper_outlined,
                     title: 'Actualité',
                     subtitle: 'Restez informé des dernières nouvelles et événements.',
-                    color: Color(0xFF1682F8),
+                    color: const Color(0xFF1682F8),
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.news,
+                      );
+                    },
                   ),
 
                   MenuCard(
@@ -151,8 +158,17 @@ class HomeScreen extends StatelessWidget {
 
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-
         currentIndex: 0,
+        onTap: (index) {
+          switch (index) {
+            case 2: // Actualités
+              Navigator.pushNamed(
+                context,
+                AppRoutes.news,
+              );
+              break;
+          }
+        },
 
         items: const [
 
