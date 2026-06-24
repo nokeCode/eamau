@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../routes/app_routes.dart';
 
 class CustomBottomNav extends StatelessWidget {
   const CustomBottomNav({super.key});
@@ -8,20 +9,35 @@ class CustomBottomNav extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: 2,
       type: BottomNavigationBarType.fixed,
-      selectedItemColor:
-      const Color(0xFF0066FF),
+      selectedItemColor: const Color(0xFF0066FF),
       unselectedItemColor: Colors.black54,
-      items: const [
 
+      onTap: (index) {
+        switch (index) {
+          case 0:
+            Navigator.pushReplacementNamed(
+              context,
+              AppRoutes.home,
+            );
+            break;
+
+          case 2:
+            Navigator.pushReplacementNamed(
+              context,
+              AppRoutes.news,
+            );
+            break;
+        }
+      },
+
+      items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home_outlined),
           label: "Accueil",
         ),
 
         BottomNavigationBarItem(
-          icon: Icon(
-            Icons.calendar_month_outlined,
-          ),
+          icon: Icon(Icons.calendar_month_outlined),
           label: "Calendrier",
         ),
 
