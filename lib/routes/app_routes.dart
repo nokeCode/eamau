@@ -5,4 +5,5 @@ class AppRoutes {
   static const verify2fa = '/verify-2fa';
   static const news = '/news';
   static const newsDetail = '/news-detail';
+  static const profile = '/profile';
 }

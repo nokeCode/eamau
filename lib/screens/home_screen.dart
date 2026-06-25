@@ -167,7 +167,9 @@ class HomeScreen extends StatelessWidget {
                 AppRoutes.news,
               );
               break;
-          }
+              
+            case 4: //profile
+              Navigator.pushNamed(context, AppRoutes.profile,); break;          }
         },
 
         items: const [

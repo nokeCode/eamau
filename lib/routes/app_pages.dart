@@ -6,6 +6,7 @@ import '../screens/news_detail_screen.dart';
 import '../screens/news_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/verify_2fa_screen.dart';
+import '../screens/profile_screen.dart';
 
 import 'app_routes.dart';
 
@@ -17,5 +18,6 @@ class AppPages {
     AppRoutes.verify2fa: (_) => const VerificationScreen(),
     AppRoutes.news: (_) => const NewsScreen(),
     AppRoutes.newsDetail: (_) => const NewsDetailScreen(),
+    AppRoutes.profile: (_) => const ProfileScreen()
   };
 }
