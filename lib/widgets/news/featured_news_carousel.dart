@@ -1,21 +1,30 @@
-import 'package:flutter/material.dart';
-import 'feature_news_card.dart';
-import 'featured_news_card.dart';
 import 'dart:async';
 
+import 'package:flutter/material.dart';
+
+import '../../models/news/news_model.dart';
+import '../../services/news/news_service.dart';
+import 'featured_news_card.dart';
+
 class FeaturedNewsCarousel extends StatefulWidget {
-  const FeaturedNewsCarousel({super.key});
+  final List<NewsModel> news;
+
+  const FeaturedNewsCarousel({
+    super.key,
+    required this.news,
+  });
 
   @override
-  State<FeaturedNewsCarousel> createState() => _FeaturedNewsCarouselState();
+  State<FeaturedNewsCarousel> createState() =>
+      _FeaturedNewsCarouselState();
 }
 
-class _FeaturedNewsCarouselState extends State<FeaturedNewsCarousel> {
-  final PageController _controller = PageController(viewportFraction: 0.92);
+class _FeaturedNewsCarouselState
+    extends State<FeaturedNewsCarousel> {
+  final PageController _controller =
+  PageController(viewportFraction: 0.92);
 
   late Timer _timer;
-
-  final int totalPages = 3;
 
   int currentPage = 0;
 
@@ -27,10 +36,8 @@ class _FeaturedNewsCarouselState extends State<FeaturedNewsCarousel> {
       const Duration(seconds: 4),
           (_) {
         if (_controller.hasClients) {
-          currentPage++;
-
           _controller.animateToPage(
-            currentPage,
+            currentPage + 1,
             duration: const Duration(
               milliseconds: 500,
             ),
@@ -50,10 +57,18 @@ class _FeaturedNewsCarouselState extends State<FeaturedNewsCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    final featuredNews = widget.news
+        .where((news) => news.featured)
+        .toList();
+
+    final items = featuredNews.isNotEmpty
+        ? featuredNews
+        : fallbackNews;
+
     return Column(
       children: [
         SizedBox(
-          height: 240,
+          height: 210,
           child: PageView.builder(
             controller: _controller,
             onPageChanged: (index) {
@@ -61,16 +76,12 @@ class _FeaturedNewsCarouselState extends State<FeaturedNewsCarousel> {
                 currentPage = index;
               });
             },
-            itemBuilder: (BuildContext context, int index) {
-              final images = [
-                "assets/images/actualite1.jpg",
-                "assets/images/actualite2.jpg",
-                "assets/images/actualite3.jpg",
-              ];
+            itemBuilder: (context, index) {
+              final item =
+              items[index % items.length];
 
               return FeaturedNewsCard(
-                image: images[
-                index % images.length],
+                news: item,
               );
             },
           ),
@@ -79,29 +90,39 @@ class _FeaturedNewsCarouselState extends State<FeaturedNewsCarousel> {
         const SizedBox(height: 12),
 
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment:
+          MainAxisAlignment.center,
           children: List.generate(
-            totalPages,
+            items.length,
                 (index) {
               final selected =
-                  currentPage % totalPages ==
+                  currentPage %
+                      items.length ==
                       index;
 
               return AnimatedContainer(
                 duration:
-                const Duration(milliseconds: 300),
+                const Duration(
+                  milliseconds: 300,
+                ),
                 margin:
                 const EdgeInsets.symmetric(
                   horizontal: 4,
                 ),
-                width: selected ? 24 : 8,
+                width:
+                selected ? 24 : 8,
                 height: 8,
-                decoration: BoxDecoration(
+                decoration:
+                BoxDecoration(
                   color: selected
-                      ? const Color(0xFF0A84FF)
-                      : Colors.grey.shade300,
+                      ? const Color(
+                    0xFF0A84FF,
+                  )
+                      : Colors.grey
+                      .shade300,
                   borderRadius:
-                  BorderRadius.circular(20),
+                  BorderRadius
+                      .circular(20),
                 ),
               );
             },

@@ -1,60 +1,47 @@
 import 'package:flutter/material.dart';
-
-import '../models/news_model.dart';
+import '../../services/news/news_service.dart';
+import '../models/news/news_model.dart';
 import '../widgets/news/custom_bottom_nav.dart';
-import '../widgets/news/feature_news_card.dart';
 import '../widgets/news/featured_news_card.dart';
 import '../widgets/news/featured_news_carousel.dart';
 import '../widgets/news/news_card.dart';
 import '../widgets/news/news_header.dart';
 
-class NewsScreen extends StatelessWidget {
+class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
+
+  @override
+  State<NewsScreen> createState() => _NewsScreenState();
+}
+
+class _NewsScreenState extends State<NewsScreen> {
+  final NewsService _service = NewsService();
+
+  late Future<List<NewsModel>> _newsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _newsFuture = _service.getNews();
+  }
 
   @override
   Widget build(BuildContext context) {
     final news = [
-
-      NewsModel(
-        title: "Atelier internationale",
-        description:
-        "Des figures territoriales et des architectures manifeste.",
-        image:
-        "assets/images/actualite1.jpg",
-        date: "07 avril 2026",
-      ),
-
-      NewsModel(
-        title: "Concours d'entrée",
-        description:
-        "Concours d'entrée au titre de l'année académique.",
-        image:
-        "assets/images/actualite2.jpg",
-        date: "12 mai 2026",
-      ),
-
-      NewsModel(
-        title:
-        "Installation du Comité d'organisation",
-        description:
-        "Réunion d'installation du Comité.",
-        image:
-        "assets/images/actualite3.jpg",
-        date: "27 février 2026",
-      ),
+      FutureBuilder<List<NewsModel>>
     ];
 
     return Scaffold(
       backgroundColor: Colors.white,
       extendBodyBehindAppBar: true,
 
-      bottomNavigationBar:
-      const CustomBottomNav(),
+      bottomNavigationBar: const CustomBottomNav(),
 
       body: Stack(
         children: [
-
           Container(
+            width: double.infinity,
+            height: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -64,69 +51,53 @@ class NewsScreen extends StatelessWidget {
                   Colors.white,
                 ],
                 stops: [
-                  0.45,
-                  0.55,
+                  0.25,
+                  0.75,
                 ],
               ),
             ),
           ),
+          FutureBuilder<List<NewsModel>>(
+            future: _newsFuture,
+            builder: (context, snapshot) {
+              final news = snapshot.data ?? fallbackNews;
 
-          SafeArea(
-            child: Column(
-              children: [
+              return Column(
+                children: [
+                  const NewsHeader(),
 
-                const NewsHeader(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 10),
 
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                      ),
-                      child: Column(
-                        children: [
+                            FeaturedNewsCarousel(news: news),
 
-                          const SizedBox(height: 10),
+                            const SizedBox(height: 25),
 
-                          const FeaturedNewsCarousel(),
-
-                          const SizedBox(height: 25),
-
-                          Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                "Dernière Actualité",
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text("Dernière Actualité"),
+                                TextButton(
+                                  onPressed: () {},
+                                  child: const Text("Voir Tout"),
                                 ),
-                              ),
-
-                              TextButton(
-                                onPressed: () {},
-                                child: const Text(
-                                  "Voir Tout",
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 15),
-
-                          ...news.map(
-                                (item) => NewsCard(
-                              news: item,
+                              ],
                             ),
-                          ),
-                        ],
+
+                            ...news.map((item) => NewsCard(news: item)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              );
+            },
           ),
         ],
       ),

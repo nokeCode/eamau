@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/news_model.dart';
+import '../../models/news/news_model.dart';
 
 class NewsCard extends StatelessWidget {
   final NewsModel news;
@@ -31,11 +31,18 @@ class NewsCard extends StatelessWidget {
           ClipRRect(
             borderRadius:
             BorderRadius.circular(12),
-            child: Image.asset(
+            child: Image.network(
               news.image,
               width: 95,
               height: 80,
               fit: BoxFit.cover,
+              errorBuilder:
+                  (_, __, ___) => Image.asset(
+                'assets/images/actualite1.jpg',
+                width: 95,
+                height: 80,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
 
