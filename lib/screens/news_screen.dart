@@ -6,6 +6,7 @@ import '../widgets/news/featured_news_card.dart';
 import '../widgets/news/featured_news_carousel.dart';
 import '../widgets/news/news_card.dart';
 import '../widgets/news/news_header.dart';
+import '../../models/news/news_category_model.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -15,6 +16,9 @@ class NewsScreen extends StatefulWidget {
 }
 
 class _NewsScreenState extends State<NewsScreen> {
+  late Future<List<NewsCategoryModel>> _categoriesFuture;
+
+  int selectedCategory = 0;
   final NewsService _service = NewsService();
 
   late Future<List<NewsModel>> _newsFuture;
@@ -23,13 +27,27 @@ class _NewsScreenState extends State<NewsScreen> {
   void initState() {
     super.initState();
     _newsFuture = _service.getNews();
+    _categoriesFuture = _service.getCategories();
+  }
+  Future<void> loadNews(
+      int categoryId,
+      ) async {
+    setState(() {
+      selectedCategory =
+          categoryId;
+
+      _newsFuture =
+      categoryId == 0
+          ? _service.getNews()
+          : _service
+          .getNewsByCategory(
+        categoryId,
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final news = [
-      FutureBuilder<List<NewsModel>>
-    ];
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -51,51 +69,62 @@ class _NewsScreenState extends State<NewsScreen> {
                   Colors.white,
                 ],
                 stops: [
-                  0.25,
-                  0.75,
+                  0.15,
+                  0.55,
                 ],
               ),
             ),
           ),
-          FutureBuilder<List<NewsModel>>(
-            future: _newsFuture,
-            builder: (context, snapshot) {
-              final news = snapshot.data ?? fallbackNews;
+          FutureBuilder<List<NewsCategoryModel>>(
+            future: _categoriesFuture,
+            builder: (context, categoriesSnapshot) {
+              final categories = categoriesSnapshot.data ?? fallbackCategories;
 
-              return Column(
-                children: [
-                  const NewsHeader(),
-
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 10),
-
-                            FeaturedNewsCarousel(news: news),
-
-                            const SizedBox(height: 25),
-
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text("Dernière Actualité"),
-                                TextButton(
-                                  onPressed: () {},
-                                  child: const Text("Voir Tout"),
-                                ),
-                              ],
-                            ),
-
-                            ...news.map((item) => NewsCard(news: item)),
-                          ],
+              return FutureBuilder<List<NewsModel>>(
+                  future: _newsFuture,
+                  builder: (context, newsSnapshot) {
+                    final news = newsSnapshot.data ?? fallbackNews;
+                    return Column(
+                      children: [
+                        NewsHeader(
+                          categories: categories,
+                          selectedCategory:
+                          selectedCategory,
+                          onCategorySelected:
+                          loadNews,
                         ),
-                      ),
-                    ),
-                  ),
-                ],
+
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 10),
+
+                                  FeaturedNewsCarousel(news: news),
+
+                                  const SizedBox(height: 25),
+
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text("Dernière Actualité"),
+                                      TextButton(
+                                        onPressed: () {},
+                                        child: const Text("Voir Tout"),
+                                      ),
+                                    ],
+                                  ),
+                                  ...news.map((item) => NewsCard(news: item)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
               );
             },
           ),

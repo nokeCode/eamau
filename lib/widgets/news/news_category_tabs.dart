@@ -1,51 +1,75 @@
 import 'package:flutter/material.dart';
+import '../../models/news/news_category_model.dart';
 
 class NewsCategoryTabs extends StatelessWidget {
-  const NewsCategoryTabs({super.key});
+  final List<NewsCategoryModel>
+  categories;
+
+  final int selectedCategory;
+
+  final Function(int)
+  onCategorySelected;
+  const NewsCategoryTabs({
+    super.key,
+    required this.categories,
+    required this.onCategorySelected,
+    required this.selectedCategory,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final categories = [
-      "Toutes",
-      "Université",
-      "Recherche",
-      "Etudiant",
-      "Evenement",
-    ];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: categories.map((category) {
-          bool selected = category == "Toutes";
+          final selected =
+              category.id ==
+                  selectedCategory;
 
-          return Padding(
-            padding: const EdgeInsets.only(right: 24),
-            child: Column(
-              children: [
-                Text(
-                  category,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: selected
-                        ? FontWeight.w700
-                        : FontWeight.w500,
-                    fontSize: 15,
+          return GestureDetector(
+            onTap: () {
+              onCategorySelected(
+                category.id,
+              );
+            },
+            child: Padding(
+              padding:
+              const EdgeInsets.only(
+                right: 24,
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    category.name,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: selected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
                   ),
-                ),
-
-                const SizedBox(height: 6),
-
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: selected ? 45 : 0,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                  const SizedBox(height: 6),
+                  AnimatedContainer(
+                    duration:
+                    const Duration(
+                      milliseconds: 300,
+                    ),
+                    width:
+                    selected ? 45 : 0,
+                    height: 3,
+                    decoration:
+                    BoxDecoration(
+                      color: Colors.white,
+                      borderRadius:
+                      BorderRadius
+                          .circular(
+                        20,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         }).toList(),

@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
+import '../../models/news/news_category_model.dart';
 import 'news_category_tabs.dart';
 
 class NewsHeader extends StatelessWidget {
-  const NewsHeader({super.key});
+  final List<NewsCategoryModel>
+  categories;
+
+  final int selectedCategory;
+
+  final Function(int)
+  onCategorySelected;
+  const NewsHeader({
+    super.key,
+    required this.selectedCategory,
+    required this.onCategorySelected,
+    required this.categories,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +68,13 @@ class NewsHeader extends StatelessWidget {
 
           const SizedBox(height: 28),
 
-          const NewsCategoryTabs(),
+          NewsCategoryTabs(
+            categories: categories,
+            selectedCategory:
+            selectedCategory,
+            onCategorySelected:
+            onCategorySelected,
+          ),
 
         ],
       ),
