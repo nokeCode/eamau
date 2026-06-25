@@ -1,36 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
+import '../../models/home/banner_model.dart';
+import '../../services/home/banner_service.dart';
 
-class AdmissionBanner extends StatelessWidget {
+class AdmissionBanner extends StatefulWidget {
   const AdmissionBanner({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<AdmissionBanner> createState() => _AdmissionBannerState();
+}
 
-    final List<String> images = [
-      'assets/images/building.jpg',
-      'assets/images/building2.jpg',
-      'assets/images/building3.jpg',
-    ];
+class _AdmissionBannerState extends State<AdmissionBanner> {
+  final BannerService _service = BannerService();
+
+  List<BannerModel> banners = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadBanners();
+  }
+
+  Future<void> loadBanners() async {
+    final result = await _service.getBanners();
+
+    setState(() {
+      banners = result;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (banners.isEmpty) {
+      return const SizedBox(
+        height: 280,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     return CarouselSlider.builder(
-      itemCount: images.length,
+      itemCount: banners.length,
 
       options: CarouselOptions(
         height: 280,
-
         viewportFraction: 1,
-
         autoPlay: true,
-
         autoPlayInterval: const Duration(seconds: 4),
-
         autoPlayAnimationDuration:
         const Duration(milliseconds: 800),
-
         enlargeCenterPage: false,
-
         enableInfiniteScroll: true,
       ),
 
@@ -40,25 +61,22 @@ class AdmissionBanner extends StatelessWidget {
           realIndex,
           ) {
         return _BannerItem(
-          imagePath: images[index],
+          banner: banners[index],
         );
       },
     );
   }
 }
 
-
 class _BannerItem extends StatelessWidget {
-
-  final String imagePath;
+  final BannerModel banner;
 
   const _BannerItem({
-    required this.imagePath,
+    required this.banner,
   });
 
   @override
   Widget build(BuildContext context) {
-
     return Container(
       margin: const EdgeInsets.symmetric(
         horizontal: 4,
@@ -66,11 +84,11 @@ class _BannerItem extends StatelessWidget {
 
       child: Stack(
         children: [
-
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
+
             child: Image.asset(
-              imagePath,
+              banner.image,
               width: double.infinity,
               height: double.infinity,
               fit: BoxFit.cover,
@@ -84,10 +102,9 @@ class _BannerItem extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
-
                 colors: [
                   Color(0xFF173B7A),
-                  Color(0xAA173B7A),
+                  Color(0xCC173B7A),
                   Colors.transparent,
                 ],
               ),
@@ -102,7 +119,6 @@ class _BannerItem extends StatelessWidget {
               CrossAxisAlignment.start,
 
               children: [
-
                 Container(
                   padding:
                   const EdgeInsets.symmetric(
@@ -129,21 +145,22 @@ class _BannerItem extends StatelessWidget {
 
                 const SizedBox(height: 15),
 
-                const Text(
-                  'Construisez\nvotre avenir\navec EAMAU',
-                  style: TextStyle(
+                Text(
+                  banner.title,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 26,
                     fontWeight:
                     FontWeight.bold,
+                    height: 1.1,
                   ),
                 ),
 
                 const SizedBox(height: 10),
 
-                const Text(
-                  'Excellence académique,\nleadership de demain.',
-                  style: TextStyle(
+                Text(
+                  banner.description,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
                   ),
@@ -158,6 +175,15 @@ class _BannerItem extends StatelessWidget {
                   ElevatedButton.styleFrom(
                     backgroundColor:
                     Colors.white,
+                    foregroundColor:
+                    Colors.black,
+                    shape:
+                    RoundedRectangleBorder(
+                      borderRadius:
+                      BorderRadius.circular(
+                        30,
+                      ),
+                    ),
                   ),
 
                   child: const Text(

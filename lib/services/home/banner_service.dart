@@ -1,5 +1,4 @@
 
-
 import '../../models/home/banner_model.dart';
 
 class BannerService {
@@ -17,7 +16,7 @@ class BannerService {
         description:
         'Excellence académique, leadership de demain.',
         image:
-        'assets/images/building1.jpg',
+        'assets/images/building.jpg',
       ),
 
       BannerModel(
