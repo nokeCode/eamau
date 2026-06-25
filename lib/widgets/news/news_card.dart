@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/news_model.dart';
+import '../../routes/app_routes.dart';
 
 class NewsCard extends StatelessWidget {
   final NewsModel news;
@@ -11,7 +12,17 @@ class NewsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return InkWell(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          AppRoutes.newsDetail,
+          arguments: news,
+        );
+      },
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -98,6 +109,7 @@ class NewsCard extends StatelessWidget {
             color: Colors.grey,
           ),
         ],
+      )
       ),
     );
   }
