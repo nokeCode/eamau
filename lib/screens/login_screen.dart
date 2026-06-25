@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import '../routes/app_routes.dart';
 import '../widgets/login/custom_text_field.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -114,7 +115,12 @@ class LoginScreen extends StatelessWidget {
                       width: double.infinity,
                       height: 55,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.verify2fa,
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF18336E),
                           shape: RoundedRectangleBorder(

@@ -27,6 +27,10 @@ class CustomBottomNav extends StatelessWidget {
               AppRoutes.news,
             );
             break;
+
+          case 4: //profile
+            Navigator.pushReplacementNamed(context, AppRoutes.profile,);
+            break;
         }
       },
 

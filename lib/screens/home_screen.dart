@@ -162,14 +162,13 @@ class HomeScreen extends StatelessWidget {
         onTap: (index) {
           switch (index) {
             case 2: // Actualités
-              Navigator.pushNamed(
-                context,
-                AppRoutes.news,
-              );
+              Navigator.pushNamed(context, AppRoutes.news,);
               break;
               
             case 4: //profile
-              Navigator.pushNamed(context, AppRoutes.profile,); break;          }
+              Navigator.pushNamed(context, AppRoutes.profile,);
+              break;
+          }
         },
 
         items: const [
