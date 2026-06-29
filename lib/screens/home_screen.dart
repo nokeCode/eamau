@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-
-import '../widgets/home_header.dart';
-import '../widgets/search_bar_widget.dart';
-import '../widgets/admission_banner.dart';
-import '../widgets/menu_card.dart';
+import '../widgets/home/home_header.dart';
+import '../widgets/home/search_bar_widget.dart';
+import '../widgets/home/admission_banner.dart';
+import '../widgets/home/menu_card.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -40,7 +39,7 @@ class HomeScreen extends StatelessWidget {
                 crossAxisCount: 3,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: 0.82,
+                childAspectRatio: 0.7,
 
                 children: const [
 
@@ -168,14 +167,15 @@ class HomeScreen extends StatelessWidget {
           ),
 
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_box_outlined),
-            label: 'Ajouter',
+            icon: Icon(Icons.newspaper_outlined),
+            label: 'Actualités',
           ),
 
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_none),
-            label: 'Notification',
+            icon: Icon(Icons.emoji_events_outlined),
+            label: 'Concours',
           ),
+
 
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
