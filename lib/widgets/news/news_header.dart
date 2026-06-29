@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/news/news_category_model.dart';
+import '../notification/notification_bell.dart';
 import 'news_category_tabs.dart';
 
 class NewsHeader extends StatelessWidget {
@@ -58,10 +59,7 @@ class NewsHeader extends StatelessWidget {
                   borderRadius:
                   BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.notifications_none,
-                  color: Colors.black87,
-                ),
+                child: NotificationBell(),
               ),
             ],
           ),

@@ -32,9 +32,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'EAMAU',
-      home: const NotificationScreen(),
-      //initialRoute: AppRoutes.splash,
-      //routes: AppPages.routes,
+      //home: const NotificationScreen(),
+      initialRoute: AppRoutes.splash,
+      routes: AppPages.routes,
     );
   }
 }

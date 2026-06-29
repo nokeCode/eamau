@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../notification/notification_bell.dart';
+
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
 
@@ -37,13 +39,7 @@ class HomeHeader extends StatelessWidget {
           ),
         ),
 
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(
-            Icons.notifications,
-            size: 28,
-          ),
-        ),
+        const NotificationBell(),
       ],
     );
   }
