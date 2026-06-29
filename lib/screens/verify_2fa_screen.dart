@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/otp_box.dart';
+import '../widgets/verfy2fa/otp_box.dart';
 
 class VerificationScreen extends StatefulWidget {
   const VerificationScreen({super.key});
