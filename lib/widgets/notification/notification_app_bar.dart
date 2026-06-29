@@ -35,7 +35,7 @@ class NotificationAppBar extends StatelessWidget
       title: Row(
         children: [
           Image.asset(
-            'assets/images/logo.png',
+            'assets/logos/eamau_logo.gif',
             height: 42,
             fit: BoxFit.contain,
           ),

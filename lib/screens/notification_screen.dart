@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
-
+import 'package:provider/provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/notification/notification_app_bar.dart';
 import '../../widgets/notification/notification_section.dart';
