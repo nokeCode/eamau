@@ -10,7 +10,6 @@ class AdmissionBanner extends StatefulWidget {
   @override
   State<AdmissionBanner> createState() => _AdmissionBannerState();
 }
-
 class _AdmissionBannerState extends State<AdmissionBanner> {
   final BannerService _service = BannerService();
 
@@ -21,7 +20,6 @@ class _AdmissionBannerState extends State<AdmissionBanner> {
     super.initState();
     loadBanners();
   }
-
   Future<void> loadBanners() async {
     final result = await _service.getBanners();
 
@@ -29,7 +27,6 @@ class _AdmissionBannerState extends State<AdmissionBanner> {
       banners = result;
     });
   }
-
   @override
   Widget build(BuildContext context) {
     if (banners.isEmpty) {
@@ -67,7 +64,6 @@ class _AdmissionBannerState extends State<AdmissionBanner> {
     );
   }
 }
-
 class _BannerItem extends StatelessWidget {
   final BannerModel banner;
 
@@ -81,7 +77,6 @@ class _BannerItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(
         horizontal: 4,
       ),
-
       child: Stack(
         children: [
           ClipRRect(
