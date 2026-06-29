@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:http/http.dart';
 
 import '../../providers/notification_provider.dart';
 import '../../widgets/notification/notification_app_bar.dart';
 import '../../widgets/notification/notification_section.dart';
 import '../../widgets/notification/notification_tabs.dart';
+import '../providers/notification_provider.dart';
 
 class NotificationScreen extends StatefulWidget {
   static const String routeName = '/notifications';
