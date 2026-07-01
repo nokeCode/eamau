@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../notification/notification_bell.dart';
+
 class DashboardAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   const DashboardAppBar({
@@ -71,11 +73,10 @@ class DashboardAppBar extends StatelessWidget
                 color: Colors.white.withOpacity(.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.notifications_none_rounded,
-                color: Colors.white,
-                size: 28,
-              ),
+              child: const NotificationBell(
+                iconColor: Colors.white,
+                iconSize: 28,
+              )
             ),
           ),
         ),

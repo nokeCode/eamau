@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:eamau/screens/student_screen.dart';
+import 'package:eamau/screens/user_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/news_detail_screen.dart';
@@ -18,6 +20,8 @@ class AppPages {
     AppRoutes.verify2fa: (_) => const VerificationScreen(),
     AppRoutes.news: (_) => const NewsScreen(),
     AppRoutes.newsDetail: (_) => const NewsDetailScreen(),
-    AppRoutes.profile: (_) => const ProfileScreen()
+    AppRoutes.profile: (_) => const ProfileScreen(),
+    AppRoutes.user: (_) => const DashboardScreen(),
+    AppRoutes.student: (_) => const StudentScreen(),
   };
 }

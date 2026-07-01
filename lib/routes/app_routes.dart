@@ -6,4 +6,6 @@ class AppRoutes {
   static const news = '/news';
   static const newsDetail = '/news-detail';
   static const profile = '/profile';
+  static const user = '/dashboard';
+  static const student = '/student';
 }
