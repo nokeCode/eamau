@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../notification/notification_bell.dart';
+
 class DashboardHeader extends StatelessWidget {
   final String logoPath;
   final int notificationCount;
@@ -34,10 +36,9 @@ class DashboardHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 child: const Padding(
                   padding: EdgeInsets.all(4),
-                  child: Icon(
-                    Icons.notifications,
-                    color: Color(0xFF3D3D3D),
-                    size: 30,
+                  child: NotificationBell(
+                    iconColor: Colors.white,
+                    iconSize: 28,
                   ),
                 ),
               ),
