@@ -84,11 +84,13 @@ class _TeacherEvaluationScreenState
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
+          color: Colors.white,
         ),
         title: const Text(
           "Evaluation des Enseignants",
           style: TextStyle(
             fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
       ),
