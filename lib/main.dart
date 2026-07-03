@@ -5,6 +5,7 @@ import 'package:eamau/routes/app_routes.dart';
 import 'package:eamau/screens/contact_screen.dart';
 import 'package:eamau/screens/notification_screen.dart';
 import 'package:eamau/screens/student_screen.dart';
+import 'package:eamau/screens/teacher_evaluation_screen.dart';
 import 'package:eamau/screens/user_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -39,7 +40,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'EAMAU',
-      home: const ContactScreen(),
+      home: const TeacherEvaluationScreen(),
       //initialRoute: AppRoutes.splash,
       //routes: AppPages.routes,
     );
