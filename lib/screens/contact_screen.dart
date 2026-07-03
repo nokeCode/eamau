@@ -48,8 +48,22 @@ class _ContactScreenState extends State<ContactScreen> {
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
       appBar: AppBar(
-        title: const Text("Contact"),
+        backgroundColor: Color(0xff0a2dee),
+        title: const Text(
+            "Contact",
+          style: TextStyle(
+            color: Color(0xFFFFFFFF),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Color(0xFFFFFFFF),
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         elevation: 0,
       ),
       body: FutureBuilder<ContactModel>(
