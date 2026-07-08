@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-
+import 'package:flutter/services.dart';
 import '../../models/concours/concours_model.dart';
 import '../../services/concours/concours_service.dart';
 import '../../widgets/concours/concours_card.dart';
@@ -72,10 +72,12 @@ class _ConcoursListScreenState extends State<ConcoursListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xffF7F8FC),
-      body: SafeArea(
-        child: Column(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        backgroundColor: const Color(0xffF7F8FC),
+        body: Column(
           children: [
             ConcoursHeader(
               onBackPressed: () => Navigator.pop(context),
@@ -130,12 +132,10 @@ class _ConcoursListScreenState extends State<ConcoursListScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 itemCount: _filteredConcours.length,
                 itemBuilder: (context, index) {
-                  final concours = _filteredConcours[index];
-
                   return ConcoursCard(
-                    concours: concours,
+                    concours: _filteredConcours[index],
                     onTap: () {
-                      // Navigator.push(...)
+                      // Navigation vers le détail
                     },
                   );
                 },

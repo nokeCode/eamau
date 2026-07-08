@@ -12,8 +12,10 @@ class ConcoursHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+
     return SizedBox(
-      height: 175,
+      height: 175 + statusBarHeight,
       width: double.infinity,
       child: Stack(
         fit: StackFit.expand,
@@ -28,7 +30,12 @@ class ConcoursHeader extends StatelessWidget {
           ),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              statusBarHeight + 16,
+              20,
+              20,
+            ),
             child: Column(
               children: [
                 Row(
