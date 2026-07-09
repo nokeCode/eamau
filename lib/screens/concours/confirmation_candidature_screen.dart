@@ -1,3 +1,4 @@
+import 'package:eamau/screens/concours/suivi_candidature_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -112,6 +113,15 @@ class _ConfirmationCandidatureScreenState
                       outlined: true,
                       onPressed: () {
                         // Aller vers SuiviCandidatureScreen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                            const SuiviCandidatureScreen(
+                              candidatureId: 1,
+                            ),
+                          ),
+                        );
                       },
                     ),
 

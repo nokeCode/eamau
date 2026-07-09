@@ -8,6 +8,7 @@ import '../../services/concours/candidature_service.dart';
 import '../../widgets/concours/candidature_header.dart';
 import '../../widgets/concours/step_indicator.dart';
 import '../../widgets/concours/upload_document_card.dart';
+import 'confirmation_candidature_screen.dart';
 
 class ApplicationFormScreen extends StatefulWidget {
   const ApplicationFormScreen({super.key});
@@ -122,6 +123,15 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
 
     if (success) {
       // Navigation vers ConfirmationCandidatureScreen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+          const ConfirmationCandidatureScreen(
+            candidatureId: 1,
+          ),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
