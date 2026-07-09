@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/concours/concours_model.dart';
+import '../../screens/concours/detail_concours_screen.dart';
 
 class ConcoursCard extends StatelessWidget {
   final ConcoursModel concours;
@@ -17,7 +18,17 @@ class ConcoursCard extends StatelessWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
+      // liens avec l'ecran detail concours
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DetailConcoursScreen(
+              concoursId: concours.id,
+            ),
+          ),
+        );
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 18),
         padding: const EdgeInsets.all(10),
