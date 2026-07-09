@@ -1,3 +1,4 @@
+import 'package:eamau/screens/concours/concours_list_screen.dart';
 import 'package:flutter/material.dart';
 
 import 'package:eamau/screens/student_screen.dart';
@@ -23,5 +24,6 @@ class AppPages {
     AppRoutes.profile: (_) => const ProfileScreen(),
     AppRoutes.user: (_) => const DashboardScreen(),
     AppRoutes.student: (_) => const StudentScreen(),
+    AppRoutes.concours: (_) => const ConcoursListScreen(),
   };
 }

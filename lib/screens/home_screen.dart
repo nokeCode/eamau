@@ -69,6 +69,12 @@ class HomeScreen extends StatelessWidget {
                     title: 'Concours',
                     subtitle: 'Toutes les informations sur les concours.',
                     color: Color(0xFF1682F8),
+                    onTap: (){
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.concours,
+                      );
+                    },
                   ),
 
                   MenuCard(
@@ -163,6 +169,10 @@ class HomeScreen extends StatelessWidget {
           switch (index) {
             case 2: // Actualités
               Navigator.pushNamed(context, AppRoutes.news,);
+              break;
+
+            case 3: //concours
+              Navigator.pushNamed(context, AppRoutes.concours,);
               break;
               
             case 4: //profile

@@ -8,4 +8,5 @@ class AppRoutes {
   static const profile = '/profile';
   static const user = '/dashboard';
   static const student = '/student';
+  static const concours = '/concours';
 }

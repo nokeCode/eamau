@@ -46,9 +46,9 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'EAMAU',
       //home: const DetailConcoursScreen(concoursId: 1),
-      home: const SuiviCandidatureScreen(candidatureId: 1)
-      //initialRoute: AppRoutes.splash,
-      //routes: AppPages.routes,
+      //home: const SuiviCandidatureScreen(candidatureId: 1)
+      initialRoute: AppRoutes.splash,
+      routes: AppPages.routes,
     );
   }
 }
