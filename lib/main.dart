@@ -2,6 +2,7 @@ import 'package:eamau/providers/notification_provider.dart';
 import 'package:eamau/providers/student/dashboard_provider.dart';
 import 'package:eamau/routes/app_pages.dart';
 import 'package:eamau/routes/app_routes.dart';
+import 'package:eamau/screens/concours/application_form_screen.dart';
 import 'package:eamau/screens/concours/concours_list_screen.dart';
 import 'package:eamau/screens/concours/detail_concours_screen.dart';
 import 'package:eamau/screens/contact_screen.dart';
@@ -42,7 +43,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'EAMAU',
-      home: const DetailConcoursScreen(concoursId: 1),
+      //home: const DetailConcoursScreen(concoursId: 1),
+      home: const ApplicationFormScreen(),
       //initialRoute: AppRoutes.splash,
       //routes: AppPages.routes,
     );
