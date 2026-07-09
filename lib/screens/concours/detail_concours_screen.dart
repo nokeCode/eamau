@@ -5,6 +5,7 @@ import '../../models/concours/concours_detail_model.dart';
 import '../../services/concours/concours_detail_service.dart';
 import '../../widgets/concours/concours_banner.dart';
 import '../../widgets/concours/concours_info_card.dart';
+import 'application_form_screen.dart';
 
 class DetailConcoursScreen extends StatefulWidget {
   final int concoursId;
@@ -170,8 +171,14 @@ class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
+                          // Navigation vers l'ecran de candidature de concours
                           onPressed: () {
-                            // Navigation vers l'écran de candidature
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ApplicationFormScreen(),
+                              ),
+                            );
                           },
                           icon: const Icon(Icons.upload_outlined),
                           label: const Text(
