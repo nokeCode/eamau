@@ -1,3 +1,4 @@
+import 'package:eamau/screens/register_screen.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../routes/app_routes.dart';
@@ -210,8 +211,12 @@ class LoginScreen extends StatelessWidget {
                             ),
                             recognizer: TapGestureRecognizer()
                               ..onTap = () {
-                                // TODO: Insérer l'action de navigation ici
-                                print("Clic sur Inscrivez-vous");
+                                Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const RegisterScreen(),
+                                    ),
+                                );
                               },
                           ),
                         ],

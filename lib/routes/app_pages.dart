@@ -1,4 +1,5 @@
 import 'package:eamau/screens/concours/concours_list_screen.dart';
+import 'package:eamau/screens/register_screen.dart';
 import 'package:flutter/material.dart';
 
 import 'package:eamau/screens/student_screen.dart';
@@ -18,6 +19,7 @@ class AppPages {
     AppRoutes.splash: (_) => const SplashScreen(),
     AppRoutes.home: (_) => const HomeScreen(),
     AppRoutes.login: (_) => const LoginScreen(),
+    AppRoutes.register: (_) => const RegisterScreen(),
     AppRoutes.verify2fa: (_) => const VerificationScreen(),
     AppRoutes.news: (_) => const NewsScreen(),
     AppRoutes.newsDetail: (_) => const NewsDetailScreen(),
