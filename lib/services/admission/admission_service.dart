@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/admission_model.dart';
+import '../../models/admission/admission_model.dart';
+
 
 class AdmissionService {
   static const String apiUrl =
