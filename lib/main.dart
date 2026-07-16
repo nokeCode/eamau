@@ -1,4 +1,5 @@
 import 'package:eamau/providers/admission_provider.dart';
+import 'package:eamau/providers/admission_tracking_provider.dart';
 import 'package:eamau/providers/notification_provider.dart';
 import 'package:eamau/providers/student/dashboard_provider.dart';
 import 'package:eamau/routes/app_pages.dart';
@@ -6,6 +7,7 @@ import 'package:eamau/routes/app_routes.dart';
 import 'package:eamau/screens/admission/admission_conditions_screen.dart';
 import 'package:eamau/screens/admission/admission_request_screen.dart';
 import 'package:eamau/screens/admission/admission_screen.dart';
+import 'package:eamau/screens/admission/admission_tracking_screen.dart';
 import 'package:eamau/screens/concours/application_form_screen.dart';
 import 'package:eamau/screens/concours/concours_list_screen.dart';
 import 'package:eamau/screens/concours/confirmation_candidature_screen.dart';
@@ -38,6 +40,10 @@ void main() {
           create: (_) => DashboardProvider(),
         ),
 
+        ChangeNotifierProvider(
+          create: (_) => AdmissionTrackingProvider(),
+        ),
+
       ],
       child: const MyApp(),
     ),
@@ -54,7 +60,7 @@ class MyApp extends StatelessWidget {
       title: 'EAMAU',
       //home: const DetailConcoursScreen(concoursId: 1),
       //home: const SuiviCandidatureScreen(candidatureId: 1)
-      home: const AdmissionRequestScreen(),
+      home: const AdmissionTrackingScreen(),
       //initialRoute: AppRoutes.splash,
       //routes: AppPages.routes,
     );
