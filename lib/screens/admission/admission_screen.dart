@@ -3,6 +3,7 @@ import '../../widgets/admission/admission_card.dart';
 import '../../widgets/admission/admission_header.dart';
 import '../../widgets/admission/admission_intro.dart';
 import '../../widgets/admission/admission_bottom_nav.dart';
+import 'admission_conditions_screen.dart';
 
 class AdmissionScreen extends StatelessWidget {
   const AdmissionScreen({super.key});
@@ -56,7 +57,15 @@ class AdmissionScreen extends StatelessWidget {
                         description: item["description"]!,
                         eligibility: item["eligibility"]!,
                         image: item["image"]!,
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdmissionConditionsScreen(),
+                          ),
+                        );
+
+                        },
                       ),
                     ),
 

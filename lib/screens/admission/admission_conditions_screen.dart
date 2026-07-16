@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../routes/app_routes.dart';
 import '../../widgets/admission/admission_request_button.dart';
 import '../../widgets/admission/admission_request_button.dart';
 import '../../widgets/admission/conditions_documents_list.dart';
 import '../../widgets/admission/conditions_header.dart';
 import '../../widgets/admission/conditions_intro.dart';
 import '../../widgets/admission/conditions_section_card.dart';
+import 'admission_request_screen.dart';
 
 class AdmissionConditionsScreen extends StatelessWidget {
   const AdmissionConditionsScreen({super.key});
@@ -61,10 +63,12 @@ class AdmissionConditionsScreen extends StatelessWidget {
 
                     AdmissionRequestButton(
                       onPressed: () {
-                        // Navigator.pushNamed(
-                        //   context,
-                        //   AppRoutes.admissionRequest,
-                        // );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdmissionRequestScreen(),
+                          ),
+                        );
                       },
                     ),
                   ],

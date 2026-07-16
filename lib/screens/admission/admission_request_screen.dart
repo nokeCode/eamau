@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../routes/app_routes.dart';
 import '../../widgets/admission/admission_request_header.dart';
 import '../../models/admission/admission_request_model.dart';
 import '../../services/admission/admission_request_service.dart';
@@ -96,7 +97,7 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
     );
 
     if (ok) {
-      // Navigator.pushNamed(context, AppRoutes.admissionTracking);
+      Navigator.pushNamed(context, AppRoutes.admissionTracking);
     }
   }
 
