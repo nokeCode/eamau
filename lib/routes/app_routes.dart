@@ -10,6 +10,8 @@ class AppRoutes {
   static const user = '/dashboard';
   static const student = '/student';
   static const concours = '/concours';
+  static const admission = '/admission';
   static const admissionRequest = '/admissionRequest';
   static const admissionTracking = 'admissionTracking';
+  static const filiere = '/filiere';
 }

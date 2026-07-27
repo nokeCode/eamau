@@ -62,6 +62,12 @@ class HomeScreen extends StatelessWidget {
                     title: 'Filière',
                     subtitle: 'Découvrez nos formations et nos parcours.',
                     color: Color(0xFF1682F8),
+                    onTap: (){
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.filiere,
+                      );
+                    },
                   ),
 
                   MenuCard(
@@ -82,6 +88,12 @@ class HomeScreen extends StatelessWidget {
                     title: 'Admission',
                     subtitle: 'Procédures et dossiers pour rejoindre EAMAU.',
                     color: Color(0xFF1682F8),
+                    onTap: (){
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.admission,
+                      );
+                    },
                   ),
 
                   MenuCard(

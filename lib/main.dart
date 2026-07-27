@@ -60,9 +60,9 @@ class MyApp extends StatelessWidget {
       title: 'EAMAU',
       //home: const DetailConcoursScreen(concoursId: 1),
       //home: const SuiviCandidatureScreen(candidatureId: 1)
-      home: const AdmissionScreen(),
-      //initialRoute: AppRoutes.splash,
-      //routes: AppPages.routes,
+      //home: const AdmissionScreen(),
+      initialRoute: AppRoutes.splash,
+      routes: AppPages.routes,
     );
   }
 }

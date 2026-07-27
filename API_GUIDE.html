@@ -1,0 +1,860 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>EAMAU Mobile API</title><style>body{font-family:DejaVu Sans,Arial,sans-serif;color:#172033;font-size:10px;line-height:1.45;margin:34px}header{background:#102a43;color:#fff;padding:28px;border-radius:12px;margin-bottom:24px}.eyebrow{font-size:9px;letter-spacing:2px;color:#8bd3dd}h1{font-size:26px;margin:8px 0}.lead{font-size:13px}h2{font-size:19px;color:#102a43;border-bottom:2px solid #8bd3dd;padding-bottom:6px;margin-top:28px}h3{font-size:13px;margin:8px 0;color:#102a43}h4{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#52606d;margin:12px 0 4px}.intro{background:#f1f5f9;padding:16px;border-radius:8px}.toc{columns:2;padding-left:20px}.toc li{padding:4px}.toc span{color:#627d98}.endpoint{border:1px solid #d9e2ec;border-radius:8px;padding:12px;margin:12px 0;page-break-inside:avoid}.endpoint-title{display:flex;align-items:center;gap:10px;background:#f8fafc;padding:7px;border-radius:5px}.endpoint-title code{font-size:11px}.verb{color:#fff;font-weight:bold;border-radius:4px;padding:4px 7px;font-size:9px}.get{background:#168aad}.post{background:#2a9d8f}.put,.patch{background:#e9c46a;color:#172033}.delete{background:#e76f51}table{border-collapse:collapse;width:100%;margin:4px 0 8px}th,td{border:1px solid #d9e2ec;padding:5px;text-align:left;vertical-align:top}th{background:#e9f2f9;font-size:9px}pre{background:#102a43;color:#f1f5f9;padding:10px;border-radius:5px;white-space:pre-wrap;font-family:DejaVu Sans Mono,monospace;font-size:8px}code{font-family:DejaVu Sans Mono,monospace;color:#0b7285}footer{margin-top:30px;color:#627d98;border-top:1px solid #d9e2ec;padding-top:10px}@page{margin:20px 25px}</style></head><body><header><div class="eyebrow">DOCUMENTATION TECHNIQUE</div><h1>EAMAU Mobile API</h1><p class="lead">API REST de la plateforme mobile universitaire EAMAU</p><p>Version 1.0.0 · Généré le 24/07/2026 15:00</p></header><section class="intro"><h2>Comment consommer l’API</h2><p>Base URL : <strong>http://localhost:9090</strong>. Les endpoints sont versionnés sous <strong>/api/v1</strong>.</p><p>Pour les routes protégées, envoyer l’en-tête <code>Authorization: Bearer &lt;JWT&gt;</code>. La connexion est disponible avec <code>POST /api/v1/auth/login</code>.</p><h3>Format de succès</h3><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;...&quot;
+    },
+    &quot;meta&quot;: []
+}</pre><h3>Format d’erreur</h3><pre>{
+    &quot;success&quot;: false,
+    &quot;message&quot;: &quot;Erreur de validation.&quot;,
+    &quot;errors&quot;: {
+        &quot;field&quot;: [
+            &quot;Valeur invalide.&quot;
+        ]
+    },
+    &quot;code&quot;: 422
+}</pre></section><section><h2>Sommaire des modules</h2><ul class="toc"><li><strong>Actualités</strong> <span>5 endpoint(s)</span></li><li><strong>Admission</strong> <span>15 endpoint(s)</span></li><li><strong>Authentification</strong> <span>12 endpoint(s)</span></li><li><strong>Concours</strong> <span>4 endpoint(s)</span></li><li><strong>Devices</strong> <span>4 endpoint(s)</span></li><li><strong>Filières</strong> <span>4 endpoint(s)</span></li><li><strong>Filières et parcours</strong> <span>1 endpoint(s)</span></li><li><strong>Inscriptions</strong> <span>11 endpoint(s)</span></li><li><strong>Notifications</strong> <span>9 endpoint(s)</span></li><li><strong>Notifications push</strong> <span>6 endpoint(s)</span></li><li><strong>Postulations</strong> <span>7 endpoint(s)</span></li><li><strong>Profil</strong> <span>6 endpoint(s)</span></li><li><strong>Publications</strong> <span>15 endpoint(s)</span></li></ul></section><section class="module"><h2>Actualités</h2><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/news</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>page</code></td><td>query</td><td>Non</td><td>integer</td><td>1</td></tr><tr><td><code>limit</code></td><td>query</td><td>Non</td><td>integer</td><td>10</td></tr><tr><td><code>category</code></td><td>query</td><td>Non</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste des actualités.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/news/categories</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste des catégories d actualités.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/news/featured</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Actualités mises en avant.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/news/search</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>q</code></td><td>query</td><td>Oui</td><td>string</td><td>example-value</td></tr><tr><td><code>page</code></td><td>query</td><td>Non</td><td>integer</td><td>1</td></tr><tr><td><code>limit</code></td><td>query</td><td>Non</td><td>integer</td><td>10</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Résultats de recherche des actualités.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/news/{slug}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>slug</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Détail d une actualité.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Admission</h2><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/admission-conditions</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Conditions d’admission.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/admission-levels</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Niveaux d’admission.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/admissions</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>page</code></td><td>query</td><td>Non</td><td>integer</td><td>1</td></tr><tr><td><code>limit</code></td><td>query</td><td>Non</td><td>integer</td><td>10</td></tr><tr><td><code>status</code></td><td>query</td><td>Non</td><td>string</td><td>example-value</td></tr><tr><td><code>search</code></td><td>query</td><td>Non</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste paginée des admissions du candidat connecté.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/admissions</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>201</strong></td><td>Admission créée.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/admissions/statistics</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Statistiques Admission du candidat connecté.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/admissions/{id}/history</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Historique d’admission.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb delete">DELETE</span><code>/api/v1/admissions/{uuid}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>uuid</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>204</strong></td><td>Admission supprimée (soft delete).</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/admissions/{uuid}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>uuid</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Détail d’une admission du candidat connecté.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb put">PUT</span><code>/api/v1/admissions/{uuid}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>uuid</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Admission mise à jour.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/admissions/{uuid}/documents</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>uuid</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste des documents d’une admission.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/admissions/{uuid}/documents</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>uuid</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{
+    &quot;file&quot;: &quot;document.pdf&quot;,
+    &quot;attachmentType&quot;: &quot;identity&quot;
+}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>201</strong></td><td>Document ajouté.</td></tr><tr><td><strong>422</strong></td><td>Fichier invalide ou non autorisé.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb delete">DELETE</span><code>/api/v1/admissions/{uuid}/documents/{documentUuid}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>uuid</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr><tr><td><code>documentUuid</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>204</strong></td><td>Document supprimé.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/admissions/{uuid}/documents/{documentUuid}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>uuid</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr><tr><td><code>documentUuid</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Téléchargement du document.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/admissions/{uuid}/submit</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>uuid</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Admission soumise.</td></tr><tr><td><strong>400</strong></td><td>Soumission impossible pour cet état.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/admissions/{uuid}/tracking</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>uuid</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Timeline de suivi de l’admission.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;uuid&quot;: &quot;8f8f8f8f-1111-4444-8888-123456789abc&quot;,
+        &quot;status&quot;: &quot;draft&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Authentification</h2><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/auth/2fa/check</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Corps de requête attendu</h4><pre>{
+    &quot;email&quot;: &quot;user@example.com&quot;,
+    &quot;code&quot;: &quot;123456&quot;
+}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Code 2FA validé.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/auth/2fa/resend</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Corps de requête attendu</h4><pre>{
+    &quot;email&quot;: &quot;user@example.com&quot;
+}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Code 2FA renvoyé.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/auth/facebook</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>OAuth Facebook URL retournée.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/auth/facebook/callback</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Callback OAuth Facebook retourné.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/auth/forgot-password</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Corps de requête attendu</h4><pre>{
+    &quot;email&quot;: &quot;user@example.com&quot;
+}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Email de réinitialisation envoyé.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/auth/google</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>OAuth Google URL retournée.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/auth/google/callback</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Callback OAuth Google retourné.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/auth/login</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Corps de requête attendu</h4><pre>{
+    &quot;email&quot;: &quot;user@example.com&quot;,
+    &quot;password&quot;: &quot;ChangeMe123!&quot;
+}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Connexion réussie.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;token&quot;: &quot;eyJhbGciOiJIUzI1NiIs...&quot;,
+        &quot;refresh_token&quot;: &quot;refresh-token&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/auth/logout</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Déconnexion réussie.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/auth/me</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Utilisateur connecté.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/auth/refresh</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Corps de requête attendu</h4><pre>{
+    &quot;refresh_token&quot;: &quot;xxxx.yyyy.zzzz&quot;
+}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Renouvellement de token préparé.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/auth/reset-password</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Corps de requête attendu</h4><pre>{
+    &quot;token&quot;: &quot;reset-token-123&quot;,
+    &quot;password&quot;: &quot;ChangeMe123!&quot;
+}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Mot de passe réinitialisé.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Concours</h2><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/concours</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste des concours.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/concours/search</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Résultats de recherche.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/concours/{id}/postulation</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Candidature créée.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/concours/{slug}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>slug</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Détail du concours.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Devices</h2><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/devices</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste des appareils.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/devices/register</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Appareil enregistré.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb delete">DELETE</span><code>/api/v1/devices/{id}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Appareil supprimé.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb put">PUT</span><code>/api/v1/devices/{id}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Appareil mis à jour.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Filières</h2><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/filieres</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>page</code></td><td>query</td><td>Non</td><td>integer</td><td>1</td></tr><tr><td><code>perPage</code></td><td>query</td><td>Non</td><td>integer</td><td>10</td></tr><tr><td><code>parcours</code></td><td>query</td><td>Non</td><td>string</td><td>example-value</td></tr><tr><td><code>niveau</code></td><td>query</td><td>Non</td><td>string</td><td>example-value</td></tr><tr><td><code>cycle</code></td><td>query</td><td>Non</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste des filières.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/filieres/search</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>q</code></td><td>query</td><td>Oui</td><td>string</td><td>example-value</td></tr><tr><td><code>page</code></td><td>query</td><td>Non</td><td>integer</td><td>1</td></tr><tr><td><code>perPage</code></td><td>query</td><td>Non</td><td>integer</td><td>10</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Résultats de recherche des filières.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/filieres/{slug}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>slug</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Détail d une filière.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/filieres/{slug}/parcours</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>slug</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste des parcours d une filière.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Filières et parcours</h2><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/parcours</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> Invité / accès public</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste des parcours.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Inscriptions</h2><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/inscriptions</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste des demandes.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/inscriptions</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>201</strong></td><td>Demande créée.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/inscriptions/pieces</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Pièces requises.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/inscriptions/{id}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Détail de la demande.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb put">PUT</span><code>/api/v1/inscriptions/{id}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Demande mise à jour.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/inscriptions/{id}/documents</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Document uploadé.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb delete">DELETE</span><code>/api/v1/inscriptions/{id}/documents/{documentId}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr><tr><td><code>documentId</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Document supprimé.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/inscriptions/{id}/download</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>PDF de la fiche d’inscription.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/inscriptions/{id}/history</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Historique d’inscription.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;history-id&quot;,
+        &quot;action&quot;: &quot;created&quot;,
+        &quot;createdAt&quot;: &quot;2026-07-24T10:00:00+00:00&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/inscriptions/{id}/submit</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Demande soumise.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/inscriptions/{id}/tracking</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Timeline de suivi.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Notifications</h2><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/notifications</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste des notifications.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/notifications/latest</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Dernières notifications.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/notifications/preferences</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Préférences.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb put">PUT</span><code>/api/v1/notifications/preferences</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Préférences mises à jour.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/notifications/read-all</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Notifications marquées comme lues.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/notifications/unread-count</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Nombre de notifications non lues.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb delete">DELETE</span><code>/api/v1/notifications/{id}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Notification supprimée.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/notifications/{id}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Notification.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/notifications/{id}/read</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Notification marquée comme lue.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Notifications push</h2><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/push/notifications</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Liste des notifications.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/push/notifications/read-all</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Notifications marquées comme lues.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/push/notifications/unread-count</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Nombre de notifications non lues.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb delete">DELETE</span><code>/api/v1/push/notifications/{id}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Notification supprimée.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/push/notifications/{id}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Notification.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/push/notifications/{id}/read</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Notification marquée comme lue.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;notification-id&quot;,
+        &quot;title&quot;: &quot;Information&quot;,
+        &quot;message&quot;: &quot;Nouvelle notification&quot;,
+        &quot;read&quot;: false
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Postulations</h2><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/postulations/{id}/documents</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Documents uploadés.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb delete">DELETE</span><code>/api/v1/postulations/{id}/documents/{documentId}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr><tr><td><code>documentId</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Document supprimé.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/postulations/{id}/submit</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Candidature soumise.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/postulations/{reference}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>reference</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Détail de candidature.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/postulations/{reference}/attestation</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>reference</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>PDF de l’attestation.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/postulations/{reference}/history</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>reference</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Historique de candidature.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;history-id&quot;,
+        &quot;action&quot;: &quot;created&quot;,
+        &quot;createdAt&quot;: &quot;2026-07-24T10:00:00+00:00&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/postulations/{reference}/tracking</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>reference</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Timeline de suivi.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Profil</h2><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/profile</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Profil utilisateur.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb put">PUT</span><code>/api/v1/profile</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Profil mis à jour.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/profile/academic</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Informations académiques.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb put">PUT</span><code>/api/v1/profile/password</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Mot de passe mis à jour.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb delete">DELETE</span><code>/api/v1/profile/photo</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Photo de profil supprimée.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/profile/photo</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Photo de profil enregistrée.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><section class="module"><h2>Publications</h2><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/publications</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>page</code></td><td>query</td><td>Non</td><td>integer</td><td>1</td></tr><tr><td><code>limit</code></td><td>query</td><td>Non</td><td>integer</td><td>12</td></tr><tr><td><code>sort</code></td><td>query</td><td>Non</td><td>string</td><td>publicationDate</td></tr><tr><td><code>order</code></td><td>query</td><td>Non</td><td>string</td><td>DESC</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/publications</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/publications/authors</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/publications/categories</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/publications/favorites</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/publications/search</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/publications/types</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb patch">PATCH</span><code>/api/v1/publications/{id}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/publications/{id}/download</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/publications/{id}/download/file/{fileId}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr><tr><td><code>fileId</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb delete">DELETE</span><code>/api/v1/publications/{id}/favorite</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/publications/{id}/favorite</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/publications/{id}/history</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>200</strong></td><td>Historique de publication.</td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;history-id&quot;,
+        &quot;action&quot;: &quot;created&quot;,
+        &quot;createdAt&quot;: &quot;2026-07-24T10:00:00+00:00&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb post">POST</span><code>/api/v1/publications/{id}/view</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>id</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Corps de requête attendu</h4><pre>{}</pre><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article><article class="endpoint"><div class="endpoint-title"><span class="verb get">GET</span><code>/api/v1/publications/{slug}</code></div><h3>Endpoint API</h3><p>Endpoint exposé par l’API REST EAMAU.</p><p><strong>Authentification :</strong> JWT obligatoire</p><h4>Paramètres</h4><table><tr><th>Nom</th><th>Emplacement</th><th>Obligatoire</th><th>Type</th><th>Exemple</th></tr><tr><td><code>slug</code></td><td>path</td><td>Oui</td><td>string</td><td>example-value</td></tr></table><h4>Réponses</h4><table><tr><th>Code</th><th>Description</th></tr><tr><td><strong>default</strong></td><td></td></tr></table><h4>Exemple de réponse JSON</h4><pre>{
+    &quot;success&quot;: true,
+    &quot;message&quot;: &quot;Opération réussie.&quot;,
+    &quot;data&quot;: {
+        &quot;id&quot;: &quot;resource-id&quot;,
+        &quot;title&quot;: &quot;Exemple de ressource&quot;
+    },
+    &quot;meta&quot;: []
+}</pre></article></section><footer>Document généré automatiquement depuis le contrat OpenAPI enregistré du projet EAMAU.</footer></body></html>

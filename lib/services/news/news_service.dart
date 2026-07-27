@@ -2,62 +2,155 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../models/news/news_model.dart';
 import '../../models/news/news_category_model.dart';
+import '../api_client.dart';
 
 class NewsService {
-  static const String endpoint = 'api/endpoint/news';
-  static const String categoriesEndpoint = 'api/endpoint/news/categories';
+  final ApiClient _apiClient = ApiClient();
 
-  Future<List<NewsModel>> getNews() async {
+  // Récupérer la liste des actualités
+  Future<List<NewsModel>> getNews({
+    int page = 1,
+    int limit = 10,
+    String? category,
+  }) async {
     try {
-      final response = await http.get(Uri.parse(endpoint));
+      final queryParams = {
+        'page': page.toString(),
+        'limit': limit.toString(),
+        if (category != null) 'category': category,
+      };
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-
-        return data.map((e) => NewsModel.fromJson(e)).toList();
-      }
-
-      return fallbackNews;
-    } catch (_) {
-      return fallbackNews;
-    }
-  }
-
-  Future<List<NewsCategoryModel>> getCategories() async {
-    try {
-      final response = await http.get(Uri.parse(categoriesEndpoint));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-
-        return data.map((e) => NewsCategoryModel.fromJson(e)).toList();
-      }
-
-      return fallbackCategories;
-    } catch (_) {
-      return fallbackCategories;
-    }
-  }
-
-  Future<List<NewsModel>> getNewsByCategory(
-      int categoryId,
-      ) async {
-    try {
-      final response = await http.get(
-        Uri.parse(
-          'api/endpoint/news/category/$categoryId',
-        ),
+      final response = await _apiClient.get(
+        '/news',
+        queryParams: queryParams,
       );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data =
-        jsonDecode(response.body);
+      if (response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return data.map((e) => NewsModel.fromJson(e)).toList();
+        } else if (data is Map && data['items'] is List) {
+          return (data['items'] as List)
+              .map((e) => NewsModel.fromJson(e))
+              .toList();
+        }
+      }
 
-        return data
-            .map(
-              (e) => NewsModel.fromJson(e),
-        )
-            .toList();
+      return fallbackNews;
+    } catch (_) {
+      return fallbackNews;
+    }
+  }
+
+  // Récupérer les actualités en avant
+  Future<List<NewsModel>> getFeaturedNews() async {
+    try {
+      final response = await _apiClient.get('/news/featured');
+
+      if (response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return data.map((e) => NewsModel.fromJson(e)).toList();
+        } else if (data is Map && data['items'] is List) {
+          return (data['items'] as List)
+              .map((e) => NewsModel.fromJson(e))
+              .toList();
+        }
+      }
+
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // Récupérer les catégories
+  Future<List<NewsCategoryModel>> getCategories() async {
+    try {
+      final response = await _apiClient.get('/news/categories');
+
+      if (response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return data.map((e) => NewsCategoryModel.fromJson(e)).toList();
+        } else if (data is Map && data['categories'] is List) {
+          return (data['categories'] as List)
+              .map((e) => NewsCategoryModel.fromJson(e))
+              .toList();
+        }
+      }
+
+      return fallbackCategories;
+    } catch (_) {
+      return fallbackCategories;
+    }
+  }
+
+  // Rechercher les actualités
+  Future<List<NewsModel>> searchNews({
+    required String query,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      final queryParams = {
+        'q': query,
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
+
+      final response = await _apiClient.get(
+        '/news/search',
+        queryParams: queryParams,
+      );
+
+      if (response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return data.map((e) => NewsModel.fromJson(e)).toList();
+        } else if (data is Map && data['items'] is List) {
+          return (data['items'] as List)
+              .map((e) => NewsModel.fromJson(e))
+              .toList();
+        }
+      }
+
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // Récupérer un détail d'actualité par slug
+  Future<NewsModel?> getNewsBySlug(String slug) async {
+    try {
+      final response = await _apiClient.get('/news/$slug');
+
+      if (response['success'] == true && response['data'] != null) {
+        return NewsModel.fromJson(response['data']);
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  // Récupérer les actualités par catégorie
+  Future<List<NewsModel>> getNewsByCategory(int categoryId) async {
+    try {
+      final response = await _apiClient.get(
+        '/news',
+        queryParams: {'category': categoryId.toString()},
+      );
+
+      if (response['success'] == true) {
+        final data = response['data'];
+        if (data is List) {
+          return data.map((e) => NewsModel.fromJson(e)).toList();
+        } else if (data is Map && data['items'] is List) {
+          return (data['items'] as List)
+              .map((e) => NewsModel.fromJson(e))
+              .toList();
+        }
       }
 
       return fallbackNews;

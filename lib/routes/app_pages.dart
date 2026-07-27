@@ -1,6 +1,8 @@
 import 'package:eamau/screens/admission/admission_request_screen.dart';
+import 'package:eamau/screens/admission/admission_screen.dart';
 import 'package:eamau/screens/admission/admission_tracking_screen.dart';
 import 'package:eamau/screens/concours/concours_list_screen.dart';
+import 'package:eamau/screens/filiere_screen.dart';
 import 'package:eamau/screens/register_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -29,7 +31,9 @@ class AppPages {
     AppRoutes.user: (_) => const DashboardScreen(),
     AppRoutes.student: (_) => const StudentScreen(),
     AppRoutes.concours: (_) => const ConcoursListScreen(),
+    AppRoutes.admission: (_) => const AdmissionScreen(),
     AppRoutes.admissionRequest: (_) => const AdmissionRequestScreen(),
     AppRoutes.admissionTracking: (_) => const AdmissionTrackingScreen(),
+    AppRoutes.filiere: (_) => const FiliereScreen(),
   };
 }
