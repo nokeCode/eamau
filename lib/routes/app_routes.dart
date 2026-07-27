@@ -12,6 +12,7 @@ class AppRoutes {
   static const concours = '/concours';
   static const admission = '/admission';
   static const admissionRequest = '/admissionRequest';
-  static const admissionTracking = 'admissionTracking';
+  static const admissionTracking = '/admissionTracking';
   static const filiere = '/filiere';
+  static const contact = '/contact';
 }
