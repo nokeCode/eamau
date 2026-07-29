@@ -21,6 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   UserModel _user = UserModel.fallback();
   bool _loading = true;
   bool _isLoggedIn = false;
+  bool _isLoggingOut = false;
 
   @override
   void initState() {
@@ -164,6 +165,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 const SizedBox(height: 24),
                                 ProfileSection(user: _user),
+                                const SizedBox(height: 24),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 52,
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isLoggingOut
+                                        ? null
+                                        : () async {
+                                            final navigator = Navigator.of(context);
+                                            final messenger = ScaffoldMessenger.of(context);
+
+                                            setState(() => _isLoggingOut = true);
+                                            try {
+                                              await _authService.logout();
+                                              if (!mounted) return;
+                                              navigator.pushNamedAndRemoveUntil(
+                                                AppRoutes.login,
+                                                (route) => false,
+                                              );
+                                            } catch (_) {
+                                              if (!mounted) return;
+                                              messenger.showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Déconnexion effectuée localement.',
+                                                  ),
+                                                ),
+                                              );
+                                              navigator.pushNamedAndRemoveUntil(
+                                                AppRoutes.login,
+                                                (route) => false,
+                                              );
+                                            } finally {
+                                              if (mounted) {
+                                                setState(() => _isLoggingOut = false);
+                                              }
+                                            }
+                                          },
+                                    icon: const Icon(Icons.logout),
+                                    label: _isLoggingOut
+                                        ? const Text('Déconnexion...')
+                                        : const Text('Se déconnecter'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFB91C1C),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                                 const SizedBox(height: 40),
                               ],
                             ),

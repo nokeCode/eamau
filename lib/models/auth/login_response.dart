@@ -12,11 +12,19 @@ class LoginResponse {
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>?;
+    String? email = json['email'] as String?;
+
+    if (email == null && data != null) {
+      final user = data['user'] as Map<String, dynamic>?;
+      email = user?['email'] as String?;
+    }
+
     return LoginResponse(
-      accessToken: json['data']?['access_token'] as String?,
-      refreshToken: json['data']?['refresh_token'] as String?,
-      requires2fa: json['data']?['requires_2fa'] ?? false,
-      email: json['email'] as String?,
+      accessToken: data?['access_token'] as String?,
+      refreshToken: data?['refresh_token'] as String?,
+      requires2fa: data?['requires_2fa'] ?? false,
+      email: email,
     );
   }
 

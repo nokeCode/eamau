@@ -68,8 +68,20 @@ class AuthService {
 
   /// Renvoyer le code 2FA
   Future<void> resend2FA({required String email}) async {
+    final normalizedEmail = email.trim();
+
+    if (normalizedEmail.isEmpty || !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(normalizedEmail)) {
+      throw ValidationException(
+        message: 'Adresse email invalide pour l’envoi du code 2FA',
+      );
+    }
+
     try {
-      await _dioClient.dio.post(ApiEndpoints.resend2fa, data: {'email': email});
+      await _dioClient.dio.post(
+        ApiEndpoints.resend2fa,
+        data: {'email': normalizedEmail},
+        options: Options(extra: {'skipAuth': true}),
+      );
     } on DioException catch (e) {
       _handleDioException(e);
       rethrow;

@@ -72,7 +72,7 @@ class AuthProvider extends ChangeNotifier {
       );
 
       if (response.requires2fa) {
-        _pending2FAEmail = response.email;
+        _pending2FAEmail = response.email ?? email;
         _setLoading(false);
         return false; // Retourner false pour indiquer 2FA requis
       }
