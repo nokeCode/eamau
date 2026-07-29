@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:eamau/core/api/api_endpoints.dart';
 import 'package:eamau/core/api/dio_client.dart';
 import 'package:eamau/core/storage/token_storage.dart';
@@ -23,10 +24,7 @@ class AuthService {
     try {
       final response = await _dioClient.dio.post(
         ApiEndpoints.login,
-        data: {
-          'email': email,
-          'password': password,
-        },
+        data: {'email': email, 'password': password},
       );
 
       final loginResponse = LoginResponse.fromJson(response.data);
@@ -53,10 +51,7 @@ class AuthService {
     try {
       final response = await _dioClient.dio.post(
         ApiEndpoints.verify2fa,
-        data: {
-          'email': email,
-          'code': code,
-        },
+        data: {'email': email, 'code': code},
       );
 
       final verify2FAResponse = Verify2FAResponse.fromJson(response.data);
@@ -74,10 +69,7 @@ class AuthService {
   /// Renvoyer le code 2FA
   Future<void> resend2FA({required String email}) async {
     try {
-      await _dioClient.dio.post(
-        ApiEndpoints.resend2fa,
-        data: {'email': email},
-      );
+      await _dioClient.dio.post(ApiEndpoints.resend2fa, data: {'email': email});
     } on DioException catch (e) {
       _handleDioException(e);
       rethrow;
@@ -115,8 +107,41 @@ class AuthService {
 
       return authResponse;
     } on DioException catch (e) {
+      if (e.response?.statusCode == 500) {
+        final fallback = await _fallbackLoginAfterRegister(
+          email: email,
+          password: password,
+        );
+        if (fallback != null) {
+          return fallback;
+        }
+      }
+
       _handleDioException(e);
       rethrow;
+    }
+  }
+
+  Future<AuthResponse?> _fallbackLoginAfterRegister({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final loginResponse = await login(email: email, password: password);
+
+      if (loginResponse.accessToken == null) {
+        return null;
+      }
+
+      final user = await getCurrentUser();
+
+      return AuthResponse(
+        accessToken: loginResponse.accessToken!,
+        refreshToken: loginResponse.refreshToken ?? '',
+        user: user,
+      );
+    } catch (_) {
+      return null;
     }
   }
 
@@ -159,6 +184,17 @@ class AuthService {
     if (e.error is ApiException) {
       throw e.error as ApiException;
     }
+
+    if (e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.connectionTimeout) {
+      throw NetworkException(
+        message: e.message ?? 'Erreur de connexion réseau',
+      );
+    }
+
+    throw ServerException(message: e.message ?? 'Erreur serveur');
   }
 
   /// Connexion avec Google (Firebase)
@@ -166,25 +202,35 @@ class AuthService {
     try {
       final result = await _firebaseAuthService.loginWithGoogle();
 
-      // Sauvegarder les tokens
-      await _firebaseAuthService.saveTokens(
-        accessToken: result['accessToken'] as String,
-        refreshToken: result['refreshToken'] as String?,
-      );
+      final accessToken = result['accessToken'] as String?;
+      final refreshToken = result['refreshToken'] as String?;
+      final requires2fa = result['requires2fa'] as bool? ?? false;
+      final email = (result['user'] is Map<String, dynamic>)
+          ? (result['user'] as Map<String, dynamic>)['email'] as String?
+          : null;
 
-      // Créer la réponse LoginResponse
+      // If 2FA required, don't save tokens (backend will return tokens after verification)
+      if (!requires2fa && accessToken != null) {
+        await _firebaseAuthService.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+      }
+
+      // Return a LoginResponse describing the result
       return LoginResponse(
-        accessToken: result['accessToken'] as String,
-        refreshToken: result['refreshToken'] as String?,
-        requires2fa: result['requires2fa'] as bool? ?? false,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        requires2fa: requires2fa,
+        email: email,
       );
     } catch (e) {
       _handleError(e);
       rethrow;
-     }
-   }
+    }
+  }
 
-   /// Renouveler les tokens
+  /// Renouveler les tokens
   Future<void> refreshTokens() async {
     try {
       await _firebaseAuthService.refreshTokens();
@@ -209,6 +255,6 @@ class AuthService {
 
   /// Gérer les erreurs
   void _handleError(dynamic error) {
-    print('Firebase Auth Error: $error');
+    debugPrint('Firebase Auth Error: $error');
   }
 }

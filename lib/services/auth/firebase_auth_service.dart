@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:eamau/core/api/api_endpoints.dart';
 import 'package:eamau/core/storage/token_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:eamau/core/api/dio_client.dart';
@@ -9,9 +10,6 @@ class FirebaseAuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final TokenStorage _tokenStorage = TokenStorage();
   final DioClient _dioClient = DioClient();
-
-  // API Base URL - à adapter selon l'environnement
-  static const String _baseUrl = 'http://10.0.2.2:9090/api/v1';
 
   /// Connexion avec Google + Firebase + Backend Symfony
   Future<Map<String, dynamic>> loginWithGoogle() async {
@@ -30,8 +28,9 @@ class FirebaseAuthService {
       );
 
       // Étape 3 : Se connecter à Firebase
-      final userCredential =
-          await _firebaseAuth.signInWithCredential(credential);
+      final userCredential = await _firebaseAuth.signInWithCredential(
+        credential,
+      );
 
       // Étape 4 : Récupérer le Firebase ID Token
       final firebaseUser = userCredential.user!;
@@ -39,7 +38,7 @@ class FirebaseAuthService {
 
       // Étape 5 : Envoyer au backend Symfony
       final response = await _dioClient.dio.post(
-        '$_baseUrl/auth/firebase',
+        '/auth/firebase',
         data: {'idToken': firebaseIdToken},
       );
 
@@ -52,9 +51,9 @@ class FirebaseAuthService {
     } catch (e) {
       rethrow;
     }
-   }
+  }
 
-   /// Traiter la réponse du backend Symfony
+  /// Traiter la réponse du backend Symfony
   Map<String, dynamic> _handleSymfonyResponse(Response response) {
     final data = response.data;
 
@@ -65,14 +64,33 @@ class FirebaseAuthService {
 
     final responseData = data['data'] as Map<String, dynamic>? ?? data;
 
-    // Extraire les tokens
-    final accessToken = responseData['access_token'] as String?;
-    final refreshToken = responseData['refresh_token'] as String?;
+    // Try multiple possible token keys to be tolerant with backend variations
+    String? accessToken = responseData['access_token'] as String?;
+    accessToken ??= responseData['accessToken'] as String?;
+    accessToken ??= responseData['token'] as String?;
+
+    String? refreshToken = responseData['refresh_token'] as String?;
+    refreshToken ??= responseData['refreshToken'] as String?;
+
     final user = responseData['user'] as Map<String, dynamic>?;
-    final requires2fa = responseData['requires_2fa'] as bool? ?? false;
+    final requires2fa =
+        responseData['requires_2fa'] as bool? ??
+        responseData['requires2fa'] as bool? ??
+        false;
+
+      // If server indicates 2FA is required, accept response without tokens
+      if (requires2fa && accessToken == null) {
+        return {
+          'accessToken': null,
+          'refreshToken': refreshToken,
+          'user': user,
+          'requires2fa': true,
+        };
+      }
 
     if (accessToken == null) {
-      throw Exception('No access token in response');
+      // Provide the full response to make debugging easier server/client mismatches
+      throw Exception('No access token in response: ${response.data}');
     }
 
     return {
@@ -113,8 +131,9 @@ class FirebaseAuthService {
       }
 
       final response = await _dioClient.dio.post(
-        '$_baseUrl/auth/refresh',
+        ApiEndpoints.refresh,
         data: {'refresh_token': refreshToken},
+        options: Options(extra: {'skipAuth': true}),
       );
 
       final result = _handleSymfonyResponse(response);
@@ -127,23 +146,23 @@ class FirebaseAuthService {
     }
   }
 
-   /// Déconnexion
-   Future<void> logout() async {
-     try {
-       // Déconnecter de Firebase
-       await _firebaseAuth.signOut();
+  /// Déconnexion
+  Future<void> logout() async {
+    try {
+      // Déconnecter de Firebase
+      await _firebaseAuth.signOut();
 
-       // Déconnecter de Google
-       await _googleSignIn.signOut();
+      // Déconnecter de Google
+      await _googleSignIn.signOut();
 
-       // Supprimer les tokens locaux
-       await _tokenStorage.deleteTokens();
-     } catch (e) {
-       print('Logout error: $e');
-       // Toujours supprimer les tokens même en cas d'erreur
-       await _tokenStorage.deleteTokens();
-     }
-   }
+      // Supprimer les tokens locaux
+      await _tokenStorage.deleteTokens();
+    } catch (e) {
+      print('Logout error: $e');
+      // Toujours supprimer les tokens même en cas d'erreur
+      await _tokenStorage.deleteTokens();
+    }
+  }
 
   /// Vérifier si l'utilisateur est connecté
   Future<bool> isLoggedIn() async {
@@ -155,52 +174,50 @@ class FirebaseAuthService {
     return _firebaseAuth.currentUser;
   }
 
-   /// Flux de connexion avec gestion 2FA
-   Future<Map<String, dynamic>> handleAuthenticationFlow({
-     required bool Function(String) onNeedsVerification,
-     required bool Function(Map<String, dynamic>) onSuccess,
-     required bool Function(String) onError,
-     required String provider, // 'google'
-   }) async {
-     try {
-       late Map<String, dynamic> authResult;
+  /// Flux de connexion avec gestion 2FA
+  Future<Map<String, dynamic>> handleAuthenticationFlow({
+    required bool Function(String) onNeedsVerification,
+    required bool Function(Map<String, dynamic>) onSuccess,
+    required bool Function(String) onError,
+    required String provider, // 'google'
+  }) async {
+    try {
+      late Map<String, dynamic> authResult;
 
-       if (provider == 'google') {
-         authResult = await loginWithGoogle();
-       } else {
-         throw Exception('Unknown provider: $provider');
-       }
+      if (provider == 'google') {
+        authResult = await loginWithGoogle();
+      } else {
+        throw Exception('Unknown provider: $provider');
+      }
 
-       // Sauvegarder les tokens
-       await saveTokens(
-         accessToken: authResult['accessToken'] as String,
-         refreshToken: authResult['refreshToken'] as String?,
-       );
+      // Sauvegarder les tokens si fournis (si 2FA non requis)
+      if (authResult['accessToken'] != null) {
+        await saveTokens(
+          accessToken: authResult['accessToken'] as String,
+          refreshToken: authResult['refreshToken'] as String?,
+        );
+      }
 
-       // Vérifier si 2FA est requis
-       if (authResult['requires2fa'] as bool) {
-         return {
-           'success': onNeedsVerification(
-             authResult['user']?['email'] ?? 'user@example.com',
-           ),
-           'requires2fa': true,
-           'data': authResult,
-         };
-       }
+      // Vérifier si 2FA est requis
+      if (authResult['requires2fa'] as bool) {
+        return {
+          'success': onNeedsVerification(
+            authResult['user']?['email'] ?? 'user@example.com',
+          ),
+          'requires2fa': true,
+          'data': authResult,
+        };
+      }
 
-       // Authentification réussie
-       return {
-         'success': onSuccess(authResult),
-         'requires2fa': false,
-         'data': authResult,
-       };
-     } catch (e) {
-       onError(e.toString());
-       return {
-         'success': false,
-         'error': e.toString(),
-       };
-     }
-   }
+      // Authentification réussie
+      return {
+        'success': onSuccess(authResult),
+        'requires2fa': false,
+        'data': authResult,
+      };
+    } catch (e) {
+      onError(e.toString());
+      return {'success': false, 'error': e.toString()};
+    }
+  }
 }
-

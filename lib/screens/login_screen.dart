@@ -1,5 +1,6 @@
 import 'package:eamau/providers/auth_provider.dart';
 import 'package:eamau/screens/register_screen.dart';
+import 'package:eamau/screens/verify_2fa_screen.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -65,6 +66,17 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, AppRoutes.user);
       }
     } else {
+      // If 2FA is pending, navigate to verification screen with email
+      if (authProvider.pending2FA && authProvider.pending2FAEmail != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VerificationScreen(email: authProvider.pending2FAEmail),
+          ),
+        );
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.red,

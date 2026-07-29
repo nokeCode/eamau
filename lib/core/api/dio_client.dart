@@ -32,12 +32,10 @@ class DioClient {
           'Accept': 'application/json',
         },
         validateStatus: (status) {
-          // Accept all status codes and let interceptor handle them
-          return true;
+          return status != null && status >= 200 && status < 300;
         },
       ),
     );
-
 
     _dio.interceptors.addAll([
       _AuthInterceptor(_dio, _secureStorage, this),
@@ -48,16 +46,16 @@ class DioClient {
 
   Dio get dio => _dio;
 
-  Future<String?> _getAccessToken() async {
-    return await _secureStorage.read(key: 'access_token');
-  }
-
   Future<String?> _getRefreshToken() async {
     return await _secureStorage.read(key: 'refresh_token');
   }
 
   Future<void> _saveAccessToken(String token) async {
     await _secureStorage.write(key: 'access_token', value: token);
+  }
+
+  Future<void> _saveRefreshToken(String token) async {
+    await _secureStorage.write(key: 'refresh_token', value: token);
   }
 
   Future<bool> _refreshAccessToken() async {
@@ -77,15 +75,23 @@ class DioClient {
       final response = await _dio.post(
         ApiEndpoints.refresh,
         data: {'refresh_token': refreshToken},
-        options: Options(
-          headers: {'Authorization': 'Bearer $refreshToken'},
-        ),
+        options: Options(extra: {'skipAuth': true}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final newAccessToken = response.data['data']['access_token'];
-        await _saveAccessToken(newAccessToken);
-        return true;
+        final responseData = response.data['data'] as Map<String, dynamic>?;
+        final newAccessToken = responseData?['access_token'] as String?;
+        final newRefreshToken = responseData?['refresh_token'] as String?;
+
+        if (newAccessToken != null) {
+          await _saveAccessToken(newAccessToken);
+        }
+
+        if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
+          await _saveRefreshToken(newRefreshToken);
+        }
+
+        return newAccessToken != null;
       }
 
       return false;
@@ -116,6 +122,10 @@ class _AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (options.extra['skipAuth'] == true) {
+      return handler.next(options);
+    }
+
     final accessToken = await secureStorage.read(key: 'access_token');
 
     if (accessToken != null && accessToken.isNotEmpty) {
@@ -135,8 +145,7 @@ class _AuthInterceptor extends Interceptor {
 
       if (refreshed) {
         final options = err.requestOptions;
-        final newAccessToken =
-            await secureStorage.read(key: 'access_token');
+        final newAccessToken = await secureStorage.read(key: 'access_token');
 
         if (newAccessToken != null) {
           options.headers['Authorization'] = 'Bearer $newAccessToken';
@@ -180,7 +189,9 @@ class _ErrorInterceptor extends Interceptor {
     if (err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.sendTimeout) {
-      apiException = TimeoutException(message: err.message ?? 'Délai d\'attente dépassé');
+      apiException = TimeoutException(
+        message: err.message ?? 'Délai d\'attente dépassé',
+      );
     } else if (err.type == DioExceptionType.cancel) {
       apiException = CancelledException(message: 'Requête annulée');
     } else if (err.type == DioExceptionType.connectionError) {
@@ -211,9 +222,9 @@ class _ErrorInterceptor extends Interceptor {
         case 500:
           apiException = ServerException(message: message);
           break;
-         default:
-           apiException = ServerException(message: message);
-           break;
+        default:
+          apiException = ServerException(message: message);
+          break;
       }
     } else {
       apiException = NetworkException(
@@ -247,7 +258,9 @@ class _LoggingInterceptor extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     if (kDebugMode) {
-      print('⬅️ RESPONSE: ${response.statusCode} ${response.requestOptions.uri}');
+      print(
+        '⬅️ RESPONSE: ${response.statusCode} ${response.requestOptions.uri}',
+      );
       if (response.data != null) {
         print('   Data: ${response.data}');
       }

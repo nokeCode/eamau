@@ -1,5 +1,7 @@
+import 'api_config.dart';
+
 class ApiEndpoints {
-  static const String baseUrl = 'http://localhost:9090/api/v1';
+  static const String baseUrl = ApiConfig.fullBaseUrl;
 
   // Auth endpoints
   static const String login = '/auth/login';

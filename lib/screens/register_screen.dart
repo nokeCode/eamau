@@ -62,18 +62,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.green,
-          content: Text('Compte créé avec succès'),
+        SnackBar(
+          backgroundColor: const Color(0xFF2E7D32),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: Colors.white),
+              SizedBox(width: 10),
+              Expanded(child: Text('Compte créé avec succès. Bienvenue !')),
+            ],
+          ),
         ),
       );
 
-      Navigator.pushReplacementNamed(context, AppRoutes.user);
+      Navigator.pushReplacementNamed(context, AppRoutes.profile);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(authProvider.error ?? 'Erreur lors de l\'inscription'),
+          backgroundColor: const Color(0xFFD32F2F),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Text(
+            authProvider.error ?? 'Erreur lors de l\'inscription',
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
       );
     }
@@ -95,6 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               emailController: _emailController,
               telephoneController: _telephoneController,
               passwordController: _passwordController,
+              passwordConfirmController: _passwordConfirmController,
             ),
             const SizedBox(height: 30),
             Consumer<AuthProvider>(

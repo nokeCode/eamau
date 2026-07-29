@@ -29,7 +29,8 @@ class _SplashScreenState extends State<SplashScreen> {
     if (authProvider.isLoggedIn) {
       Navigator.pushReplacementNamed(context, AppRoutes.user);
     } else {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
+      // Allow anonymous access to parts of the app: go to Home instead of Login
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
     }
   }
 
@@ -89,10 +90,7 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/logos/eamau_logo.gif',
-                  width: 140,
-                ),
+                Image.asset('assets/logos/eamau_logo.gif', width: 140),
                 const SizedBox(height: 20),
                 const Text(
                   'EAMAU',
@@ -106,10 +104,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 const Text(
                   "École Africaine des Métiers de\nl'Architecture et de l'Urbanisme",
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -120,9 +115,7 @@ class _SplashScreenState extends State<SplashScreen> {
             right: 0,
             child: Column(
               children: [
-                CircularProgressIndicator(
-                  color: Colors.white,
-                ),
+                CircularProgressIndicator(color: Colors.white),
                 SizedBox(height: 12),
                 Text(
                   "Chargement ...",
@@ -133,7 +126,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );

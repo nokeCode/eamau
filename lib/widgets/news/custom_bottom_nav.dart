@@ -15,21 +15,21 @@ class CustomBottomNav extends StatelessWidget {
       onTap: (index) {
         switch (index) {
           case 0:
-            Navigator.pushReplacementNamed(
+            Navigator.pushNamed(
               context,
               AppRoutes.home,
             );
             break;
 
           case 2:
-            Navigator.pushReplacementNamed(
+            Navigator.pushNamed(
               context,
               AppRoutes.news,
             );
             break;
 
           case 4: //profile
-            Navigator.pushReplacementNamed(context, AppRoutes.profile,);
+            Navigator.pushNamed(context, AppRoutes.profile);
             break;
         }
       },

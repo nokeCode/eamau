@@ -10,12 +10,36 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoggedIn = false;
   User? _user;
   String? _error;
+  String? _pending2FAEmail;
 
   // Getters
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _isLoggedIn;
   User? get user => _user;
   String? get error => _error;
+  bool get pending2FA => _pending2FAEmail != null;
+  String? get pending2FAEmail => _pending2FAEmail;
+
+  static String? formatValidationErrors(Map<String, dynamic>? errors) {
+    if (errors == null || errors.isEmpty) {
+      return null;
+    }
+
+    final parts = <String>[];
+    errors.forEach((key, value) {
+      try {
+        if (value is List && value.isNotEmpty) {
+          parts.add('$key: ${value[0]}');
+        } else {
+          parts.add('$key: $value');
+        }
+      } catch (_) {
+        parts.add('$key: $value');
+      }
+    });
+
+    return parts.join(' | ');
+  }
 
   AuthProvider() {
     _checkLoginStatus();
@@ -37,10 +61,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Login
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> login({required String email, required String password}) async {
     _setLoading(true);
     _error = null;
 
@@ -51,6 +72,7 @@ class AuthProvider extends ChangeNotifier {
       );
 
       if (response.requires2fa) {
+        _pending2FAEmail = response.email;
         _setLoading(false);
         return false; // Retourner false pour indiquer 2FA requis
       }
@@ -71,21 +93,16 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Vérifier 2FA
-  Future<bool> verify2FA({
-    required String email,
-    required String code,
-  }) async {
+  Future<bool> verify2FA({required String email, required String code}) async {
     _setLoading(true);
     _error = null;
 
     try {
-      final response = await _authService.verify2FA(
-        email: email,
-        code: code,
-      );
+      final response = await _authService.verify2FA(email: email, code: code);
 
       _isLoggedIn = true;
       _user = response.user;
+      _pending2FAEmail = null;
       _setLoading(false);
       return true;
     } on ApiException catch (e) {
@@ -146,7 +163,13 @@ class AuthProvider extends ChangeNotifier {
       _setLoading(false);
       return true;
     } on ValidationException catch (e) {
-      _error = e.message;
+      _error =
+          formatValidationErrors(
+            e.errors is Map<String, dynamic>
+                ? e.errors as Map<String, dynamic>
+                : null,
+          ) ??
+          e.message;
       _setLoading(false);
       return false;
     } on ApiException catch (e) {
@@ -154,7 +177,7 @@ class AuthProvider extends ChangeNotifier {
       _setLoading(false);
       return false;
     } catch (e) {
-      _error = 'Erreur lors de l\'enregistrement';
+      _error = e.toString();
       _setLoading(false);
       return false;
     }
@@ -180,7 +203,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-   /// Déconnexion
+  /// Déconnexion
   Future<void> logout() async {
     _setLoading(true);
 
@@ -205,6 +228,7 @@ class AuthProvider extends ChangeNotifier {
       final response = await _authService.loginWithGoogle();
 
       if (response.requires2fa) {
+        _pending2FAEmail = response.email;
         _setLoading(false);
         return false; // Nécessite vérification 2FA
       }
@@ -222,9 +246,9 @@ class AuthProvider extends ChangeNotifier {
       _setLoading(false);
       return false;
     }
-   }
+  }
 
-   /// Effacer l'erreur
+  /// Effacer l'erreur
   void clearError() {
     _error = null;
     notifyListeners();
@@ -235,4 +259,3 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
-

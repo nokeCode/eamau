@@ -1,4 +1,4 @@
-package com.example.eamau
+package org.eamau.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 
