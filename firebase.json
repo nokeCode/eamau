@@ -1,0 +1,1 @@
+{"flutter":{"platforms":{"android":{"default":{"projectId":"eamau-auth","appId":"1:732185606344:android:5b696f79ee265733744dfd","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"eamau-auth","configurations":{"android":"1:732185606344:android:5b696f79ee265733744dfd","ios":"1:732185606344:ios:4297df81da228b34744dfd"}}}}}}

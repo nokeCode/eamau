@@ -9,22 +9,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:eamau/main.dart';
+import 'package:provider/provider.dart';
+import 'package:eamau/providers/auth_provider.dart';
+import 'package:eamau/providers/notification_provider.dart';
+import 'package:eamau/providers/student/dashboard_provider.dart';
+import 'package:eamau/providers/admission_tracking_provider.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('App builds and shows splash', (WidgetTester tester) async {
+    // Build our app with the same providers as in main and trigger a frame.
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider(create: (_) => DashboardProvider()),
+          ChangeNotifierProvider(create: (_) => AdmissionTrackingProvider()),
+        ],
+        child: const MyApp(),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Splash screen contains the app title
+    expect(find.text('EAMAU'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Let the splash timer complete to avoid pending timers
+    await tester.pump(const Duration(seconds: 3));
   });
 }

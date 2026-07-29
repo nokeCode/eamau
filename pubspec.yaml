@@ -18,7 +18,12 @@ dependencies:
   provider: ^6.1.2
   intl: ^0.20.2
   url_launcher: ^6.3.2
-  file_picker: ^10.3.2
+  file_picker: ^8.0.7
+  dio: ^5.8.0
+  flutter_secure_storage: ^9.2.2
+  firebase_core: ^2.27.0
+  firebase_auth: ^4.18.0
+  google_sign_in: ^6.2.0
 
 dev_dependencies:
   flutter_test:

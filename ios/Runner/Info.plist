@@ -66,5 +66,51 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<!-- Google Sign-In Configuration -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<!-- Google URL Scheme -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- À remplacer avec votre Google Client ID depuis Firebase Console -->
+				<string>com.googleusercontent.apps.732185606344-057cgmbmaiduihhkdjad2bi0eiurhdqm</string>
+			</array>
+		</dict>
+		<!-- Facebook URL Scheme -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- À remplacer avec fbYOUR_FACEBOOK_APP_ID -->
+				<string>fbYOUR_FACEBOOK_APP_ID</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- Facebook SDK Configuration -->
+	<key>FacebookAppID</key>
+	<string>YOUR_FACEBOOK_APP_ID</string>
+	<key>FacebookDisplayName</key>
+	<string>eamau</string>
+	<key>FacebookClientToken</key>
+	<string>YOUR_FACEBOOK_CLIENT_TOKEN</string>
+
+	<!-- LSApplicationQueriesSchemes pour iOS 9+ -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
+		<string>fbauth2</string>
+		<string>fbshareextension</string>
+		<string>google</string>
+		<string>googlegmail</string>
+		<string>googlecontacts</string>
+		<string>gcs</string>
+	</array>
 </dict>
 </plist>

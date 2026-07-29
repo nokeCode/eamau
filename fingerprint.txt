@@ -1,0 +1,268 @@
+┌─[germain@parrot]─[~/Desktop/Programmation/Stage/eamau/android]
+└──╼ $./gradlew signingReport
+Starting a Gradle Daemon, 1 stopped Daemon could not be reused, use --status for details
+
+> Configure project :gradle
+WARNING: Unsupported Kotlin plugin version.
+The `embedded-kotlin` and `kotlin-dsl` plugins rely on features of Kotlin `1.9.24` that might work differently than in the requested version `2.2.20`.
+
+> Task :gradle:compileKotlin
+w: Language version 1.8 is deprecated and its support will be removed in a future version of Kotlin
+w: file:///home/germain/flutter/packages/flutter_tools/gradle/src/main/kotlin/FlutterPlugin.kt:12:37 'ApkVariant' is deprecated. Deprecated in Java
+w: file:///home/germain/flutter/packages/flutter_tools/gradle/src/main/kotlin/FlutterPlugin.kt:625:69 'ApkVariant' is deprecated. Deprecated in Java
+w: file:///home/germain/flutter/packages/flutter_tools/gradle/src/main/kotlin/FlutterPluginUtils.kt:12:37 'BaseVariantOutput' is deprecated. Deprecated in Java
+w: file:///home/germain/flutter/packages/flutter_tools/gradle/src/main/kotlin/plugins/PluginHandler.kt:168:70 Unchecked cast: NamedDomainObjectContainer<out BuildType> to NamedDomainObjectContainer<BuildType>
+w: file:///home/germain/flutter/packages/flutter_tools/gradle/src/main/kotlin/plugins/PluginHandler.kt:169:75 Unchecked cast: NamedDomainObjectContainer<out BuildType> to NamedDomainObjectContainer<BuildType>
+
+> Configure project :app
+Warning: Flutter support for your project's Gradle version (8.10.2) will soon be dropped. Please upgrade your Gradle version to a version of at least 8.14.0 soon.
+Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
+
+Potential fix: Your project's gradle version is typically defined in the gradle wrapper file. By default, this can be found at /home/germain/Desktop/Programmation/Stage/eamau/android/gradle/wrapper/gradle-wrapper.properties.
+For more information, see https://docs.gradle.org/current/userguide/gradle_wrapper.html.
+
+Warning: Flutter support for your project's Android Gradle Plugin version (Android Gradle Plugin version 8.7.3) will soon be dropped. Please upgrade your Android Gradle Plugin version to a version of at least Android Gradle Plugin version 8.11.1 soon.
+Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
+
+Potential fix: Your project's AGP version is typically defined in the plugins block of the `settings.gradle` file (/home/germain/Desktop/Programmation/Stage/eamau/android/settings.gradle), by a plugin with the id of com.android.application.
+If you don't see a plugins block, your project was likely created with an older template version. In this case it is most likely defined in the top-level build.gradle file (/home/germain/Desktop/Programmation/Stage/eamau/android/build.gradle) by the following line in the dependencies block of the buildscript: "classpath 'com.android.tools.build:gradle:<version>'".
+
+Warning: Flutter support for your project's Kotlin version (2.0.21) will soon be dropped. Please upgrade your Kotlin version to a version of at least 2.2.20 soon.
+Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
+
+Potential fix: Your project's KGP version is typically defined in the plugins block of the `settings.gradle` file (/home/germain/Desktop/Programmation/Stage/eamau/android/settings.gradle), by a plugin with the id of org.jetbrains.kotlin.android.
+If you don't see a plugins block, your project was likely created with an older template version, in which case it is most likely defined in the top-level build.gradle file (/home/germain/Desktop/Programmation/Stage/eamau/android/build.gradle) by the ext.kotlin_version property.
+
+WARNING: Your Android app project: app located at: /home/germain/Desktop/Programmation/Stage/eamau/android/app/build.gradle.kts
+applies the Kotlin Gradle Plugin, which will cause build failures in future versions of Flutter.
+Please migrate your app to Built-in Kotlin using this guide: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers
+
+WARNING: Your app uses the following plugins that apply Kotlin Gradle Plugin (KGP): jni
+Future versions of Flutter will fail to build if your app uses plugins that apply KGP.
+
+Please check the changelogs of these plugins and upgrade to a version that supports Built-in Kotlin.
+If no such version exists, report the issue to the plugin. If necessary, here is a guide on filing
+an issue against a plugin: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers#report-incompatible-kotlin-gradle-plugin-usage-to-plugin-authors
+
+If you are a plugin author, please migrate your plugin to Built-in Kotlin using this guide: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-plugin-authors
+
+> Task :app:signingReport
+Variant: debug
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+Variant: release
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+Variant: profile
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :file_picker:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :firebase_auth:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :firebase_core:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :flutter_facebook_auth:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :flutter_plugin_android_lifecycle:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :flutter_secure_storage:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :google_sign_in_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :jni:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :jni_flutter:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :shared_preferences_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :url_launcher_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+BUILD SUCCESSFUL in 7m 55s
+16 actionable tasks: 14 executed, 2 up-to-date
+┌─[germain@parrot]─[~/Desktop/Programmation/Stage/eamau/android]
+└──╼ $riant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :jni:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :jni_flutter:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :shared_preferences_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+> Task :url_launcher_android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: /home/germain/.android/debug.keystore
+Alias: AndroidDebugKey
+MD5: B3:F5:91:F3:34:90:95:9A:C9:A4:72:E4:20:5B:43:BF
+SHA1: 6C:56:B0:AD:E1:CC:54:D5:18:17:08:E7:49:2B:94:D0:6E:66:5E:0A
+SHA-256: FA:85:05:CC:67:99:03:AB:99:59:6F:29:9B:28:28:F0:29:88:33:4A:79:C5:3D:E1:09:DB:41:7B:C6:0D:5F:EF
+Valid until: samedi 10 juin 2056
+----------
+
+BUILD SUCCESSFUL in 7m 55s
+16 actionable tasks: 14 executed, 2 up-to-date
+┌─[germain@parrot]─[~/Desktop/Programmation/Stage/eamau/android]
+└──╼ $

@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:eamau/providers/auth_provider.dart';
+import 'package:eamau/routes/app_routes.dart';
 
-import '../../models/register/register_model.dart';
-import '../../services/register/register_service.dart';
 import '../widgets/register/login_redirect.dart';
 import '../widgets/register/register_button.dart';
 import '../widgets/register/register_form.dart';
 import '../widgets/register/register_header.dart';
-
-// Remplace par ton dashboard
-import 'user_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -25,10 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _telephoneController = TextEditingController();
   final _passwordController = TextEditingController();
-
-  final RegisterService _service = RegisterService();
-
-  bool _loading = false;
+  final _passwordConfirmController = TextEditingController();
 
   @override
   void dispose() {
@@ -37,50 +32,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _telephoneController.dispose();
     _passwordController.dispose();
+    _passwordConfirmController.dispose();
     super.dispose();
   }
 
-  Future<void> _register() async {
+  Future<void> _register(AuthProvider authProvider) async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _loading = true;
-    });
+    if (_passwordController.text != _passwordConfirmController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('Les mots de passe ne correspondent pas'),
+        ),
+      );
+      return;
+    }
 
-    final user = RegisterModel(
-      nom: _nomController.text.trim(),
-      prenom: _prenomController.text.trim(),
+    final success = await authProvider.register(
       email: _emailController.text.trim(),
-      telephone: _telephoneController.text.trim(),
+      firstName: _prenomController.text.trim(),
+      lastName: _nomController.text.trim(),
       password: _passwordController.text,
+      passwordConfirmation: _passwordConfirmController.text,
+      phone: _telephoneController.text.trim(),
     );
 
-    final success = await _service.register(user);
-
     if (!mounted) return;
-
-    setState(() {
-      _loading = false;
-    });
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Compte créé avec succès."),
+          backgroundColor: Colors.green,
+          content: Text('Compte créé avec succès'),
         ),
       );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const DashboardScreen(),
-        ),
-      );
+      Navigator.pushReplacementNamed(context, AppRoutes.user);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           backgroundColor: Colors.red,
-          content: Text("Échec de la création du compte."),
+          content: Text(authProvider.error ?? 'Erreur lors de l\'inscription'),
         ),
       );
     }
@@ -91,35 +84,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
-          child: Column(
-            children: [
-              const RegisterHeader(),
-
-              const SizedBox(height: 28),
-
-              RegisterForm(
-                formKey: _formKey,
-                nomController: _nomController,
-                prenomController: _prenomController,
-                emailController: _emailController,
-                telephoneController: _telephoneController,
-                passwordController: _passwordController,
-              ),
-
-              const SizedBox(height: 30),
-
-              RegisterButton(
-                isLoading: _loading,
-                onPressed: _register,
-              ),
-
-              const SizedBox(height: 24),
-
-              const LoginRedirect(),
-
-              const SizedBox(height: 30),
-            ],
-          ),
+        child: Column(
+          children: [
+            const RegisterHeader(),
+            const SizedBox(height: 28),
+            RegisterForm(
+              formKey: _formKey,
+              nomController: _nomController,
+              prenomController: _prenomController,
+              emailController: _emailController,
+              telephoneController: _telephoneController,
+              passwordController: _passwordController,
+            ),
+            const SizedBox(height: 30),
+            Consumer<AuthProvider>(
+              builder: (context, authProvider, _) {
+                return RegisterButton(
+                  isLoading: authProvider.isLoading,
+                  onPressed: () => _register(authProvider),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            const LoginRedirect(),
+            const SizedBox(height: 30),
+          ],
+        ),
       ),
     );
   }

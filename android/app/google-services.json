@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "732185606344",
+    "project_id": "eamau-auth",
+    "storage_bucket": "eamau-auth.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:732185606344:android:5b696f79ee265733744dfd",
+        "android_client_info": {
+          "package_name": "org.eamau.mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "732185606344-pe03j44l9vepa1flmj5c7f0qd025cc8t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.eamau.mobile",
+            "certificate_hash": "6c56b0ade1cc54d5181708e7492b94d06e665e0a"
+          }
+        },
+        {
+          "client_id": "732185606344-i3pbqngai3s0d693t7ebp6ttvk0nvt6c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwMRul8kOkkK3yyfz1NfSFQb9aJy6XZr0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "732185606344-i3pbqngai3s0d693t7ebp6ttvk0nvt6c.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "732185606344-057cgmbmaiduihhkdjad2bi0eiurhdqm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.eamau"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

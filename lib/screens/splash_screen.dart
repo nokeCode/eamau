@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
+import 'package:eamau/providers/auth_provider.dart';
 import '../routes/app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -11,23 +13,24 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-
   @override
   void initState() {
     super.initState();
+    _checkAuthStatus();
+  }
 
-    Timer(
-      const Duration(seconds: 2),
-          () {
-            if (!mounted) return;
+  Future<void> _checkAuthStatus() async {
+    await Future.delayed(const Duration(seconds: 2));
 
-            Navigator.pushReplacementNamed(
-              context,
-              AppRoutes.home,
-            );
-        // Navigation plus tard
-      },
-    );
+    if (!mounted) return;
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    if (authProvider.isLoggedIn) {
+      Navigator.pushReplacementNamed(context, AppRoutes.user);
+    } else {
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
+    }
   }
 
   @override
@@ -35,11 +38,8 @@ class _SplashScreenState extends State<SplashScreen> {
     final size = MediaQuery.of(context).size;
     return Scaffold(
       backgroundColor: Colors.white,
-
       body: Stack(
         children: [
-
-          //première cercle bleu en haut
           Positioned(
             top: -8,
             right: -80,
@@ -52,8 +52,6 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
           ),
-
-          //dexième cercle bleu en bas
           Positioned(
             bottom: 100,
             left: -80,
@@ -66,8 +64,6 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
           ),
-
-          //wave shape du bas
           Positioned(
             bottom: 0,
             left: 0,
@@ -77,8 +73,6 @@ class _SplashScreenState extends State<SplashScreen> {
               fit: BoxFit.fill,
             ),
           ),
-
-          // Blob jaune/crème – milieu droite
           Positioned(
             top: size.height * 0.18,
             right: -size.width * 0.2,
@@ -91,20 +85,15 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
           ),
-
-          //contenu centrale logo + texte
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-
                 Image.asset(
                   'assets/logos/eamau_logo.gif',
                   width: 140,
                 ),
-
                 const SizedBox(height: 20),
-
                 const Text(
                   'EAMAU',
                   style: TextStyle(
@@ -113,9 +102,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     color: Color(0xFF1677FF),
                   ),
                 ),
-
                 const SizedBox(height: 10),
-
                 const Text(
                   "École Africaine des Métiers de\nl'Architecture et de l'Urbanisme",
                   textAlign: TextAlign.center,
@@ -127,26 +114,21 @@ class _SplashScreenState extends State<SplashScreen> {
               ],
             ),
           ),
-
           const Positioned(
             bottom: 60,
             left: 0,
             right: 0,
             child: Column(
               children: [
-
                 CircularProgressIndicator(
-                  color : Colors.white,
+                  color: Colors.white,
                 ),
-
-
                 SizedBox(height: 12),
-
                 Text(
                   "Chargement ...",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white
+                    color: Colors.white,
                   ),
                 ),
               ],

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">eamau</string>
+
+    <!-- Facebook Configuration -->
+    <!-- À remplacer avec votre Facebook App ID réel -->
+    <string name="facebook_app_id">YOUR_FACEBOOK_APP_ID</string>
+
+    <!-- À remplacer avec votre Facebook Client Token réel -->
+    <string name="facebook_client_token">YOUR_FACEBOOK_CLIENT_TOKEN</string>
+</resources>
+

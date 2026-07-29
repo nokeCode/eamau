@@ -30,6 +30,7 @@ const List<AdmissionConditionModel> fallbackConditions = [
     subtitle:
     "Consultez la liste des diplômes autorisés pour chaque programme.",
     icon: "school",
+    items: [],
   ),
   AdmissionConditionModel(
     id: 2,
@@ -37,6 +38,7 @@ const List<AdmissionConditionModel> fallbackConditions = [
     subtitle:
     "Explorez les programmes disponibles à l'EAMAU.",
     icon: "book",
+    items: [],
   ),
   AdmissionConditionModel(
     id: 3,
@@ -60,5 +62,6 @@ const List<AdmissionConditionModel> fallbackConditions = [
     subtitle:
     "Informez-vous sur les critères d'évaluation des candidatures.",
     icon: "verified",
+    items: [],
   ),
 ];

@@ -16,8 +16,8 @@ class ProfileService {
 
   Future<UserModel> getProfile() async {
 
-    final token =
-    await _authService.getToken();
+     final token =
+     await _authService.getAccessToken();
 
     if (token == null) {
       return UserModel.fallback();
