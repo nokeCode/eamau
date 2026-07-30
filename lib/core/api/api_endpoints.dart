@@ -11,6 +11,8 @@ class ApiEndpoints {
   static const String me = '/auth/me';
   static const String verify2fa = '/auth/2fa/check';
   static const String resend2fa = '/auth/2fa/resend';
+  static const String forgotPassword = '/auth/forgot-password';
+  static const String resetPassword = '/auth/reset-password';
   static const String googleAuth = '/auth/google';
   static const String googleCallback = '/auth/google/callback';
 }

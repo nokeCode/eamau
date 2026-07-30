@@ -13,10 +13,11 @@ class Verify2FAResponse {
   });
 
   factory Verify2FAResponse.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>;
     return Verify2FAResponse(
-      accessToken: json['data']['access_token'] as String,
-      refreshToken: json['data']['refresh_token'] as String,
-      user: User.fromJson(json['data']['user'] as Map<String, dynamic>),
+      accessToken: (data['access_token'] ?? data['token']) as String,
+      refreshToken: data['refresh_token'] as String,
+      user: User.fromJson(data['user'] as Map<String, dynamic>),
     );
   }
 
@@ -28,4 +29,3 @@ class Verify2FAResponse {
     };
   }
 }
-

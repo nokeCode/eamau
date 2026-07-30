@@ -12,9 +12,14 @@ import 'package:eamau/services/auth/firebase_auth_service.dart';
 import '../../../core/api/api_client.dart';
 
 class AuthService {
-  final DioClient _dioClient = DioClient();
-  final TokenStorage _tokenStorage = TokenStorage();
-  final FirebaseAuthService _firebaseAuthService = FirebaseAuthService();
+  DioClient? _dioClientCache;
+  TokenStorage? _tokenStorageCache;
+  FirebaseAuthService? _firebaseAuthServiceCache;
+
+  DioClient get _dioClient => _dioClientCache ??= DioClient();
+  TokenStorage get _tokenStorage => _tokenStorageCache ??= TokenStorage();
+  FirebaseAuthService get _firebaseAuthService =>
+      _firebaseAuthServiceCache ??= FirebaseAuthService();
 
   /// Login avec email et mot de passe
   Future<LoginResponse> login({
@@ -68,9 +73,9 @@ class AuthService {
 
   /// Renvoyer le code 2FA
   Future<void> resend2FA({required String email}) async {
-    final normalizedEmail = email.trim();
+    final normalizedEmail = _normalizeEmail(email);
 
-    if (normalizedEmail.isEmpty || !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(normalizedEmail)) {
+    if (normalizedEmail == null) {
       throw ValidationException(
         message: 'Adresse email invalide pour l’envoi du code 2FA',
       );
@@ -80,6 +85,56 @@ class AuthService {
       await _dioClient.dio.post(
         ApiEndpoints.resend2fa,
         data: {'email': normalizedEmail},
+        options: Options(extra: {'skipAuth': true}),
+      );
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  /// Demander la réinitialisation du mot de passe
+  Future<void> requestPasswordReset({required String email}) async {
+    final normalizedEmail = _normalizeEmail(email);
+
+    if (normalizedEmail == null) {
+      throw ValidationException(message: 'Adresse email invalide');
+    }
+
+    try {
+      await _dioClient.dio.post(
+        ApiEndpoints.forgotPassword,
+        data: {'email': normalizedEmail},
+        options: Options(extra: {'skipAuth': true}),
+      );
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  /// Réinitialiser le mot de passe avec un token
+  Future<void> resetPassword({
+    required String token,
+    required String password,
+  }) async {
+    final normalizedToken = token.trim();
+    final normalizedPassword = password.trim();
+
+    if (normalizedToken.isEmpty) {
+      throw ValidationException(message: 'Token de réinitialisation requis');
+    }
+
+    if (normalizedPassword.length < 8) {
+      throw ValidationException(
+        message: 'Le mot de passe doit contenir au moins 8 caractères',
+      );
+    }
+
+    try {
+      await _dioClient.dio.post(
+        ApiEndpoints.resetPassword,
+        data: {'token': normalizedToken, 'password': normalizedPassword},
         options: Options(extra: {'skipAuth': true}),
       );
     } on DioException catch (e) {
@@ -206,7 +261,45 @@ class AuthService {
       );
     }
 
+    if (e.response?.data != null) {
+      throw ServerException(message: _extractErrorMessage(e.response?.data));
+    }
+
     throw ServerException(message: e.message ?? 'Erreur serveur');
+  }
+
+  String _extractErrorMessage(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final message = data['message'];
+      if (message is String && message.trim().isNotEmpty) {
+        return message;
+      }
+
+      final error = data['error'];
+      if (error is String && error.trim().isNotEmpty) {
+        return error;
+      }
+
+      final errors = data['errors'];
+      if (errors is Map) {
+        final firstError = errors.values.firstWhere(
+          (value) => value != null,
+          orElse: () => null,
+        );
+        if (firstError is List && firstError.isNotEmpty) {
+          return firstError.first.toString();
+        }
+        if (firstError != null) {
+          return firstError.toString();
+        }
+      }
+    }
+
+    if (data is String && data.trim().isNotEmpty) {
+      return data;
+    }
+
+    return 'Erreur serveur';
   }
 
   /// Connexion avec Google (Firebase)
@@ -242,10 +335,35 @@ class AuthService {
     }
   }
 
-  /// Renouveler les tokens
+  /// Renouveler les tokens via l'API refresh
   Future<void> refreshTokens() async {
     try {
-      await _firebaseAuthService.refreshTokens();
+      final refreshToken = await getRefreshToken();
+      if (refreshToken == null || refreshToken.isEmpty) {
+        throw UnauthorizedException(message: 'Aucun refresh token disponible');
+      }
+
+      final response = await _dioClient.dio.post(
+        ApiEndpoints.refresh,
+        data: {'refresh_token': refreshToken},
+        options: Options(extra: {'skipAuth': true}),
+      );
+
+      final data = response.data['data'] as Map<String, dynamic>?;
+      final newAccessToken =
+          (data?['access_token'] ?? data?['token']) as String?;
+      final newRefreshToken = data?['refresh_token'] as String?;
+
+      if (newAccessToken != null && newAccessToken.isNotEmpty) {
+        await _tokenStorage.saveAccessToken(newAccessToken);
+      }
+
+      if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
+        await _tokenStorage.saveRefreshToken(newRefreshToken);
+      }
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
     } catch (e) {
       _handleError(e);
       rethrow;
@@ -263,6 +381,16 @@ class AuthService {
       await _tokenStorage.deleteTokens();
       await _dioClient.logout();
     }
+  }
+
+  /// Valider et normaliser une adresse email
+  String? _normalizeEmail(String email) {
+    final normalizedEmail = email.trim();
+    if (normalizedEmail.isEmpty ||
+        !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(normalizedEmail)) {
+      return null;
+    }
+    return normalizedEmail;
   }
 
   /// Gérer les erreurs

@@ -80,7 +80,9 @@ class DioClient {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = response.data['data'] as Map<String, dynamic>?;
-        final newAccessToken = responseData?['access_token'] as String?;
+        final newAccessToken =
+            (responseData?['access_token'] ?? responseData?['token'])
+                as String?;
         final newRefreshToken = responseData?['refresh_token'] as String?;
 
         if (newAccessToken != null) {
@@ -201,7 +203,7 @@ class _ErrorInterceptor extends Interceptor {
     } else if (err.response != null) {
       final statusCode = err.response!.statusCode;
       final data = err.response!.data;
-      String message = data is Map ? (data['message'] ?? 'Erreur') : 'Erreur';
+      final message = _extractErrorMessage(data);
 
       switch (statusCode) {
         case 401:
@@ -240,6 +242,40 @@ class _ErrorInterceptor extends Interceptor {
       ),
     );
   }
+}
+
+String _extractErrorMessage(dynamic data) {
+  if (data is Map<String, dynamic>) {
+    final message = data['message'];
+    if (message is String && message.trim().isNotEmpty) {
+      return message;
+    }
+
+    final error = data['error'];
+    if (error is String && error.trim().isNotEmpty) {
+      return error;
+    }
+
+    final errors = data['errors'];
+    if (errors is Map) {
+      final firstError = errors.values.firstWhere(
+        (value) => value != null,
+        orElse: () => null,
+      );
+      if (firstError is List && firstError.isNotEmpty) {
+        return firstError.first.toString();
+      }
+      if (firstError != null) {
+        return firstError.toString();
+      }
+    }
+  }
+
+  if (data is String && data.trim().isNotEmpty) {
+    return data;
+  }
+
+  return 'Erreur serveur';
 }
 
 class _LoggingInterceptor extends Interceptor {

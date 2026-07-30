@@ -4,7 +4,14 @@ import 'package:eamau/models/auth/user.dart';
 import 'package:eamau/services/auth/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final AuthService _authService = AuthService();
+  final AuthService _authService;
+
+  AuthProvider({AuthService? authService, bool checkLoginStatus = true})
+    : _authService = authService ?? AuthService() {
+    if (checkLoginStatus) {
+      _checkLoginStatus();
+    }
+  }
 
   bool _isLoading = false;
   bool _isLoggedIn = false;
@@ -39,10 +46,6 @@ class AuthProvider extends ChangeNotifier {
     });
 
     return parts.join(' | ');
-  }
-
-  AuthProvider() {
-    _checkLoginStatus();
   }
 
   /// Vérifier l'état de connexion au démarrage
@@ -131,6 +134,69 @@ class AuthProvider extends ChangeNotifier {
       return false;
     } catch (e) {
       _error = 'Erreur lors de l\'envoi du code';
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  /// Demander la réinitialisation du mot de passe
+  Future<bool> requestPasswordReset({required String email}) async {
+    _setLoading(true);
+    _error = null;
+
+    try {
+      await _authService.requestPasswordReset(email: email);
+      _setLoading(false);
+      return true;
+    } on ValidationException catch (e) {
+      _error =
+          formatValidationErrors(
+            e.errors is Map<String, dynamic>
+                ? e.errors as Map<String, dynamic>
+                : null,
+          ) ??
+          e.message;
+      _setLoading(false);
+      return false;
+    } on ApiException catch (e) {
+      _error = e.message;
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      _error = 'Erreur lors de la réinitialisation du mot de passe';
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  /// Réinitialiser le mot de passe avec un token
+  Future<bool> resetPassword({
+    required String token,
+    required String password,
+  }) async {
+    _setLoading(true);
+    _error = null;
+
+    try {
+      await _authService.resetPassword(token: token, password: password);
+      _setLoading(false);
+      return true;
+    } on ValidationException catch (e) {
+      _error =
+          formatValidationErrors(
+            e.errors is Map<String, dynamic>
+                ? e.errors as Map<String, dynamic>
+                : null,
+          ) ??
+          e.message;
+      _setLoading(false);
+      return false;
+    } on ApiException catch (e) {
+      _error = e.message;
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      _error = 'Erreur lors de la réinitialisation du mot de passe';
       _setLoading(false);
       return false;
     }

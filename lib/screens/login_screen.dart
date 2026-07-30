@@ -17,13 +17,16 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _forgotPasswordFormKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _forgotPasswordEmailController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _forgotPasswordEmailController.dispose();
     super.dispose();
   }
 
@@ -53,6 +56,84 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _showForgotPasswordDialog(AuthProvider authProvider) async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Mot de passe oublié'),
+          content: Form(
+            key: _forgotPasswordFormKey,
+            child: TextFormField(
+              controller: _forgotPasswordEmailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Votre adresse email',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Email obligatoire';
+                }
+                if (!RegExp(
+                  r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                ).hasMatch(value.trim())) {
+                  return 'Adresse email invalide';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: authProvider.isLoading
+                  ? null
+                  : () async {
+                      if (!_forgotPasswordFormKey.currentState!.validate()) {
+                        return;
+                      }
+
+                      final success = await authProvider.requestPasswordReset(
+                        email: _forgotPasswordEmailController.text.trim(),
+                      );
+
+                      if (!mounted) return;
+
+                      Navigator.pop(context);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: success ? Colors.green : Colors.red,
+                          content: Text(
+                            success
+                                ? 'Si cet email est associé à un compte, un lien de réinitialisation a été envoyé.'
+                                : authProvider.error ??
+                                      'Impossible d’envoyer le lien.',
+                          ),
+                        ),
+                      );
+                    },
+              child: authProvider.isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Envoyer'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _loginWithGoogle(AuthProvider authProvider) async {
     final result = await authProvider.loginWithGoogle();
 
@@ -71,7 +152,8 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => VerificationScreen(email: authProvider.pending2FAEmail),
+            builder: (_) =>
+                VerificationScreen(email: authProvider.pending2FAEmail),
           ),
         );
         return;
@@ -80,14 +162,16 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.red,
-          content: Text(authProvider.error ?? 'Erreur lors de la connexion avec Google'),
+          content: Text(
+            authProvider.error ?? 'Erreur lors de la connexion avec Google',
+          ),
         ),
       );
     }
-   }
+  }
 
-   @override
-   Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -114,10 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 15),
-                      Image.asset(
-                        'assets/logos/eamau_logo.gif',
-                        width: 120,
-                      ),
+                      Image.asset('assets/logos/eamau_logo.gif', width: 120),
                       const SizedBox(height: 10),
                       const Text(
                         'EAMAU',
@@ -130,9 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Text(
                         "École Africaine des Métiers de\nl'Architecture et de l'Urbanisme",
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 25),
                       const Text(
@@ -184,12 +263,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () => _showForgotPasswordDialog(
+                            context.read<AuthProvider>(),
+                          ),
                           child: const Text(
                             "Mot de passe oublié ?",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -210,69 +289,67 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               child: authProvider.isLoading
                                   ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: Colors.white,
-                                    ),
-                                  )
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        color: Colors.white,
+                                      ),
+                                    )
                                   : const Text(
-                                    "Se connecter",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
+                                      "Se connecter",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
                                     ),
-                                  ),
                             ),
                           );
                         },
                       ),
-                       const SizedBox(height: 20),
-                       const Row(
-                         children: [
-                           Expanded(child: Divider()),
-                           Padding(
-                             padding: EdgeInsets.symmetric(horizontal: 8),
-                             child: Text(
-                               "ou connecter vous avec",
-                             ),
-                           ),
-                           Expanded(child: Divider()),
-                         ],
-                       ),
-                       const SizedBox(height: 15),
-                       Consumer<AuthProvider>(
-                         builder: (context, authProvider, _) {
-                           return Row(
-                             mainAxisAlignment: MainAxisAlignment.center,
-                             children: [
-                               // Bouton Google
-                               GestureDetector(
-                                 onTap: authProvider.isLoading
-                                     ? null
-                                     : () => _loginWithGoogle(authProvider),
-                                 child: Container(
-                                   width: 50,
-                                   height: 50,
-                                   padding: const EdgeInsets.all(10),
-                                   decoration: BoxDecoration(
-                                     shape: BoxShape.circle,
-                                     border: Border.all(color: Colors.grey.shade300),
-                                     color: authProvider.isLoading
-                                         ? Colors.grey.shade200
-                                         : Colors.white,
-                                   ),
-                                   child: Image.asset(
-                                     'assets/icons/google.jpg',
-                                   ),
-                                 ),
+                      const SizedBox(height: 20),
+                      const Row(
+                        children: [
+                          Expanded(child: Divider()),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: Text("ou connecter vous avec"),
+                          ),
+                          Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: 15),
+                      Consumer<AuthProvider>(
+                        builder: (context, authProvider, _) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Bouton Google
+                              GestureDetector(
+                                onTap: authProvider.isLoading
+                                    ? null
+                                    : () => _loginWithGoogle(authProvider),
+                                child: Container(
+                                  width: 50,
+                                  height: 50,
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                    color: authProvider.isLoading
+                                        ? Colors.grey.shade200
+                                        : Colors.white,
+                                  ),
+                                  child: Image.asset('assets/icons/google.jpg'),
                                 ),
-                                const SizedBox(width: 25),
-                              ],
-                            );
-                          },
-                        ),
+                              ),
+                              const SizedBox(width: 25),
+                            ],
+                          );
+                        },
+                      ),
                       const SizedBox(height: 5),
                       RichText(
                         textAlign: TextAlign.center,
@@ -282,7 +359,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontSize: 15,
                           ),
                           children: [
-                            const TextSpan(text: "Vous n'avez pas de compte ? "),
+                            const TextSpan(
+                              text: "Vous n'avez pas de compte ? ",
+                            ),
                             TextSpan(
                               text: "Inscrivez-vous",
                               style: const TextStyle(

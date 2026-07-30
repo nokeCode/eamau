@@ -21,9 +21,9 @@ class LoginResponse {
     }
 
     return LoginResponse(
-      accessToken: data?['access_token'] as String?,
+      accessToken: (data?['access_token'] ?? data?['token']) as String?,
       refreshToken: data?['refresh_token'] as String?,
-      requires2fa: data?['requires_2fa'] ?? false,
+      requires2fa: data?['requires_2fa'] ?? json['requires_2fa'] ?? false,
       email: email,
     );
   }
@@ -37,4 +37,3 @@ class LoginResponse {
     };
   }
 }
-
