@@ -3,16 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/concours/confirmation_candidature_service.dart';
+import '../../services/concours/concours_form_service.dart';
 import '../../models/concours/confirmation_candidature_model.dart';
 import '../../widgets/concours/confirmation_action_button.dart';
 import '../../widgets/concours/confirmation_success_widget.dart';
 
 class ConfirmationCandidatureScreen extends StatefulWidget {
-  final int candidatureId;
+  final String candidatureId;
+  final String postulationToken;
 
   const ConfirmationCandidatureScreen({
     super.key,
     required this.candidatureId,
+    required this.postulationToken,
   });
 
   @override
@@ -23,14 +26,56 @@ class ConfirmationCandidatureScreen extends StatefulWidget {
 class _ConfirmationCandidatureScreenState
     extends State<ConfirmationCandidatureScreen> {
   final ConfirmationCandidatureService _service =
-  ConfirmationCandidatureService();
+      ConfirmationCandidatureService();
+  final ConcoursFormService _concoursFormService = ConcoursFormService();
 
   late Future<ConfirmationCandidatureModel> _future;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     _future = _service.getConfirmation(widget.candidatureId);
+  }
+
+  Future<void> _confirmSubmission() async {
+    if (_isSubmitting) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await _concoursFormService.submit(
+        widget.candidatureId,
+        postulationToken: widget.postulationToken,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Candidature confirmée avec succès.')),
+      );
+      final candidatureId = int.tryParse(widget.candidatureId) ?? 0;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SuiviCandidatureScreen(candidatureId: candidatureId),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   @override
@@ -46,10 +91,7 @@ class _ConfirmationCandidatureScreenState
           toolbarHeight: 85,
           title: Row(
             children: [
-              Image.asset(
-                "assets/logos/eamau_logo.gif",
-                width: 55,
-              ),
+              Image.asset("assets/logos/eamau_logo.gif", width: 55),
               const SizedBox(width: 12),
               const Expanded(
                 child: Text(
@@ -61,31 +103,22 @@ class _ConfirmationCandidatureScreenState
                   ),
                 ),
               ),
-              const Icon(
-                Icons.menu,
-                color: Colors.white,
-                size: 34,
-              ),
+              const Icon(Icons.menu, color: Colors.white, size: 34),
             ],
           ),
         ),
         body: FutureBuilder<ConfirmationCandidatureModel>(
           future: _future,
           builder: (context, snapshot) {
-            if (snapshot.connectionState ==
-                ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
             }
 
             final data = snapshot.data ?? fallbackConfirmation;
 
             return SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Column(
                   children: [
                     const Spacer(),
@@ -96,6 +129,18 @@ class _ConfirmationCandidatureScreenState
                     ),
 
                     const SizedBox(height: 60),
+
+                    ConfirmationActionButton(
+                      text: "Confirmer ma candidature",
+                      icon: Icons.check_circle_outline,
+                      onPressed: _isSubmitting
+                          ? null
+                          : () {
+                              _confirmSubmission();
+                            },
+                    ),
+
+                    const SizedBox(height: 18),
 
                     ConfirmationActionButton(
                       text: "Télécharger l'attestation",
@@ -112,13 +157,13 @@ class _ConfirmationCandidatureScreenState
                       icon: Icons.alt_route,
                       outlined: true,
                       onPressed: () {
-                        // Aller vers SuiviCandidatureScreen
+                        final candidatureId =
+                            int.tryParse(widget.candidatureId) ?? 0;
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                            const SuiviCandidatureScreen(
-                              candidatureId: 1,
+                            builder: (_) => SuiviCandidatureScreen(
+                              candidatureId: candidatureId,
                             ),
                           ),
                         );
@@ -132,25 +177,17 @@ class _ConfirmationCandidatureScreenState
                       height: 56,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                          const Color(0xffEEF2FF),
-                          foregroundColor:
-                          const Color(0xff1E4DB7),
+                          backgroundColor: const Color(0xffEEF2FF),
+                          foregroundColor: const Color(0xff1E4DB7),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                            BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         onPressed: () {
-                          Navigator.popUntil(
-                            context,
-                                (route) => route.isFirst,
-                          );
+                          Navigator.popUntil(context, (route) => route.isFirst);
                         },
-                        icon: const Icon(
-                          Icons.home_outlined,
-                        ),
+                        icon: const Icon(Icons.home_outlined),
                         label: const Text(
                           "Retour à l'accueil",
                           style: TextStyle(

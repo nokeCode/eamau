@@ -2,12 +2,16 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+enum _UploadSource { camera, gallery, document }
 
 class UploadDocumentCard extends StatefulWidget {
   final IconData icon;
   final String title;
   final String subtitle;
   final ValueChanged<File?> onFileSelected;
+  final bool isImageField;
 
   const UploadDocumentCard({
     super.key,
@@ -15,6 +19,7 @@ class UploadDocumentCard extends StatefulWidget {
     required this.title,
     required this.subtitle,
     required this.onFileSelected,
+    this.isImageField = false,
   });
 
   @override
@@ -22,21 +27,89 @@ class UploadDocumentCard extends StatefulWidget {
       _UploadDocumentCardState();
 }
 
-class _UploadDocumentCardState
-    extends State<UploadDocumentCard> {
+class _UploadDocumentCardState extends State<UploadDocumentCard> {
   String? fileName;
+  File? selectedFile;
+
+  static const List<String> _imageExtensions = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.bmp',
+    '.webp',
+  ];
+
+  bool get _selectedFileIsImage {
+    if (selectedFile == null) return false;
+    final path = selectedFile!.path.toLowerCase();
+    return _imageExtensions.any(path.endsWith);
+  }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles();
+    final source = await showModalBottomSheet<_UploadSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('Prendre une photo'),
+                onTap: () => Navigator.pop(context, _UploadSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Choisir depuis la galerie'),
+                onTap: () => Navigator.pop(context, _UploadSource.gallery),
+              ),
+              if (!widget.isImageField)
+                ListTile(
+                  leading: const Icon(Icons.insert_drive_file_outlined),
+                  title: const Text('Sélectionner un document'),
+                  onTap: () => Navigator.pop(context, _UploadSource.document),
+                ),
+            ],
+          ),
+        );
+      },
+    );
 
-    if (result == null) return;
+    if (source == null) return;
 
-    final file = File(result.files.single.path!);
+    if (source == _UploadSource.document) {
+      final result = await FilePicker.platform.pickFiles();
+      if (result == null || result.files.isEmpty) return;
 
+      final path = result.files.single.path;
+      if (path == null || path.isEmpty) return;
+
+      final file = File(path);
+      setState(() {
+        selectedFile = file;
+        fileName = result.files.single.name;
+      });
+      widget.onFileSelected(file);
+      return;
+    }
+
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: source == _UploadSource.camera ? ImageSource.camera : ImageSource.gallery,
+      imageQuality: 85,
+    );
+
+    if (pickedFile == null) return;
+
+    final file = File(pickedFile.path);
     setState(() {
-      fileName = result.files.single.name;
+      selectedFile = file;
+      fileName = pickedFile.name;
     });
-
     widget.onFileSelected(file);
   }
 
@@ -55,56 +128,55 @@ class _UploadDocumentCardState
             color: Colors.grey.shade300,
           ),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xffE8F1FF),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                widget.icon,
-                color: const Color(0xff1E63F1),
-                size: 30,
-              ),
-            ),
-
-            const SizedBox(width: 12),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xffE8F1FF),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-
-                  const SizedBox(height: 4),
-
-                  Text(
-                    fileName ?? widget.subtitle,
-                    style: TextStyle(
-                      color: fileName == null
-                          ? Colors.grey
-                          : Colors.green,
-                      fontSize: 13,
-                    ),
+                  child: Icon(widget.icon, color: const Color(0xff1E63F1), size: 30),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        fileName ?? widget.subtitle,
+                        style: TextStyle(
+                          color: fileName == null ? Colors.grey : Colors.green,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
+                const Icon(Icons.cloud_upload_outlined, color: Color(0xff1E63F1)),
+              ],
+            ),
+            if (selectedFile != null && _selectedFileIsImage) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.file(
+                  selectedFile!,
+                  height: 110,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-
-            const Icon(
-              Icons.cloud_upload_outlined,
-              color: Color(0xff1E63F1),
-            ),
+            ],
           ],
         ),
       ),

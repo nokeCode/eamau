@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/api/api_config.dart';
 import '../../models/concours/concours_detail_model.dart';
 import '../../services/concours/concours_detail_service.dart';
 import '../../widgets/concours/concours_banner.dart';
@@ -8,11 +9,11 @@ import '../../widgets/concours/concours_info_card.dart';
 import 'application_form_screen.dart';
 
 class DetailConcoursScreen extends StatefulWidget {
-  final int concoursId;
+  final String slug;
 
   const DetailConcoursScreen({
     super.key,
-    required this.concoursId,
+    required this.slug,
   });
 
   @override
@@ -27,7 +28,7 @@ class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
   @override
   void initState() {
     super.initState();
-    _future = _service.getConcoursDetail(widget.concoursId);
+    _future = _service.getConcoursDetail(widget.slug);
   }
 
   @override
@@ -40,18 +41,24 @@ class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const _ConcoursDetailSkeleton();
             }
 
-            if (!snapshot.hasData) {
-              return const Center(
-                child: Text("Impossible de charger le concours."),
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    snapshot.error.toString(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                ),
               );
             }
 
             final detail = snapshot.data!;
+            final imageUrl = ApiConfig.imageUrl(detail.image);
 
             return SafeArea(
               top: false,
@@ -63,17 +70,14 @@ class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
                       child: Column(
                         children: [
                           ConcoursBanner(
-                            image: detail.image,
+                            image: imageUrl,
                             titre: detail.titre,
                             description: detail.description,
                             onBack: () => Navigator.pop(context),
                           ),
-
                           const SizedBox(height: 20),
-
                           Padding(
-                            padding:
-                            const EdgeInsets.symmetric(horizontal: 20),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Column(
                               children: [
                                 Row(
@@ -81,29 +85,27 @@ class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
                                     Expanded(
                                       child: ConcoursInfoCard(
                                         icon: Icons.calendar_month,
-                                        title: "Année académique",
-                                        value: detail.anneeAcademique,
+                                        title: 'Statut',
+                                        value: detail.active ? 'Actif' : 'Inactif',
                                       ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: ConcoursInfoCard(
                                         icon: Icons.event,
-                                        title: "Période d'inscription",
+                                        title: 'Période d\'inscription',
                                         value: detail.periodeInscription,
                                       ),
                                     ),
                                   ],
                                 ),
-
                                 const SizedBox(height: 12),
-
                                 Row(
                                   children: [
                                     Expanded(
                                       child: ConcoursInfoCard(
                                         icon: Icons.date_range,
-                                        title: "Date de l'examen",
+                                        title: 'Date de clôture',
                                         value: detail.dateExamen,
                                       ),
                                     ),
@@ -111,39 +113,25 @@ class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
                                     Expanded(
                                       child: ConcoursInfoCard(
                                         icon: Icons.school,
-                                        title: "Filières concernées",
-                                        value: detail.filieres,
+                                        title: 'Champs du formulaire',
+                                        value: detail.attributes.isEmpty ? 'Aucun champ' : '${detail.attributes.length} champs',
                                       ),
                                     ),
                                   ],
                                 ),
-
                                 const SizedBox(height: 12),
-
-                                ConcoursInfoCard(
-                                  icon: Icons.workspace_premium,
-                                  title: "Diplôme requis",
-                                  value: detail.diplome,
-                                ),
-
-                                const SizedBox(height: 12),
-
                                 ConcoursInfoCard(
                                   icon: Icons.rule,
-                                  title: "Condition de participation",
-                                  value:
-                                  "Consulter les conditions et critères d'éligibilité",
+                                  title: 'Condition de participation',
+                                  value: 'Consulter les conditions et critères d\'éligibilité',
                                   expandable: true,
                                   items: [detail.conditions],
                                 ),
-
                                 const SizedBox(height: 12),
-
                                 ConcoursInfoCard(
                                   icon: Icons.description_outlined,
-                                  title: "Pièce à fournir",
-                                  value:
-                                  "Liste des documents obligatoires à joindre",
+                                  title: 'Pièce à fournir',
+                                  value: 'Liste des documents obligatoires à joindre',
                                   expandable: true,
                                   items: detail.piecesAFournir,
                                 ),
@@ -154,7 +142,6 @@ class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
                       ),
                     ),
                   ),
-
                   SafeArea(
                     top: false,
                     child: Padding(
@@ -171,22 +158,18 @@ class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          // Navigation vers l'ecran de candidature de concours
                           onPressed: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const ApplicationFormScreen(),
+                                builder: (_) => ApplicationFormScreen(concoursSlug: widget.slug),
                               ),
                             );
                           },
                           icon: const Icon(Icons.upload_outlined),
                           label: const Text(
-                            "Déposer une candidature",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            'Déposer une candidature',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
@@ -197,6 +180,62 @@ class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _ConcoursDetailSkeleton extends StatelessWidget {
+  const _ConcoursDetailSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 24),
+        child: Column(
+          children: [
+            Container(height: 220, color: Colors.grey.shade200),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: _skeletonBox(height: 90)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _skeletonBox(height: 90)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _skeletonBox(height: 90)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _skeletonBox(height: 90)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _skeletonBox(height: 90),
+                  const SizedBox(height: 12),
+                  _skeletonBox(height: 90),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _skeletonBox({required double height}) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
       ),
     );
   }

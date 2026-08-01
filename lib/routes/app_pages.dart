@@ -13,6 +13,7 @@ import '../screens/news_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/verify_2fa_screen.dart';
 import '../screens/profile_screen.dart';
+import '../screens/filiere_screen.dart';
 
 import 'app_routes.dart';
 
@@ -24,11 +25,15 @@ class AppPages {
     AppRoutes.register: (_) => const RegisterScreen(),
     AppRoutes.verify2fa: (_) => const VerificationScreen(),
     AppRoutes.news: (_) => const NewsScreen(),
-    AppRoutes.newsDetail: (_) => const NewsDetailScreen(),
+    AppRoutes.newsDetail: (context) {
+      final slug = ModalRoute.of(context)?.settings.arguments as String?;
+      return NewsDetailScreen(slug: slug);
+    },
     AppRoutes.profile: (_) => const ProfileScreen(),
     AppRoutes.user: (_) => const DashboardScreen(),
     AppRoutes.student: (_) => const StudentScreen(),
     AppRoutes.concours: (_) => const ConcoursListScreen(),
+    AppRoutes.filiere: (_) => const FiliereScreen(),
     AppRoutes.admissionRequest: (_) => const AdmissionRequestScreen(),
     AppRoutes.admissionTracking: (_) => const AdmissionTrackingScreen(),
   };

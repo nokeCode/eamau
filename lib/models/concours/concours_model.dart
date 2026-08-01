@@ -1,31 +1,37 @@
 class ConcoursModel {
-  final int id;
+  final String id;
   final String titre;
-  final String niveau;
+  final String slug;
+  final String year;
+  final String description;
   final String image;
   final String statut;
-  final String dateLimite;
-  final int joursRestants;
+  final String startingAt;
+  final String endingAt;
 
   const ConcoursModel({
     required this.id,
     required this.titre,
-    required this.niveau,
+    required this.slug,
+    required this.year,
+    required this.description,
     required this.image,
     required this.statut,
-    required this.dateLimite,
-    required this.joursRestants,
+    required this.startingAt,
+    required this.endingAt,
   });
 
   factory ConcoursModel.fromJson(Map<String, dynamic> json) {
     return ConcoursModel(
-      id: json['id'] ?? 0,
-      titre: json['titre'] ?? '',
-      niveau: json['niveau'] ?? '',
-      image: json['image'] ?? '',
-      statut: json['statut'] ?? 'Ouvert',
-      dateLimite: json['date_limite'] ?? '',
-      joursRestants: json['jours_restants'] ?? 0,
+      id: '${json['id'] ?? ''}',
+      titre: '${json['title'] ?? json['titre'] ?? ''}',
+      slug: '${json['slug'] ?? ''}',
+      year: '${json['year'] ?? ''}',
+      description: '${json['description'] ?? ''}',
+      image: '${json['image'] ?? ''}',
+      statut: '${json['status'] ?? json['statut'] ?? 'Ouvert'}',
+      startingAt: '${json['startingAt'] ?? json['starting_at'] ?? ''}',
+      endingAt: '${json['endingAt'] ?? json['ending_at'] ?? ''}',
     );
   }
 
@@ -33,11 +39,13 @@ class ConcoursModel {
     return {
       'id': id,
       'titre': titre,
-      'niveau': niveau,
+      'slug': slug,
+      'year': year,
+      'description': description,
       'image': image,
       'statut': statut,
-      'date_limite': dateLimite,
-      'jours_restants': joursRestants,
+      'startingAt': startingAt,
+      'endingAt': endingAt,
     };
   }
 }

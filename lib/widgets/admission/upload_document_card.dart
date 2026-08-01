@@ -20,6 +20,17 @@ class UploadDocumentCard extends StatelessWidget {
     this.onDelete,
   });
 
+  bool get _isImageFile {
+    if (file == null) return false;
+    final path = file!.path.toLowerCase();
+    return path.endsWith('.jpg') ||
+        path.endsWith('.jpeg') ||
+        path.endsWith('.png') ||
+        path.endsWith('.gif') ||
+        path.endsWith('.bmp') ||
+        path.endsWith('.webp');
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool uploaded = file != null;
@@ -37,63 +48,78 @@ class UploadDocumentCard extends StatelessWidget {
           color: Colors.grey.shade300,
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: const Color(0xffEEF5FF),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: const Color(0xff0B4EA2),
-            ),
-          ),
-
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xff0B4EA2),
-                  ),
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: const Color(0xffEEF5FF),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  uploaded
-                      ? file!.path.split('/').last
-                      : subtitle,
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 13,
-                  ),
+                child: Icon(
+                  icon,
+                  color: const Color(0xff0B4EA2),
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          uploaded
-              ? IconButton(
-            onPressed: onDelete,
-            icon: const Icon(
-              Icons.check_circle,
-              color: Colors.green,
-            ),
-          )
-              : IconButton(
-            onPressed: onUpload,
-            icon: const Icon(
-              Icons.cloud_upload_outlined,
-              color: Colors.blue,
-            ),
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xff0B4EA2),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      uploaded ? file!.path.split('/').last : subtitle,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              uploaded
+                  ? IconButton(
+                      onPressed: onDelete,
+                      icon: const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                      ),
+                    )
+                  : IconButton(
+                      onPressed: onUpload,
+                      icon: const Icon(
+                        Icons.cloud_upload_outlined,
+                        color: Colors.blue,
+                      ),
+                    ),
+            ],
           ),
+          if (uploaded && _isImageFile) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.file(
+                file!,
+                height: 110,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ],
         ],
       ),
     );

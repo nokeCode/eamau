@@ -2,136 +2,74 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/api/api_config.dart';
 import '../../models/filiere/filiere_model.dart';
 
 class FiliereService {
-// Remplacer par ton URL réelle
-static const String baseUrl = 'https://example.com/api';
-Future<List<Filiere>> getFilieres() async {
-try {
-final response = await http.get(
-Uri.parse('$baseUrl/filieres'),
-);
+  final http.Client _client;
 
-if (response.statusCode == 200) {
-final List data = jsonDecode(response.body);
+  FiliereService({http.Client? client}) : _client = client ?? http.Client();
 
-return data
-.map((e) => Filiere.fromJson(e))
-.toList();
-}
-} catch (_) {}
+  static const String _baseUrl = '${ApiConfig.fullBaseUrl}/filieres';
 
-return _fallbackFilieres;
-}
-Future<Filiere> getFiliereDetail(int id) async {
-try {
-final response = await http.get(
-Uri.parse('$baseUrl/filieres/$id'),
-);
+  Future<FilierePageResult> getFilieresPage({
+    int page = 1,
+    int perPage = 10,
+    String? query,
+  }) async {
+    final uri = Uri.parse(query == null || query.trim().isEmpty
+        ? '$_baseUrl?page=$page&perPage=$perPage'
+        : '$_baseUrl/search?q=${Uri.encodeComponent(query.trim())}&page=$page&perPage=$perPage');
 
-if (response.statusCode == 200) {
-return Filiere.fromJson(
-jsonDecode(response.body),
-);
-}
-} catch (_) {}
+    final response = await _client.get(uri);
 
-return _fallbackDetails.firstWhere(
-(e) => e.id == id,
-orElse: () => _fallbackDetails.first,
-);
-}
-static final List<Filiere> _fallbackFilieres = [
-Filiere(
-id: 1,
-nom: 'Architecture',
-niveau: 'Licence',
-description:
-"La licence en architecture peut conduire à un emploi de cadre d'exécution au sein des cabinets d'architecture.",
-image:
-'https://images.unsplash.com/photo-1511818966892-d7d671e672a2',
-),
-Filiere(
-id: 2,
-nom: 'Urbanisme',
-niveau: 'Licence',
-description:
-"La licence en urbanisme peut conduire à un emploi de cadre d'exécution dans les bureaux d'études.",
-image:
-'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab',
-),
-Filiere(
-id: 3,
-nom: 'Gestion Urbaine',
-niveau: 'Licence',
-description:
-"La licence en gestion urbaine prépare aux métiers des collectivités et agences urbaines.",
-image:
-'https://images.unsplash.com/photo-1460317442991-0ec209397118',
-),
-];
-static final List<Filiere> _fallbackDetails = [
-  Filiere(
-    id: 1,
-    nom: 'Architecture',
-    niveau: 'Licence',
-    description:
-    "La licence en architecture peut conduire à un emploi de cadre d'exécution au sein des cabinets d'architecture, des bureaux d'études, des entreprises de bâtiments et travaux publics ou des collectivités locales. Elle permet également de poursuivre en master.",
-    image:
-    'https://images.unsplash.com/photo-1511818966892-d7d671e672a2',
-    images: [
-      'https://images.unsplash.com/photo-1511818966892-d7d671e672a2',
-      'https://images.unsplash.com/photo-1503387762-592deb58ef4e',
-      'https://images.unsplash.com/photo-1494526585095-c41746248156',
-      'https://images.unsplash.com/photo-1460317442991-0ec209397118',
-    ],
-    parcours: [
-      Parcours(
-        id: 1,
-        nom: 'Licence en Architecture',
-        description:
-        "La licence est obtenue après trois années de formation correspondant à six semestres et 180 crédits.",
-        image:
-        'https://cdn-icons-png.flaticon.com/512/3135/3135755.png',
-        details:
-        "La licence comprend des enseignements théoriques, des ateliers de conception, des stages et un projet de fin de cycle.",
-      ),
-      Parcours(
-        id: 2,
-        nom: 'Master en Architecture',
-        description:
-        "Le master permet d'acquérir une expertise avancée en architecture et en urbanisme.",
-        image:
-        'https://cdn-icons-png.flaticon.com/512/3135/3135789.png',
-        details:
-        "Le master est orienté vers les projets complexes, la recherche et la spécialisation professionnelle.",
-      ),
-    ],
-  ),
+    if (response.statusCode != 200) {
+      final message = _extractMessage(response.body);
+      throw Exception(message ?? 'Impossible de charger les filières');
+    }
 
-  Filiere(
-    id: 2,
-    nom: 'Urbanisme',
-    niveau: 'Licence',
-    description:
-    "La licence en urbanisme prépare aux métiers de l'aménagement du territoire.",
-    image:
-    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab',
-    images: [],
-    parcours: [],
-  ),
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = decoded['data'];
+    final metaJson = decoded['meta'] as Map<String, dynamic>? ?? {};
 
-  Filiere(
-    id: 3,
-    nom: 'Gestion Urbaine',
-    niveau: 'Licence',
-    description:
-    "Formation axée sur la gestion des villes et collectivités.",
-    image:
-    'https://images.unsplash.com/photo-1460317442991-0ec209397118',
-    images: [],
-    parcours: [],
-  ),
-];
+    final items = <Filiere>[];
+    if (data is List) {
+      items.addAll(data.map((e) => Filiere.fromJson(Map<String, dynamic>.from(e))).toList());
+    } else if (data is Map<String, dynamic>) {
+      items.add(Filiere.fromJson(data));
+    }
+
+    return FilierePageResult(
+      items: items,
+      meta: FiliereMeta.fromJson(metaJson),
+    );
+  }
+
+  Future<Filiere> getFiliereBySlug(String slug) async {
+    final response = await _client.get(Uri.parse('$_baseUrl/$slug'));
+
+    if (response.statusCode != 200) {
+      final message = _extractMessage(response.body);
+      throw Exception(message ?? 'Impossible de charger cette filière');
+    }
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = decoded['data'];
+    if (data is Map<String, dynamic>) {
+      return Filiere.fromJson(data);
+    }
+    if (data is List && data.isNotEmpty) {
+      return Filiere.fromJson(Map<String, dynamic>.from(data.first));
+    }
+    throw Exception('Aucune donnée reçue pour cette filière');
+  }
+
+  String? _extractMessage(String body) {
+    try {
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+      return decoded['message']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
 }

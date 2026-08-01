@@ -61,7 +61,13 @@ class HomeScreen extends StatelessWidget {
                     icon: Icons.school,
                     title: 'Filière',
                     subtitle: 'Découvrez nos formations et nos parcours.',
-                    color: Color(0xFF1682F8),
+                    color: const Color(0xFF1682F8),
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.filiere,
+                      );
+                    },
                   ),
 
                   MenuCard(

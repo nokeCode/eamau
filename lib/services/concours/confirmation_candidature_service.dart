@@ -5,20 +5,14 @@ import 'package:http/http.dart' as http;
 import '../../models/concours/confirmation_candidature_model.dart';
 
 class ConfirmationCandidatureService {
-  static const endpoint =
-      "api/eamau/concours/confirmation";
+  static const endpoint = "api/eamau/concours/confirmation";
 
-  Future<ConfirmationCandidatureModel>
-  getConfirmation(int id) async {
+  Future<ConfirmationCandidatureModel> getConfirmation(String id) async {
     try {
-      final response = await http.get(
-        Uri.parse("$endpoint/$id"),
-      );
+      final response = await http.get(Uri.parse("$endpoint/$id"));
 
       if (response.statusCode == 200) {
-        return ConfirmationCandidatureModel.fromJson(
-          jsonDecode(response.body),
-        );
+        return ConfirmationCandidatureModel.fromJson(jsonDecode(response.body));
       }
     } catch (_) {}
 
@@ -26,12 +20,9 @@ class ConfirmationCandidatureService {
   }
 }
 
-const fallbackConfirmation =
-ConfirmationCandidatureModel(
+const fallbackConfirmation = ConfirmationCandidatureModel(
   numeroCandidature: "EAMAU-2025-000154",
-  message:
-  "Votre candidature a été enregistrée avec succès.",
-  attestationUrl:
-  "https://www.eamau.org/attestation.pdf",
+  message: "Votre candidature a été enregistrée avec succès.",
+  attestationUrl: "https://www.eamau.org/attestation.pdf",
   statut: "Soumise",
 );
