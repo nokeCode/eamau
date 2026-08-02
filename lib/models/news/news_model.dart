@@ -36,6 +36,8 @@ class NewsModel {
   final String? video;
   final bool featured;
   final NewsCategoryModel? category;
+  final String type;
+  final String categoryName;
 
   const NewsModel({
     required this.id,
@@ -48,6 +50,8 @@ class NewsModel {
     this.video,
     this.featured = false,
     this.category,
+    this.type = '',
+    this.categoryName = '',
   });
 
   factory NewsModel.fromJson(Map<String, dynamic> json) {
@@ -66,10 +70,29 @@ class NewsModel {
               Map<String, dynamic>.from(json['category']),
             )
           : null,
+      type:
+          json['type']?.toString() ??
+          json['publication_type']?.toString() ??
+          '',
+      categoryName:
+          json['category_name']?.toString() ??
+          json['categoryName']?.toString() ??
+          (json['category'] is String ? json['category'].toString() : ''),
     );
   }
 
   String get description => summary;
+
+  String get categoryLabel {
+    final name = category?.name.isNotEmpty == true
+        ? category!.name
+        : categoryName;
+    return name.isNotEmpty ? name.toUpperCase() : 'ACTUALITÉ';
+  }
+
+  String get displayType {
+    return type.isNotEmpty ? type.toUpperCase() : '';
+  }
 
   String get displayDate {
     if (publishedAt.isEmpty) {

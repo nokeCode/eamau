@@ -1,4 +1,5 @@
 import 'package:eamau/screens/admission/admission_request_screen.dart';
+import 'package:eamau/screens/admission/admission_screen.dart';
 import 'package:eamau/screens/admission/admission_tracking_screen.dart';
 import 'package:eamau/screens/concours/concours_list_screen.dart';
 import 'package:eamau/screens/register_screen.dart';
@@ -34,6 +35,7 @@ class AppPages {
     AppRoutes.student: (_) => const StudentScreen(),
     AppRoutes.concours: (_) => const ConcoursListScreen(),
     AppRoutes.filiere: (_) => const FiliereScreen(),
+    AppRoutes.admission: (_) => const AdmissionScreen(),
     AppRoutes.admissionRequest: (_) => const AdmissionRequestScreen(),
     AppRoutes.admissionTracking: (_) => const AdmissionTrackingScreen(),
   };

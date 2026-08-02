@@ -249,8 +249,17 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       return;
     }
 
-    if (!_formKey.currentState!.validate() || !_validateVisibleFields()) {
+    final missing = _getMissingRequiredAttributes();
+    if (!_formKey.currentState!.validate() || missing.isNotEmpty) {
       await _scrollToFirstInvalidField();
+      if (!mounted) return;
+      final names = missing
+          .map((a) => a.name.isNotEmpty ? a.name : a.slug)
+          .take(5)
+          .join(', ');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Champs obligatoires manquants : $names')),
+      );
       return;
     }
 
@@ -319,15 +328,64 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           content: Text('Données enregistrées. Passez à la confirmation.'),
         ),
       );
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ConfirmationCandidatureScreen(
-            candidatureId: postulationId,
-            postulationToken: _postulationToken!,
+
+      Future<void> navigateToConfirmation() async {
+        try {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ConfirmationCandidatureScreen(
+                candidatureId: postulationId,
+                postulationToken: _postulationToken!,
+              ),
+            ),
+          );
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Échec de navigation: ${e.toString()}')),
+          );
+        }
+      }
+
+      if (_hasPhone()) {
+        await navigateToConfirmation();
+      } else {
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Téléphone manquant'),
+            content: const Text(
+              'Le champ de téléphone (Cellulaire ou Téléphone) est vide. Sans numéro, le backend ne pourra pas envoyer de SMS. Voulez-vous continuer ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop(false);
+                },
+                child: const Text('Remplir le téléphone'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop(true);
+                },
+                child: const Text('Continuer quand même'),
+              ),
+            ],
           ),
-        ),
-      );
+        );
+
+        if (proceed == true) {
+          await navigateToConfirmation();
+        } else {
+          // try to scroll to possible phone fields
+          if (_fieldKeys.containsKey('cellulaire')) {
+            await _scrollToField('cellulaire');
+          } else if (_fieldKeys.containsKey('telephone')) {
+            await _scrollToField('telephone');
+          }
+        }
+      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -395,6 +453,37 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     });
   }
 
+  List<ConcoursFormAttributeModel> _getMissingRequiredAttributes() {
+    final missing = <ConcoursFormAttributeModel>[];
+    final visibleAttributes = _visibleSections()
+        .expand((s) => s.attributes)
+        .toList();
+    for (final attribute in visibleAttributes) {
+      if (!attribute.required) continue;
+      if (!_attributeHasValue(attribute)) {
+        missing.add(attribute);
+      }
+    }
+    return missing;
+  }
+
+  bool _hasPhone() {
+    for (final key in _values.keys) {
+      final low = key.toLowerCase();
+      if (low.contains('cell') ||
+          low.contains('telephone') ||
+          low.contains('tel') ||
+          low.contains('phone') ||
+          low.contains('mobile')) {
+        final v = _values[key];
+        if (v != null && v.toString().trim().isNotEmpty) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   bool _attributeHasValue(ConcoursFormAttributeModel attribute) {
     final type = attribute.type.toLowerCase();
     if (type == 'image' || type == 'document') {
@@ -402,17 +491,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     }
     final value = _values[attribute.slug];
     return value != null && value.toString().trim().isNotEmpty;
-  }
-
-  bool _validateVisibleFields() {
-    for (final attribute in _visibleSections().expand(
-      (section) => section.attributes,
-    )) {
-      if (attribute.required && !_attributeHasValue(attribute)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   GlobalKey _fieldKeyFor(String slug) {
@@ -486,6 +564,15 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     );
   }
 
+  bool _isAttributeApplicable(ConcoursFormAttributeModel attribute) {
+    final selectedCandidateTypeId = _selectedCandidateTypeId;
+    if (selectedCandidateTypeId == null) {
+      return false;
+    }
+    return attribute.candidateTypeIds.isEmpty ||
+        attribute.candidateTypeIds.contains(selectedCandidateTypeId);
+  }
+
   List<ConcoursFormSectionModel> _visibleSections() {
     if (_form == null) {
       return [];
@@ -496,13 +583,24 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       return [];
     }
 
-    return _form!.sections.where((section) {
-      final visibleAttributes = section.attributes.where((attribute) {
-        return attribute.candidateTypeIds.isEmpty ||
-            attribute.candidateTypeIds.contains(selectedCandidateTypeId);
-      }).toList();
-      return visibleAttributes.isNotEmpty;
-    }).toList();
+    return _form!.sections
+        .map((section) {
+          final visibleAttributes = section.attributes
+              .where(_isAttributeApplicable)
+              .toList();
+          if (visibleAttributes.isEmpty) {
+            return null;
+          }
+          return ConcoursFormSectionModel(
+            id: section.id,
+            code: section.code,
+            name: section.name,
+            orderNumber: section.orderNumber,
+            attributes: visibleAttributes,
+          );
+        })
+        .whereType<ConcoursFormSectionModel>()
+        .toList();
   }
 
   Widget _buildField(ConcoursFormAttributeModel attribute) {

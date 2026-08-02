@@ -38,7 +38,7 @@ class _ConfirmationCandidatureScreenState
     _future = _service.getConfirmation(widget.candidatureId);
   }
 
-  Future<void> _confirmSubmission() async {
+  Future<void> _confirmSubmission(String reference) async {
     if (_isSubmitting) {
       return;
     }
@@ -48,20 +48,25 @@ class _ConfirmationCandidatureScreenState
     });
 
     try {
-      await _concoursFormService.submit(
+      final result = await _concoursFormService.submit(
         widget.candidatureId,
         postulationToken: widget.postulationToken,
       );
 
+      final message = (result['data'] is Map<String, dynamic>)
+          ? (result['data'] as Map<String, dynamic>)['message'] ??
+                result['message'] ??
+                'Candidature confirmée avec succès.'
+          : (result['message'] ?? 'Candidature confirmée avec succès.');
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Candidature confirmée avec succès.')),
-      );
-      final candidatureId = int.tryParse(widget.candidatureId) ?? 0;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => SuiviCandidatureScreen(candidatureId: candidatureId),
+          builder: (_) => SuiviCandidatureScreen(reference: reference),
         ),
       );
     } catch (error) {
@@ -136,66 +141,8 @@ class _ConfirmationCandidatureScreenState
                       onPressed: _isSubmitting
                           ? null
                           : () {
-                              _confirmSubmission();
+                              _confirmSubmission(data.numeroCandidature);
                             },
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    ConfirmationActionButton(
-                      text: "Télécharger l'attestation",
-                      icon: Icons.download_outlined,
-                      onPressed: () {
-                        // téléchargement attestation
-                      },
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    ConfirmationActionButton(
-                      text: "Consulter le statut",
-                      icon: Icons.alt_route,
-                      outlined: true,
-                      onPressed: () {
-                        final candidatureId =
-                            int.tryParse(widget.candidatureId) ?? 0;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => SuiviCandidatureScreen(
-                              candidatureId: candidatureId,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xffEEF2FF),
-                          foregroundColor: const Color(0xff1E4DB7),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.popUntil(context, (route) => route.isFirst);
-                        },
-                        icon: const Icon(Icons.home_outlined),
-                        label: const Text(
-                          "Retour à l'accueil",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
                     ),
 
                     const Spacer(),

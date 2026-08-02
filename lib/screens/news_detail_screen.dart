@@ -78,11 +78,12 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                             width: double.infinity,
                             height: 220,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: double.infinity,
-                              height: 220,
-                              color: Colors.grey[200],
-                            ),
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  width: double.infinity,
+                                  height: 220,
+                                  color: Colors.grey[200],
+                                ),
                           )
                         else
                           Container(
@@ -95,11 +96,18 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CategoryBadge(
-                                title:
-                                    article.category?.name.toUpperCase() ??
-                                    'ACTUALITÉ',
-                              ),
+                              CategoryBadge(title: article.categoryLabel),
+                              if (article.displayType.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  article.displayType,
+                                  style: const TextStyle(
+                                    color: Color(0xFF1E4DB7),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 24),
                               Text(
                                 article.title,

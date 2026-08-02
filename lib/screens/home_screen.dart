@@ -5,13 +5,19 @@ import '../widgets/home/admission_banner.dart';
 import '../widgets/home/menu_card.dart';
 import '../routes/app_routes.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _showAdmissionOptions = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       backgroundColor: Colors.white,
 
       body: SafeArea(
@@ -20,7 +26,6 @@ class HomeScreen extends StatelessWidget {
 
           child: Column(
             children: [
-
               const HomeHeader(),
 
               const SizedBox(height: 20),
@@ -43,17 +48,14 @@ class HomeScreen extends StatelessWidget {
                 childAspectRatio: 0.7,
 
                 children: [
-
                   MenuCard(
                     icon: Icons.newspaper_outlined,
                     title: 'Actualité',
-                    subtitle: 'Restez informé des dernières nouvelles et événements.',
+                    subtitle:
+                        'Restez informé des dernières nouvelles et événements.',
                     color: const Color(0xFF1682F8),
                     onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.news,
-                      );
+                      Navigator.pushNamed(context, AppRoutes.news);
                     },
                   ),
 
@@ -63,23 +65,7 @@ class HomeScreen extends StatelessWidget {
                     subtitle: 'Découvrez nos formations et nos parcours.',
                     color: const Color(0xFF1682F8),
                     onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.filiere,
-                      );
-                    },
-                  ),
-
-                  MenuCard(
-                    icon: Icons.groups,
-                    title: 'Concours',
-                    subtitle: 'Toutes les informations sur les concours.',
-                    color: Color(0xFF1682F8),
-                    onTap: (){
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.concours,
-                      );
+                      Navigator.pushNamed(context, AppRoutes.filiere);
                     },
                   ),
 
@@ -87,14 +73,20 @@ class HomeScreen extends StatelessWidget {
                     icon: Icons.assignment,
                     title: 'Admission',
                     subtitle: 'Procédures et dossiers pour rejoindre EAMAU.',
-                    color: Color(0xFF1682F8),
+                    color: const Color(0xFF1682F8),
+                    onTap: () {
+                      setState(() {
+                        _showAdmissionOptions = !_showAdmissionOptions;
+                      });
+                    },
                   ),
 
                   MenuCard(
                     icon: Icons.help,
                     title: 'FAQ',
-                    subtitle: 'Trouvez rapidement les réponses à vos questions.',
-                    color: Color(0xFF1682F8),
+                    subtitle:
+                        'Trouvez rapidement les réponses à vos questions.',
+                    color: const Color(0xFF1682F8),
                   ),
 
                   MenuCard(
@@ -107,6 +99,74 @@ class HomeScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 20),
+              if (_showAdmissionOptions)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F7FF),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFB6D1FF),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Options Admission',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0D4B9C),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 190,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: MenuCard(
+                                icon: Icons.school,
+                                title: 'Admission par Concours',
+                                subtitle:
+                                    'Accéder aux procédures et candidatures de concours.',
+                                color: const Color(0xFF1682F8),
+                                onTap: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    AppRoutes.concours,
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: MenuCard(
+                                icon: Icons.swap_horiz,
+                                title: 'Admission par passerelle',
+                                subtitle:
+                                    'Suivez la procédure pour l’admission par passerelle.',
+                                color: const Color(0xFF1682F8),
+                                onTap: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    AppRoutes.admission,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              const SizedBox(height: 20),
 
               Container(
                 padding: const EdgeInsets.all(16),
@@ -115,22 +175,13 @@ class HomeScreen extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
 
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                    ),
-                  ],
+                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
                 ),
 
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
-                    Icon(
-                      Icons.account_balance,
-                      size: 40,
-                    ),
+                    Icon(Icons.account_balance, size: 40),
 
                     SizedBox(width: 12),
 
@@ -138,7 +189,6 @@ class HomeScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-
                           Text(
                             "À propos d'EAMAU",
                             style: TextStyle(
@@ -174,30 +224,23 @@ class HomeScreen extends StatelessWidget {
         onTap: (index) {
           switch (index) {
             case 2: // Actualités
-              Navigator.pushNamed(context, AppRoutes.news,);
+              Navigator.pushNamed(context, AppRoutes.news);
               break;
 
             case 3: //concours
-              Navigator.pushNamed(context, AppRoutes.concours,);
+              Navigator.pushNamed(context, AppRoutes.concours);
               break;
-              
+
             case 4: //profile
-              Navigator.pushNamed(context, AppRoutes.profile,);
+              Navigator.pushNamed(context, AppRoutes.profile);
               break;
           }
         },
 
         items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
 
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Accueil',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Recherche',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Recherche'),
 
           BottomNavigationBarItem(
             icon: Icon(Icons.newspaper_outlined),
@@ -208,7 +251,6 @@ class HomeScreen extends StatelessWidget {
             icon: Icon(Icons.emoji_events_outlined),
             label: 'Concours',
           ),
-
 
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

@@ -12,11 +12,12 @@ class SuiviEtapeModel {
   });
 
   factory SuiviEtapeModel.fromJson(Map<String, dynamic> json) {
+    final date = json['date']?.toString() ?? '';
     return SuiviEtapeModel(
-      titre: json['titre'] ?? '',
-      description: json['description'] ?? '',
-      date: json['date'] ?? '',
-      completed: json['completed'] ?? false,
+      titre: json['titre']?.toString() ?? json['label']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      date: date,
+      completed: json['completed'] as bool? ?? date.isNotEmpty,
     );
   }
 
@@ -31,36 +32,77 @@ class SuiviEtapeModel {
 }
 
 class SuiviCandidatureModel {
-  final int id;
+  final String reference;
   final String nomComplet;
   final String programme;
   final String dateSoumission;
   final String statutActuel;
+  final String attestationUrl;
   final List<SuiviEtapeModel> etapes;
 
   const SuiviCandidatureModel({
-    required this.id,
+    required this.reference,
     required this.nomComplet,
     required this.programme,
     required this.dateSoumission,
     required this.statutActuel,
+    required this.attestationUrl,
     required this.etapes,
   });
 
-  factory SuiviCandidatureModel.fromJson(
-      Map<String, dynamic> json) {
+  factory SuiviCandidatureModel.fromJson(Map<String, dynamic> json) {
+    final rawStatus =
+        json['status']?.toString() ?? json['statut']?.toString() ?? '';
     return SuiviCandidatureModel(
-      id: json['id'] ?? 0,
-      nomComplet: json['nom_complet'] ?? '',
-      programme: json['programme'] ?? '',
-      dateSoumission: json['date_soumission'] ?? '',
-      statutActuel: json['statut_actuel'] ?? '',
-      etapes: (json['etapes'] as List<dynamic>?)
-          ?.map(
-            (e) => SuiviEtapeModel.fromJson(e),
-      )
-          .toList() ??
+      reference: json['reference']?.toString() ?? '',
+      nomComplet:
+          json['nom_complet']?.toString() ??
+          json['full_name']?.toString() ??
+          '',
+      programme:
+          json['programme']?.toString() ??
+          json['programme_name']?.toString() ??
+          '',
+      dateSoumission:
+          json['date_soumission']?.toString() ??
+          json['submission_date']?.toString() ??
+          '',
+      statutActuel: _mapStatusToLabel(rawStatus),
+      attestationUrl:
+          json['attestation_url']?.toString() ??
+          json['attestationUrl']?.toString() ??
+          '',
+      etapes:
+          (json['timeline'] as List<dynamic>?)
+              ?.map((e) => SuiviEtapeModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          (json['etapes'] as List<dynamic>?)
+              ?.map((e) => SuiviEtapeModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
           [],
     );
+  }
+
+  static String _mapStatusToLabel(String status) {
+    final normalized = status.toLowerCase().trim();
+    switch (normalized) {
+      case 'submitted':
+      case 'soumis':
+        return 'Vérification';
+      case 'verification':
+      case 'en vérification':
+      case 'dossier en vérification':
+        return 'Dossier en vérification';
+      case 'accepted':
+      case 'acceptée':
+      case 'accepté':
+        return 'Acceptée';
+      case 'rejected':
+      case 'rejetée':
+      case 'rejeté':
+        return 'Rejetée';
+      default:
+        return status.isNotEmpty ? status : 'Statut inconnu';
+    }
   }
 }

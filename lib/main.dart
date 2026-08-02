@@ -34,10 +34,21 @@ import 'screens/news_detail_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e, st) {
+    // If Firebase cannot initialize (e.g. on unsupported desktop platforms
+    // or temporary channel errors), log and continue so the app can still run.
+    // This prevents a hard crash / white screen during development.
+    // Consider reporting this to your error monitoring or handling differently
+    // for production builds.
+    // ignore: avoid_print
+    print('Firebase initialization error: $e');
+    // ignore: avoid_print
+    print(st);
+  }
 
   runApp(
     MultiProvider(

@@ -314,6 +314,18 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Gérer le callback OAuth Google (deep link)
+  /// Stub pour compatibilité avec le gestionnaire de deep links.
+  Future<void> handleGoogleCallback(String code) async {
+    // Currently we map callbacks to the normal Google login flow.
+    // If you implement a server-side exchange, handle it here.
+    try {
+      await loginWithGoogle();
+    } catch (e) {
+      // ignore errors for now
+    }
+  }
+
   /// Effacer l'erreur
   void clearError() {
     _error = null;

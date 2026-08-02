@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:eamau/services/auth/firebase_auth_service.dart';
 
 /// Service OAuth pour gérer les connexions via Firebase
@@ -9,12 +8,12 @@ import 'package:eamau/services/auth/firebase_auth_service.dart';
 class OAuthService {
   final FirebaseAuthService _firebaseAuthService = FirebaseAuthService();
 
-   /// Authentifier avec Google
-   Future<Map<String, dynamic>> loginWithGoogle() async {
-     return await _firebaseAuthService.loginWithGoogle();
-   }
+  /// Authentifier avec Google
+  Future<Map<String, dynamic>> loginWithGoogle() async {
+    return await _firebaseAuthService.loginWithGoogle();
+  }
 
-   /// Déconnecter
+  /// Déconnecter
   Future<void> logout() async {
     return await _firebaseAuthService.logout();
   }
@@ -29,5 +28,3 @@ class OAuthService {
     // Rien à faire avec Firebase
   }
 }
-
-

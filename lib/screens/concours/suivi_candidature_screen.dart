@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/concours/suivi_candidature_model.dart';
 import '../../services/concours/suivi_candidature_service.dart';
@@ -7,29 +8,23 @@ import '../../widgets/concours/candidature_resume_card.dart';
 import '../../widgets/concours/candidature_timeline.dart';
 
 class SuiviCandidatureScreen extends StatefulWidget {
-  final int candidatureId;
+  final String reference;
 
-  const SuiviCandidatureScreen({
-    super.key,
-    required this.candidatureId,
-  });
+  const SuiviCandidatureScreen({super.key, required this.reference});
 
   @override
-  State<SuiviCandidatureScreen> createState() =>
-      _SuiviCandidatureScreenState();
+  State<SuiviCandidatureScreen> createState() => _SuiviCandidatureScreenState();
 }
 
-class _SuiviCandidatureScreenState
-    extends State<SuiviCandidatureScreen> {
-  final SuiviCandidatureService _service =
-  SuiviCandidatureService();
+class _SuiviCandidatureScreenState extends State<SuiviCandidatureScreen> {
+  final SuiviCandidatureService _service = SuiviCandidatureService();
 
   late Future<SuiviCandidatureModel> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = _service.getSuivi(widget.candidatureId);
+    _future = _service.getSuivi(widget.reference);
   }
 
   @override
@@ -41,11 +36,8 @@ class _SuiviCandidatureScreenState
         body: FutureBuilder<SuiviCandidatureModel>(
           future: _future,
           builder: (context, snapshot) {
-            if (snapshot.connectionState ==
-                ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
             }
 
             final suivi = snapshot.data ?? fallbackSuivi;
@@ -56,9 +48,7 @@ class _SuiviCandidatureScreenState
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage(
-                        "assets/images/building_bg.jpg",
-                      ),
+                      image: AssetImage("assets/images/building_bg.jpg"),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -71,7 +61,7 @@ class _SuiviCandidatureScreenState
                       22,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xff1E4DB7).withOpacity(0.82),
+                      color: const Color.fromRGBO(30, 77, 183, 0.82),
                     ),
                     child: Row(
                       children: [
@@ -126,16 +116,59 @@ class _SuiviCandidatureScreenState
                     padding: const EdgeInsets.all(18),
                     child: Column(
                       children: [
-                        CandidatureTimeline(
-                          etapes: suivi.etapes,
-                        ),
+                        CandidatureTimeline(etapes: suivi.etapes),
                         const SizedBox(height: 20),
                         CandidatureResumeCard(
                           nomComplet: suivi.nomComplet,
                           programme: suivi.programme,
-                          dateSoumission:
-                          suivi.dateSoumission,
+                          dateSoumission: suivi.dateSoumission,
                           statut: suivi.statutActuel,
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xff1565C0),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              final attestationUrl =
+                                  suivi.attestationUrl.isNotEmpty
+                                  ? suivi.attestationUrl
+                                  : 'https://www.eamau.org/attestation.pdf';
+                              final uri = Uri.parse(attestationUrl);
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(
+                                  uri,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } else {
+                                if (!mounted) return;
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Impossible d\'ouvrir le lien de l\'attestation.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.download_outlined),
+                            label: const Text(
+                              'Télécharger l\'attestation',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -148,8 +181,7 @@ class _SuiviCandidatureScreenState
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: 2,
           type: BottomNavigationBarType.fixed,
-          selectedItemColor:
-          const Color(0xff1E4DB7),
+          selectedItemColor: const Color(0xff1E4DB7),
           unselectedItemColor: Colors.black54,
           items: const [
             BottomNavigationBarItem(

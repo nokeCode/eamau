@@ -32,15 +32,13 @@ class ConcoursFormService {
   }) async {
     final response = await _dioClient.dio.post(
       '/concours/$concoursSlugOrId/postulation',
-      data: {
-        'email': email,
-        'candidatTypeId': candidateTypeId,
-      },
+      data: {'email': email, 'candidatTypeId': candidateTypeId},
       options: _postulationOptions(skipAuth: true),
     );
 
     final data = response.data['data'] as Map<String, dynamic>? ?? {};
-    final postulationData = data['postulation'] as Map<String, dynamic>? ?? data;
+    final postulationData =
+        data['postulation'] as Map<String, dynamic>? ?? data;
     return PostulationDraftModel.fromJson(postulationData);
   }
 
@@ -67,10 +65,13 @@ class ConcoursFormService {
       'file': await MultipartFile.fromFile(file.path),
     });
 
+    final options = _postulationOptions(token: postulationToken);
+    options.contentType = Headers.multipartFormDataContentType;
+
     final response = await _dioClient.dio.post(
       '/postulations/$postulationId/documents',
       data: formData,
-      options: _postulationOptions(token: postulationToken),
+      options: options,
     );
 
     final data = response.data['data'] as Map<String, dynamic>? ?? {};
@@ -89,11 +90,17 @@ class ConcoursFormService {
     );
   }
 
-  Future<void> submit(String postulationId, {String? postulationToken}) async {
-    await _dioClient.dio.post(
+  Future<Map<String, dynamic>> submit(
+    String postulationId, {
+    String? postulationToken,
+  }) async {
+    final response = await _dioClient.dio.post(
       '/postulations/$postulationId/submit',
       options: _postulationOptions(token: postulationToken),
     );
+
+    // Try to return the full response body as a Map so the caller can show messages
+    return (response.data as Map<String, dynamic>?) ?? <String, dynamic>{};
   }
 
   Future<PostulationVerificationResult> verifyPostulationCode({
@@ -115,9 +122,7 @@ class ConcoursFormService {
     });
   }
 
-  Future<void> resendVerificationCode({
-    required String postulationId,
-  }) async {
+  Future<void> resendVerificationCode({required String postulationId}) async {
     await _dioClient.dio.post(
       '/postulations/$postulationId/resend-code',
       options: _postulationOptions(skipAuth: true),
@@ -134,6 +139,8 @@ class ConcoursFormService {
     );
 
     final data = response.data['data'] as Map<String, dynamic>? ?? {};
-    return PostulationDraftModel.fromJson(data['postulation'] as Map<String, dynamic>? ?? {});
+    return PostulationDraftModel.fromJson(
+      data['postulation'] as Map<String, dynamic>? ?? {},
+    );
   }
 }
