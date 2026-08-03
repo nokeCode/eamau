@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AdmissionSubmitButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool loading;
 
   const AdmissionSubmitButton({

@@ -1,131 +1,105 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-
+import '../../core/api/api_config.dart';
+import '../../core/storage/token_storage.dart';
 import '../../models/admission/admission_tracking_model.dart';
 
 class AdmissionTrackingService {
+  static const String baseUrl = ApiConfig.fullBaseUrl;
+  final TokenStorage _tokenStorage = TokenStorage();
 
-  static const String baseUrl =
-      "https://votre-api.com/api/admission";
-
-  static const Map<String, String> headers = {
-    "Accept": "application/json",
-    "Content-Type": "application/json",
-  };
-
-  Future<AdmissionTrackingModel> getTracking() async {
-
-    try {
-
-      final response = await http.get(
-        Uri.parse("$baseUrl/tracking"),
-        headers: headers,
-      );
-
-      if (response.statusCode == 200) {
-
-        return AdmissionTrackingModel.fromJson(
-          jsonDecode(response.body),
-        );
-
-      }
-
-    } catch (_) {}
-
-    return AdmissionTrackingModel.fromJson(
-      fallbackTrackingData,
-    );
+  Future<Map<String, String>> _headers() async {
+    final headers = <String, String>{
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+    final token = await _tokenStorage.getAccessToken();
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
   }
 
-  Future<bool> refreshTracking() async {
-
+  Future<AdmissionTrackingModel> getTracking(int requestId) async {
     try {
-
       final response = await http.get(
-        Uri.parse("$baseUrl/tracking/refresh"),
-        headers: headers,
+        Uri.parse('$baseUrl/admission/requests/$requestId/tracking'),
+        headers: await _headers(),
       );
+      if (response.statusCode == 200) {
+        return AdmissionTrackingModel.fromJson(
+          Map<String, dynamic>.from(jsonDecode(response.body)),
+        );
+      }
+    } catch (_) {}
 
+    return AdmissionTrackingModel.fromJson(fallbackTrackingData);
+  }
+
+  Future<bool> refreshTracking(int requestId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/admission/requests/$requestId/tracking'),
+        headers: await _headers(),
+      );
       return response.statusCode == 200;
-
     } catch (_) {
-
       return false;
-
     }
-
   }
 
   Future<bool> cancelAdmission() async {
-
     try {
-
       final response = await http.delete(
-        Uri.parse("$baseUrl/request"),
-        headers: headers,
+        Uri.parse('$baseUrl/admission/request'),
+        headers: await _headers(),
       );
-
       return response.statusCode == 200;
-
     } catch (_) {
-
       return false;
-
     }
-
   }
 }
 
 const Map<String, dynamic> fallbackTrackingData = {
-
-  "reference":"EAMAU-2024-0258",
-
-  "submission_date":"15 mai 2024",
-
-  "status":"En cours d'étude",
-
-  "steps":[
-
+  'requestId': 45,
+  'status': 'BROUILLON',
+  'information': {
+    'firstName': 'Jane',
+    'lastName': 'Doe',
+    'email': 'jane@example.com',
+    'phone': '+33700000000',
+    'profession': 'Étudiante',
+    'address': '1 rue de la Paix',
+    'universityOrigin': 'Université de Paris',
+    'currentLevel': 'L2',
+    'requestedLevel': 'L3',
+    'currentField': 'Informatique',
+    'requestedField': 'Génie logiciel'
+  },
+  'documents': [
     {
-
-      "title":"Demande reçue",
-
-      "description":
-      "Votre candidature a été reçue avec succès.",
-
-      "date":"12 mai 2025",
-
-      "completed":true
-
-    },
-
-    {
-
-      "title":"Étude de dossier",
-
-      "description":
-      "Votre dossier est actuellement en cours d'examen par notre comité pédagogique.",
-
-      "date":"14 mai 2025",
-
-      "completed":true
-
-    },
-
-    {
-
-      "title":"Décision",
-
-      "description":
-      "La décision sera communiquée par email dans les prochains jours.",
-
-      "date":"",
-
-      "completed":false
-
+      'uuid': 'a1b2c3d4',
+      'originalFilename': 'cv.pdf',
+      'attachmentType': 'Curriculum vitae',
+      'validated': false
     }
-
+  ],
+  'missingDocuments': ['Pièce d’identité', 'Relevé de notes'],
+  'isComplete': false,
+  'timeline': [
+    {
+      'step': 'created',
+      'label': 'Demande créée',
+      'status': 'BROUILLON',
+      'date': '2026-08-02T10:00:00+00:00'
+    },
+    {
+      'step': 'documents_received',
+      'label': 'Documents reçus',
+      'status': 'BROUILLON',
+      'date': '2026-08-02T10:10:00+00:00'
+    }
   ]
-
 };

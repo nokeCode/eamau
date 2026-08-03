@@ -1,37 +1,44 @@
 import 'package:flutter/material.dart';
+import '../../models/admission/admission_model.dart';
+import '../../services/admission/admission_service.dart';
 import '../../widgets/admission/admission_card.dart';
 import '../../widgets/admission/admission_header.dart';
 import '../../widgets/admission/admission_intro.dart';
 import '../../widgets/admission/admission_bottom_nav.dart';
 import 'admission_conditions_screen.dart';
 
-class AdmissionScreen extends StatelessWidget {
+class AdmissionScreen extends StatefulWidget {
   const AdmissionScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final admissions = [
-      {
-        "title": "Admission en\npremière année",
-        "description":
-        "Cette voie s'adresse aux bacheliers souhaitant intégrer l'EAMAU en première année de formation.",
-        "eligibility":
-        "Être titulaire d'un baccalauréat ou d'un diplôme équivalent reconnu.",
-        "image": "assets/images/admission1.png",
-      },
-      {
-        "title": "Admission par passerelle\n(à partir de L2,...)",
-        "description":
-        "Cette voie permet aux étudiants d'intégrer l'EAMAU à un niveau avancé selon leur parcours académique.",
-        "eligibility":
-        "Être titulaire d'un diplôme universitaire (DEUG, Licence, etc.) ou équivalent.",
-        "image": "assets/images/admission2.png",
-      },
-    ];
+  State<AdmissionScreen> createState() => _AdmissionScreenState();
+}
 
+class _AdmissionScreenState extends State<AdmissionScreen> {
+  final AdmissionService _service = AdmissionService();
+  bool loading = true;
+  List<AdmissionModel> campaigns = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCampaigns();
+  }
+
+  Future<void> _loadCampaigns() async {
+    final result = await _service.getAdmissions();
+    if (mounted) {
+      setState(() {
+        campaigns = result;
+        loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
-
       body: Column(
         children: [
           AdmissionHeader(
@@ -46,38 +53,102 @@ class AdmissionScreen extends StatelessWidget {
                   top: Radius.circular(28),
                 ),
               ),
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    const AdmissionIntro(),
-
-                    ...admissions.map(
-                          (item) => AdmissionCard(
-                        title: item["title"]!,
-                        description: item["description"]!,
-                        eligibility: item["eligibility"]!,
-                        image: item["image"]!,
-                        onTap: () {
-                          Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AdmissionConditionsScreen(),
+              child: loading
+                  ? SingleChildScrollView(
+                      child: Column(
+                        children: List.generate(
+                          3,
+                          (index) => Container(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                const BoxShadow(
+                                  color: Color.fromRGBO(0, 0, 0, 0.04),
+                                  blurRadius: 12,
+                                  offset: Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  height: 22,
+                                  width: 180,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade300,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Container(
+                                  height: 14,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade300,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Container(
+                                  height: 14,
+                                  width: MediaQuery.of(context).size.width * 0.65,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade300,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Container(
+                                  height: 36,
+                                  width: 140,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade300,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        );
-
-                        },
+                        ),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          const AdmissionIntro(),
+                          ...campaigns.map(
+                            (campaign) => AdmissionCard(
+                              title: campaign.title,
+                              description: campaign.description,
+                              eligibility: campaign.eligibility,
+                              image: campaign.image,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => AdmissionConditionsScreen(
+                                      campaignId: campaign.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
                       ),
                     ),
-
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
             ),
           ),
         ],
       ),
-
       bottomNavigationBar: const AdmissionBottomNav(),
     );
   }

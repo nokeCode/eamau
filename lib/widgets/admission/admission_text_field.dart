@@ -8,6 +8,7 @@ class AdmissionTextField extends StatelessWidget {
   final bool enabled;
   final int maxLines;
   final String? Function(String?)? validator;
+  final FocusNode? focusNode;
 
   const AdmissionTextField({
     super.key,
@@ -18,6 +19,7 @@ class AdmissionTextField extends StatelessWidget {
     this.enabled = true,
     this.maxLines = 1,
     this.validator,
+    this.focusNode,
   });
 
   @override
@@ -27,6 +29,7 @@ class AdmissionTextField extends StatelessWidget {
       child: TextFormField(
         controller: controller,
         validator: validator,
+        focusNode: focusNode,
         keyboardType: keyboardType,
         enabled: enabled,
         maxLines: maxLines,

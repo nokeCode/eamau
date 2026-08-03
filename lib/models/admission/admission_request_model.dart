@@ -7,22 +7,16 @@ class AdmissionRequestModel {
   final String lastName;
   final String email;
   final String phone;
-
   final DateTime? birthDate;
   final String nationality;
-
-  final String diploma;
-  final String graduationYear;
-
-  final String previousSchool;
-  final String previousCountry;
-
-  final String level;
-  final String program;
-
+  final String profession;
+  final String address;
+  final String universityOrigin;
+  final String currentLevel;
+  final String requestedLevel;
+  final String currentField;
+  final String requestedField;
   final Map<String, File?> documents;
-
-  final String status;
 
   const AdmissionRequestModel({
     this.id,
@@ -32,53 +26,55 @@ class AdmissionRequestModel {
     required this.phone,
     required this.birthDate,
     required this.nationality,
-    required this.diploma,
-    required this.graduationYear,
-    required this.previousSchool,
-    required this.previousCountry,
-    required this.level,
-    required this.program,
+    required this.profession,
+    required this.address,
+    required this.universityOrigin,
+    required this.currentLevel,
+    required this.requestedLevel,
+    required this.currentField,
+    required this.requestedField,
     required this.documents,
-    this.status = "draft",
   });
 
   factory AdmissionRequestModel.fromJson(Map<String, dynamic> json) {
     return AdmissionRequestModel(
-      id: json["id"],
-      firstName: json["first_name"] ?? "",
-      lastName: json["last_name"] ?? "",
-      email: json["email"] ?? "",
-      phone: json["phone"] ?? "",
-      birthDate: json["birth_date"] == null
+      id: json['id'],
+      firstName: json['firstName'] ?? '',
+      lastName: json['lastName'] ?? '',
+      email: json['email'] ?? '',
+      phone: json['phone'] ?? '',
+      birthDate: json['birthDate'] == null
           ? null
-          : DateTime.parse(json["birth_date"]),
-      nationality: json["nationality"] ?? "",
-      diploma: json["diploma"] ?? "",
-      graduationYear: json["graduation_year"] ?? "",
-      previousSchool: json["previous_school"] ?? "",
-      previousCountry: json["previous_country"] ?? "",
-      level: json["level"] ?? "",
-      program: json["program"] ?? "",
+          : DateTime.tryParse(json['birthDate']),
+      nationality: json['nationality'] ?? '',
+      profession: json['profession'] ?? '',
+      address: json['address'] ?? '',
+      universityOrigin: json['universityOrigin'] ?? '',
+      currentLevel: json['currentLevel'] ?? '',
+      requestedLevel: json['requestedLevel'] ?? '',
+      currentField: json['currentField'] ?? '',
+      requestedField: json['requestedField'] ?? '',
       documents: {},
-      status: json["status"] ?? "draft",
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      "first_name": firstName,
-      "last_name": lastName,
-      "email": email,
-      "phone": phone,
-      "birth_date": birthDate?.toIso8601String(),
-      "nationality": nationality,
-      "diploma": diploma,
-      "graduation_year": graduationYear,
-      "previous_school": previousSchool,
-      "previous_country": previousCountry,
-      "level": level,
-      "program": program,
-      "status": status,
+      'firstName': firstName,
+      'lastName': lastName,
+      'birthDate': birthDate != null
+          ? '${birthDate!.year.toString().padLeft(4, '0')}-${birthDate!.month.toString().padLeft(2, '0')}-${birthDate!.day.toString().padLeft(2, '0')}'
+          : null,
+      'nationality': nationality,
+      'phone': phone,
+      'email': email,
+      'profession': profession,
+      'address': address,
+      'universityOrigin': universityOrigin,
+      'currentLevel': currentLevel,
+      'requestedLevel': requestedLevel,
+      'currentField': currentField,
+      'requestedField': requestedField,
     };
   }
 }

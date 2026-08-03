@@ -25,46 +25,30 @@ class AdmissionTrackingProvider extends ChangeNotifier {
 
   String? get error => _error;
 
-  Future<void> loadTracking() async {
-
+  Future<void> loadTracking({required int requestId}) async {
     _loading = true;
-
     _error = null;
-
     notifyListeners();
 
     try {
-
-      _tracking =
-      await _service.getTracking();
-
+      _tracking = await _service.getTracking(requestId);
     } catch (e) {
-
       _error = e.toString();
-
     }
 
     _loading = false;
-
     notifyListeners();
-
   }
 
-  Future<void> refreshTracking() async {
-
+  Future<void> refreshTracking({required int requestId}) async {
     _refreshing = true;
-
     notifyListeners();
 
-    await _service.refreshTracking();
-
-    _tracking =
-    await _service.getTracking();
+    await _service.refreshTracking(requestId);
+    _tracking = await _service.getTracking(requestId);
 
     _refreshing = false;
-
     notifyListeners();
-
   }
 
   Future<bool> cancelAdmission() async {

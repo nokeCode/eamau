@@ -9,12 +9,19 @@ import '../../widgets/admission/tracking_help_card.dart';
 import '../../widgets/admission/tracking_bottom_nav.dart';
 
 class AdmissionTrackingScreen extends StatefulWidget{
-  const AdmissionTrackingScreen({super.key});
+  final int requestId;
+
+  const AdmissionTrackingScreen({super.key, required this.requestId});
   @override State<AdmissionTrackingScreen> createState()=>_AdmissionTrackingScreenState();
 }
 class _AdmissionTrackingScreenState extends State<AdmissionTrackingScreen>{
   @override
-  void initState(){super.initState();WidgetsBinding.instance.addPostFrameCallback((_)=>context.read<AdmissionTrackingProvider>().loadTracking());}
+  void initState(){
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_)=>
+      context.read<AdmissionTrackingProvider>().loadTracking(requestId: widget.requestId),
+    );
+  }
   @override
   Widget build(BuildContext context){
     return Consumer<AdmissionTrackingProvider>(builder:(context,p,_){
@@ -22,7 +29,7 @@ class _AdmissionTrackingScreenState extends State<AdmissionTrackingScreen>{
         backgroundColor: const Color(0xffF5F7FA),
         bottomNavigationBar: const TrackingBottomNav(currentIndex:2),
         body: SafeArea(child:p.loading?const Center(child:CircularProgressIndicator()):RefreshIndicator(
-            onRefresh:p.refreshTracking,
+            onRefresh: () => p.refreshTracking(requestId: widget.requestId),
             child:ListView(children:[
               const TrackingHeader(),
               const SizedBox(height:20),
@@ -34,7 +41,7 @@ class _AdmissionTrackingScreenState extends State<AdmissionTrackingScreen>{
               ],
               TrackingHelpCard(onTap:()=>Navigator.pushNamed(context,'/contact')),
               Padding(padding:const EdgeInsets.all(20),child:ElevatedButton(
-                  onPressed:p.refreshTracking,
+                  onPressed: () => p.refreshTracking(requestId: widget.requestId),
                   child:const Text('Actualiser'))),
             ]))),
       );});}}

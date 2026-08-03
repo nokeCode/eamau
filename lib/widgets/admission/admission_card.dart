@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class AdmissionCard extends StatelessWidget {
+class AdmissionCard extends StatefulWidget {
   final String title;
   final String description;
   final String eligibility;
@@ -17,6 +17,24 @@ class AdmissionCard extends StatelessWidget {
   });
 
   @override
+  State<AdmissionCard> createState() => _AdmissionCardState();
+}
+
+class _AdmissionCardState extends State<AdmissionCard> {
+  bool expanded = false;
+
+  bool get _hasLongDescription {
+    final words = widget.description.trim().split(RegExp(r'\s+'));
+    return words.length > 10;
+  }
+
+  String get _descriptionPreview {
+    final words = widget.description.trim().split(RegExp(r'\s+'));
+    if (words.length <= 10) return widget.description;
+    return '${words.take(10).join(' ')}...';
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(
@@ -29,10 +47,10 @@ class AdmissionCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.06),
+          const BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.06),
             blurRadius: 18,
-            offset: const Offset(0, 6),
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -48,7 +66,7 @@ class AdmissionCard extends StatelessWidget {
             ),
             child: Padding(
               padding: const EdgeInsets.all(18),
-              child: Image.asset(image),
+              child: Image.asset(widget.image),
             ),
           ),
 
@@ -59,7 +77,7 @@ class AdmissionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  widget.title,
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -81,13 +99,45 @@ class AdmissionCard extends StatelessWidget {
                 const SizedBox(height: 3),
 
                 Text(
-                  description,
+                  expanded ? widget.description : _descriptionPreview,
                   style: const TextStyle(
                     fontSize: 13,
                     color: Colors.grey,
                     height: 1.45,
                   ),
                 ),
+
+                if (_hasLongDescription) ...[
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        expanded = !expanded;
+                      });
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          expanded ? 'Réduire' : 'Voir tout',
+                          style: const TextStyle(
+                            color: Color(0xff0B4EA2),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          expanded
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                          color: const Color(0xff0B4EA2),
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 12),
 
@@ -103,7 +153,7 @@ class AdmissionCard extends StatelessWidget {
                 const SizedBox(height: 3),
 
                 Text(
-                  eligibility,
+                  widget.eligibility,
                   style: const TextStyle(
                     fontSize: 13,
                     color: Colors.grey,
@@ -117,7 +167,7 @@ class AdmissionCard extends StatelessWidget {
                   width: 185,
                   height: 42,
                   child: ElevatedButton(
-                    onPressed: onTap,
+                    onPressed: widget.onTap,
                     style: ElevatedButton.styleFrom(
                       elevation: 0,
                       backgroundColor: const Color(0xff0B4EA2),

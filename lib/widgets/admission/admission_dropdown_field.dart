@@ -7,6 +7,8 @@ class AdmissionDropdownField<T> extends StatelessWidget {
   final List<T> items;
   final ValueChanged<T?> onChanged;
   final String Function(T item)? itemLabel;
+  final String? Function(T?)? validator;
+  final FocusNode? focusNode;
 
   const AdmissionDropdownField({
     super.key,
@@ -16,6 +18,8 @@ class AdmissionDropdownField<T> extends StatelessWidget {
     required this.items,
     required this.onChanged,
     this.itemLabel,
+    this.validator,
+    this.focusNode,
   });
 
   @override
@@ -23,7 +27,7 @@ class AdmissionDropdownField<T> extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: DropdownButtonFormField<T>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           hintText: hint,
           prefixIcon: Icon(
@@ -51,6 +55,10 @@ class AdmissionDropdownField<T> extends StatelessWidget {
               color: Color(0xff0B4EA2),
             ),
           ),
+          errorStyle: TextStyle(
+            color: Colors.red.shade700,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         items: items
             .map(
@@ -64,6 +72,8 @@ class AdmissionDropdownField<T> extends StatelessWidget {
           ),
         )
             .toList(),
+        focusNode: focusNode,
+        validator: validator,
         onChanged: onChanged,
       ),
     );

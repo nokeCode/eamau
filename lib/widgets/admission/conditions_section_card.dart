@@ -25,6 +25,17 @@ class _ConditionsSectionCardState
     extends State<ConditionsSectionCard> {
   late bool expanded;
 
+  bool get _subtitleIsLong {
+    final words = widget.subtitle.trim().split(RegExp(r'\s+'));
+    return words.length > 10;
+  }
+
+  String get _subtitlePreview {
+    final words = widget.subtitle.trim().split(RegExp(r'\s+'));
+    if (words.length <= 10) return widget.subtitle;
+    return '${words.take(10).join(' ')}...';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -71,7 +82,7 @@ class _ConditionsSectionCardState
                     ),
                     child: Icon(
                       widget.icon,
-                      color: Color(0xff0B7BD7),
+                      color: const Color(0xff0B7BD7),
                       size: 24,
                     ),
                   ),
@@ -93,7 +104,9 @@ class _ConditionsSectionCardState
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          widget.subtitle,
+                          _subtitleIsLong && !expanded
+                              ? _subtitlePreview
+                              : widget.subtitle,
                           style: const TextStyle(
                             fontSize: 13,
                             color: Colors.grey,
@@ -132,7 +145,20 @@ class _ConditionsSectionCardState
               child: Column(
                 crossAxisAlignment:
                 CrossAxisAlignment.start,
-                children: widget.children,
+                children: [
+                  if (_subtitleIsLong) ...[
+                    Text(
+                      widget.subtitle,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  ...widget.children,
+                ],
               ),
             ),
             crossFadeState: expanded

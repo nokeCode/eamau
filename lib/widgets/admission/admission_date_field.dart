@@ -4,11 +4,15 @@ import 'package:intl/intl.dart';
 class AdmissionDateField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
+  final String? Function(String?)? validator;
+  final FocusNode? focusNode;
 
   const AdmissionDateField({
     super.key,
     required this.controller,
     required this.hint,
+    this.validator,
+    this.focusNode,
   });
 
   Future<void> _pickDate(BuildContext context) async {
@@ -31,11 +35,17 @@ class AdmissionDateField extends StatelessWidget {
       child: TextFormField(
         controller: controller,
         readOnly: true,
+        focusNode: focusNode,
+        validator: validator,
         onTap: () => _pickDate(context),
         decoration: InputDecoration(
           hintText: hint,
           prefixIcon: const Icon(Icons.calendar_month_outlined),
           suffixIcon: const Icon(Icons.calendar_today_outlined),
+          errorStyle: TextStyle(
+            color: Colors.red.shade700,
+            fontWeight: FontWeight.w600,
+          ),
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(

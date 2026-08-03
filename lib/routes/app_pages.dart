@@ -36,7 +36,16 @@ class AppPages {
     AppRoutes.concours: (_) => const ConcoursListScreen(),
     AppRoutes.filiere: (_) => const FiliereScreen(),
     AppRoutes.admission: (_) => const AdmissionScreen(),
-    AppRoutes.admissionRequest: (_) => const AdmissionRequestScreen(),
-    AppRoutes.admissionTracking: (_) => const AdmissionTrackingScreen(),
+    AppRoutes.admissionRequest: (context) {
+      final campaignId = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
+      return AdmissionRequestScreen(campaignId: campaignId);
+    },
+    AppRoutes.admissionTracking: (context) {
+      final requestId = ModalRoute.of(context)?.settings.arguments as int?;
+      if (requestId == null) {
+        return const AdmissionTrackingScreen(requestId: 0);
+      }
+      return AdmissionTrackingScreen(requestId: requestId);
+    },
   };
 }
