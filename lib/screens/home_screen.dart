@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/common/main_bottom_navigation.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/search_bar_widget.dart';
 import '../widgets/home/admission_banner.dart';
@@ -218,46 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 0,
-        onTap: (index) {
-          switch (index) {
-            case 2: // Actualités
-              Navigator.pushNamed(context, AppRoutes.news);
-              break;
-
-            case 3: //concours
-              Navigator.pushNamed(context, AppRoutes.concours);
-              break;
-
-            case 4: //profile
-              Navigator.pushNamed(context, AppRoutes.profile);
-              break;
-          }
-        },
-
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
-
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Recherche'),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.newspaper_outlined),
-            label: 'Actualités',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.emoji_events_outlined),
-            label: 'Concours',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profil',
-          ),
-        ],
-      ),
+      bottomNavigationBar: MainBottomNavigationBar(currentIndex: 0),
     );
   }
 }

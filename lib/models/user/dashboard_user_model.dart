@@ -1,3 +1,4 @@
+import '../auth/user.dart';
 import 'account_status_model.dart';
 import 'notification_preview_model.dart';
 import 'profile_completion_model.dart';
@@ -40,6 +41,27 @@ class DashboardUserModel {
       notifications: (json['notifications'] as List? ?? [])
           .map((e) => NotificationPreviewModel.fromJson(e))
           .toList(),
+    );
+  }
+
+  factory DashboardUserModel.fromConnectedUser(User user) {
+    final normalizedProfile = user.profile?.toUpperCase();
+    final isStudent = normalizedProfile == 'STUDENT';
+
+    return DashboardUserModel(
+      firstName: user.firstName ?? '',
+      lastName: user.lastName ?? '',
+      avatar: user.avatar ?? '',
+      program: isStudent ? 'Étudiant' : 'Utilisateur',
+      academicYear: user.email,
+      profileCompletion: ProfileCompletionModel(
+        percentage: user.profileCompletionPercentage,
+        title: 'Complétion du profil',
+        description: 'Pourcentage calculé à partir des champs du modèle utilisateur connecté.',
+        buttonText: 'Consulter mon profil',
+      ),
+      statuses: const [],
+      notifications: const [],
     );
   }
 

@@ -1,13 +1,21 @@
+import 'dart:io';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:eamau/core/api/api_client.dart';
 import 'package:eamau/models/auth/user.dart';
 import 'package:eamau/services/auth/auth_service.dart';
+import 'package:eamau/services/auth/user_session_service.dart';
+import 'package:eamau/services/notification/notification_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
+  final UserSessionService _sessionService;
 
   AuthProvider({AuthService? authService, bool checkLoginStatus = true})
-    : _authService = authService ?? AuthService() {
+    : _authService = authService ?? AuthService(),
+      _sessionService = UserSessionService() {
     if (checkLoginStatus) {
       _checkLoginStatus();
     }
@@ -15,14 +23,17 @@ class AuthProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _isLoggedIn = false;
-  User? _user;
   String? _error;
   String? _pending2FAEmail;
 
   // Getters
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _isLoggedIn;
-  User? get user => _user;
+  User? get user => _sessionService.currentUser;
+  String? get currentProfile => _sessionService.currentProfile;
+  bool get isStudent => _sessionService.isStudent;
+  bool get isUser => _sessionService.isUser;
+  String? get profileRouteName => _sessionService.profileRouteName;
   String? get error => _error;
   bool get pending2FA => _pending2FAEmail != null;
   String? get pending2FAEmail => _pending2FAEmail;
@@ -51,16 +62,93 @@ class AuthProvider extends ChangeNotifier {
   /// Vérifier l'état de connexion au démarrage
   Future<void> _checkLoginStatus() async {
     _isLoggedIn = await _authService.isLoggedIn();
+
     if (_isLoggedIn) {
       try {
-        _user = await _authService.getCurrentUser();
+        await refreshSessionFromBackend();
       } catch (e) {
         _isLoggedIn = false;
-        _user = null;
+        _sessionService.clearSession();
         await _authService.deleteTokens();
       }
+    } else {
+      _sessionService.clearSession();
     }
+
     notifyListeners();
+  }
+
+  Future<bool> bootstrapSession() async {
+    final hasTokens = await _authService.isLoggedIn();
+
+    if (!hasTokens) {
+      _isLoggedIn = false;
+      _sessionService.clearSession();
+      notifyListeners();
+      return false;
+    }
+
+    try {
+      await refreshSessionFromBackend();
+      return true;
+    } catch (_) {
+      _isLoggedIn = false;
+      _sessionService.clearSession();
+      await _authService.deleteTokens();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<void> refreshSessionFromBackend() async {
+    final currentUser = await _authService.getCurrentUser();
+    _sessionService.updateSession(
+      user: currentUser,
+      profile: currentUser.profile ?? currentUser.role,
+    );
+    _isLoggedIn = true;
+    notifyListeners();
+  }
+
+  Future<void> _registerDeviceTokenAfterLogin() async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+      final notificationSettings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      if (notificationSettings.authorizationStatus == AuthorizationStatus.denied) {
+        return;
+      }
+
+      final token = await messaging.getToken();
+      if (token == null || token.isEmpty) {
+        return;
+      }
+
+      debugPrint(token);
+
+      final packageInfo = await PackageInfo.fromPlatform();
+      final payload = {
+        'deviceToken': token,
+        'platform': Platform.isAndroid ? 'android' : 'ios',
+        'deviceName': Platform.localHostname,
+        'manufacturer': Platform.isAndroid ? 'Android' : 'Apple',
+        'model': Platform.localHostname,
+        'osVersion': Platform.operatingSystemVersion,
+        'appVersion': packageInfo.version,
+        'language': 'fr',
+        'timezone': DateTime.now().timeZoneName,
+      };
+
+      await NotificationService().registerDevice(payload);
+    } catch (e) {
+      if (kDebugMode) {
+        print('FCM registration error: $e');
+      }
+    }
   }
 
   /// Login
@@ -81,7 +169,9 @@ class AuthProvider extends ChangeNotifier {
       }
 
       _isLoggedIn = true;
-      _user = null; // Sera chargé après le 2FA ou directement
+      _sessionService.clearSession();
+      await refreshSessionFromBackend();
+      await _registerDeviceTokenAfterLogin();
       _setLoading(false);
       return true;
     } on ApiException catch (e) {
@@ -104,7 +194,12 @@ class AuthProvider extends ChangeNotifier {
       final response = await _authService.verify2FA(email: email, code: code);
 
       _isLoggedIn = true;
-      _user = response.user;
+      _sessionService.updateSession(
+        user: response.user,
+        profile: response.user.profile ?? response.user.role,
+      );
+      await refreshSessionFromBackend();
+      await _registerDeviceTokenAfterLogin();
       _pending2FAEmail = null;
       _setLoading(false);
       return true;
@@ -225,7 +320,12 @@ class AuthProvider extends ChangeNotifier {
       );
 
       _isLoggedIn = true;
-      _user = response.user;
+      _sessionService.updateSession(
+        user: response.user,
+        profile: response.user.profile ?? response.user.role,
+      );
+      await refreshSessionFromBackend();
+      await _registerDeviceTokenAfterLogin();
       _setLoading(false);
       return true;
     } on ValidationException catch (e) {
@@ -255,7 +355,7 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
 
     try {
-      _user = await _authService.getCurrentUser();
+      await refreshSessionFromBackend();
       _setLoading(false);
       return true;
     } on ApiException catch (e) {
@@ -279,7 +379,7 @@ class AuthProvider extends ChangeNotifier {
       // Même en cas d'erreur, on nettoie localement
     } finally {
       _isLoggedIn = false;
-      _user = null;
+      _sessionService.clearSession();
       _error = null;
       _setLoading(false);
     }
@@ -300,7 +400,9 @@ class AuthProvider extends ChangeNotifier {
       }
 
       _isLoggedIn = true;
-      _user = null; // Sera chargé après le 2FA ou directement
+      _sessionService.clearSession();
+      await refreshSessionFromBackend();
+      await _registerDeviceTokenAfterLogin();
       _setLoading(false);
       return true;
     } on ApiException catch (e) {

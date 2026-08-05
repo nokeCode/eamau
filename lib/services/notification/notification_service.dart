@@ -1,59 +1,51 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
-
+import '../../core/api/api_endpoints.dart';
+import '../../core/api/dio_client.dart';
 import '../../models/notification/notification_model.dart';
 
 class NotificationService {
-  /// À remplacer par ton endpoint réel plus tard
-  static const String baseUrl = 'https://ton-api.com';
-  static const String endpoint = '/api/notification';
+  final DioClient _dioClient = DioClient();
 
-  Future<List<NotificationModel>> getNotifications() async {
+  Future<List<NotificationModel>> getNotifications({
+    int page = 1,
+    int limit = 20,
+  }) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: {
-          'Accept': 'application/json',
+      final response = await _dioClient.dio.get(
+        ApiEndpoints.notifications,
+        queryParameters: {
+          'page': page,
+          'limit': limit,
         },
       );
 
-      if (response.statusCode == 200) {
-        final dynamic body = jsonDecode(response.body);
+      final dynamic body = response.data;
 
-        // Cas où l'API retourne directement une liste
-        if (body is List) {
-          return body
-              .map((e) => NotificationModel.fromJson(e))
+      if (body is Map<String, dynamic>) {
+        final data = body['data'];
+
+        if (data is Map<String, dynamic> && data['items'] is List) {
+          return (data['items'] as List)
+              .map((item) => NotificationModel.fromJson(item as Map<String, dynamic>))
               .toList();
         }
 
-        // Cas où les données sont dans "data"
-        if (body is Map<String, dynamic> && body['data'] is List) {
-          return (body['data'] as List)
-              .map((e) => NotificationModel.fromJson(e))
+        if (data is List) {
+          return data
+              .map((item) => NotificationModel.fromJson(item as Map<String, dynamic>))
               .toList();
         }
       }
 
-      // Fallback
       return fallbackNotifications;
-    } catch (e) {
-      // Fallback
+    } catch (_) {
       return fallbackNotifications;
     }
   }
 
   Future<bool> markAsRead(int notificationId) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl$endpoint/$notificationId/read'),
-        headers: {
-          'Accept': 'application/json',
-        },
-      );
-
-      return response.statusCode == 200;
+      await _dioClient.dio.post('${ApiEndpoints.notifications}/$notificationId/read');
+      return true;
     } catch (_) {
       return false;
     }
@@ -61,23 +53,86 @@ class NotificationService {
 
   Future<bool> markAllAsRead() async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl$endpoint/read-all'),
-        headers: {
-          'Accept': 'application/json',
-        },
-      );
-
-      return response.statusCode == 200;
+      await _dioClient.dio.post('${ApiEndpoints.notifications}/read-all');
+      return true;
     } catch (_) {
       return false;
     }
   }
 
+  Future<Map<String, dynamic>> getPreferences() async {
+    try {
+      final response = await _dioClient.dio.get(
+        ApiEndpoints.notificationsPreferences,
+      );
+
+      final dynamic body = response.data;
+      if (body is Map<String, dynamic> && body['data'] is Map<String, dynamic>) {
+        return Map<String, dynamic>.from(body['data'] as Map);
+      }
+
+      return {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<Map<String, dynamic>> updatePreferences(
+    Map<String, dynamic> preferences,
+  ) async {
+    try {
+      final response = await _dioClient.dio.put(
+        ApiEndpoints.notificationsPreferences,
+        data: preferences,
+      );
+
+      final dynamic body = response.data;
+      if (body is Map<String, dynamic> && body['data'] is Map<String, dynamic>) {
+        return Map<String, dynamic>.from(body['data'] as Map);
+      }
+
+      return preferences;
+    } catch (_) {
+      return preferences;
+    }
+  }
+
+  Future<Map<String, dynamic>> registerDevice(
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final response = await _dioClient.dio.post(
+        ApiEndpoints.devicesRegister,
+        data: payload,
+      );
+
+      final dynamic body = response.data;
+      if (body is Map<String, dynamic> && body['data'] is Map<String, dynamic>) {
+        return Map<String, dynamic>.from(body['data'] as Map);
+      }
+
+      return {};
+    } catch (_) {
+      return {};
+    }
+  }
+
   Future<int> getUnreadCount() async {
     try {
-      final notifications = await getNotifications();
+      final response = await _dioClient.dio.get(
+        '${ApiEndpoints.notifications}/unread-count',
+      );
 
+      final dynamic body = response.data;
+
+      if (body is Map<String, dynamic>) {
+        final data = body['data'];
+        if (data is Map<String, dynamic> && data['unreadCount'] is int) {
+          return data['unreadCount'] as int;
+        }
+      }
+
+      final notifications = await getNotifications();
       return notifications.where((e) => !e.isRead).length;
     } catch (_) {
       return fallbackNotifications.where((e) => !e.isRead).length;

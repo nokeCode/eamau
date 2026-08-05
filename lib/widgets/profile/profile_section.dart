@@ -60,7 +60,11 @@ class ProfileSection extends StatelessWidget {
           ProfileInfoTile(
             icon: Icons.person_outline,
             title: "Nom complet",
-            value: user.fullName,
+            value: user.fullName.isNotEmpty
+                ? user.fullName
+                : user.email.isNotEmpty
+                    ? user.email
+                    : (user.username.isNotEmpty ? user.username : '-'),
           ),
 
           ProfileInfoTile(

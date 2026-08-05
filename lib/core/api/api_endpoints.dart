@@ -15,4 +15,17 @@ class ApiEndpoints {
   static const String resetPassword = '/auth/reset-password';
   static const String googleAuth = '/auth/google';
   static const String googleCallback = '/auth/google/callback';
+
+  // Notification endpoints
+  static const String notifications = '/notifications';
+  static const String notificationsPreferences = '/notifications/preferences';
+  static const String devicesRegister = '/devices/register';
+
+  // Profile endpoints
+  static const String profile = '/profile';
+  static const String profilePhoto = '/profile/photo';
+  static const String profilePassword = '/profile/password';
+  static const String profileAcademic = '/profile/academic';
+  static const String profileValidation = '/profile/validation';
+  static const String requestVerification = '/profile/request-verification';
 }

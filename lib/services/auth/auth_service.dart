@@ -213,11 +213,32 @@ class AuthService {
   }
 
   /// Récupérer l'utilisateur actuel
+  Map<String, dynamic>? _unwrapResponseData(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      if (data['data'] is Map<String, dynamic>) {
+        return _unwrapResponseData(data['data']);
+      }
+      if (data['user'] is Map<String, dynamic>) {
+        return _unwrapResponseData(data['user']);
+      }
+      if (data['profile'] is Map<String, dynamic>) {
+        return _unwrapResponseData(data['profile']);
+      }
+      return data;
+    }
+    return null;
+  }
+
   Future<User> getCurrentUser() async {
     try {
       final response = await _dioClient.dio.get(ApiEndpoints.me);
+      final userData = _unwrapResponseData(response.data);
 
-      return User.fromJson(response.data['data'] as Map<String, dynamic>);
+      if (userData == null) {
+        throw ServerException(message: 'Données utilisateur invalides');
+      }
+
+      return User.fromJson(userData);
     } on DioException catch (e) {
       _handleDioException(e);
       rethrow;

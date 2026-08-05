@@ -26,12 +26,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    if (authProvider.isLoggedIn) {
-      Navigator.pushReplacementNamed(context, AppRoutes.user);
-    } else {
-      // Allow anonymous access to parts of the app: go to Home instead of Login
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
-    }
+    await authProvider.bootstrapSession();
+
+    if (!mounted) return;
+
+    Navigator.pushReplacementNamed(context, AppRoutes.home);
   }
 
   @override
@@ -81,7 +80,7 @@ class _SplashScreenState extends State<SplashScreen> {
               width: size.width * 0.40,
               height: size.width * 0.40,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5EDBB).withOpacity(0.70),
+                color: const Color(0xFFF5EDBB).withValues(alpha: 0.70),
                 shape: BoxShape.circle,
               ),
             ),

@@ -41,10 +41,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (result) {
-      if (authProvider.user == null) {
+      if (authProvider.pending2FA && authProvider.pending2FAEmail != null) {
         Navigator.pushNamed(context, AppRoutes.verify2fa);
       } else {
-        Navigator.pushReplacementNamed(context, AppRoutes.user);
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -97,15 +97,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         return;
                       }
 
+                      final dialogContext = context;
+                      final navigator = Navigator.of(dialogContext);
+                      final messenger = ScaffoldMessenger.of(dialogContext);
+
                       final success = await authProvider.requestPasswordReset(
                         email: _forgotPasswordEmailController.text.trim(),
                       );
 
                       if (!mounted) return;
 
-                      Navigator.pop(context);
+                      navigator.pop();
 
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(
                           backgroundColor: success ? Colors.green : Colors.red,
                           content: Text(
@@ -140,11 +144,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (result) {
-      // Succès - naviguer vers l'écran principal ou 2FA
-      if (authProvider.user == null) {
+      if (authProvider.pending2FA && authProvider.pending2FAEmail != null) {
         Navigator.pushNamed(context, AppRoutes.verify2fa);
       } else {
-        Navigator.pushReplacementNamed(context, AppRoutes.user);
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } else {
       // If 2FA is pending, navigate to verification screen with email

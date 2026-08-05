@@ -50,7 +50,11 @@ class ProfileCard extends StatelessWidget {
             children: [
 
               Text(
-                user.fullName,
+                user.fullName.isNotEmpty
+                    ? user.fullName
+                    : user.email.isNotEmpty
+                        ? user.email
+                        : (user.username.isNotEmpty ? user.username : 'Utilisateur'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 23,
@@ -62,7 +66,11 @@ class ProfileCard extends StatelessWidget {
               const SizedBox(height: 8),
 
               Text(
-                user.department,
+                user.department.isNotEmpty
+                    ? user.department
+                    : user.username.isNotEmpty
+                        ? user.username
+                        : 'Profil utilisateur',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 15,

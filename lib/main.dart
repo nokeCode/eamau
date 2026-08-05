@@ -22,7 +22,9 @@ import 'package:eamau/screens/student_screen.dart';
 import 'package:eamau/screens/teacher_evaluation_screen.dart';
 import 'package:eamau/screens/user_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
@@ -34,10 +36,49 @@ import 'screens/news_detail_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    final messaging = FirebaseMessaging.instance;
+
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // ignore: avoid_print
+    print("Permission : ${settings.authorizationStatus}");
+
+    String? token = await messaging.getToken();
+
+    print("======================================");
+    print("FCM TOKEN :");
+    print(token);
+    print("======================================");
+
+    final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings();
+
+    await flutterLocalNotificationsPlugin.initialize(
+      const InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      ),
+    );
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      // ignore: avoid_print
+      print("Notification reçue");
+      // ignore: avoid_print
+      print(message.notification?.title);
+      // ignore: avoid_print
+      print(message.notification?.body);
+    });
   } catch (e, st) {
     // If Firebase cannot initialize (e.g. on unsupported desktop platforms
     // or temporary channel errors), log and continue so the app can still run.

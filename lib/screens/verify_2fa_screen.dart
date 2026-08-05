@@ -83,7 +83,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     if (!mounted) return;
 
     if (result) {
-      Navigator.pushReplacementNamed(context, AppRoutes.user);
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

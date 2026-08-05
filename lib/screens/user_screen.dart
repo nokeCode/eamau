@@ -7,6 +7,7 @@ import '../../models/user/account_status_model.dart';
 import '../../models/user/dashboard_user_model.dart';
 import '../../models/user/notification_preview_model.dart';
 import '../../services/user/dashboard_service.dart';
+import '../../widgets/common/main_bottom_navigation.dart';
 import '../../widgets/user/dashboard_header.dart';
 import '../../widgets/user/loading_dashboard.dart';
 import '../../widgets/user/notification_list.dart';
@@ -44,7 +45,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _onCompleteProfile() {
-    // TODO
+    Navigator.pushNamed(context, AppRoutes.profile);
   }
 
   void _onStatusTap(AccountStatusModel status) {
@@ -166,14 +167,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             if (snapshot.hasError) {
               return Center(
-                child: ElevatedButton(
-                  onPressed: _refresh,
-                  child: const Text("Réessayer"),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 40),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Impossible de charger les informations backend.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _refresh,
+                        child: const Text('Réessayer'),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
 
-            final user = snapshot.data ?? DashboardUserModel.fallback();
+            final user = snapshot.data!;
 
             return Consumer<AuthProvider>(
               builder: (context, authProvider, _) {
@@ -204,7 +220,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
+                                        color: Colors.black.withValues(alpha: 0.1),
                                         blurRadius: 8,
                                         offset: const Offset(0, 2),
                                       ),
@@ -263,6 +279,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         ),
       ),
+      bottomNavigationBar: MainBottomNavigationBar(currentIndex: 2),
     );
   }
 }

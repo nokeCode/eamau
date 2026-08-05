@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -183,6 +185,9 @@ class _ErrorInterceptor extends Interceptor {
       print('   Message: ${err.message}');
       print('   Status Code: ${err.response?.statusCode}');
       print('   Request URL: ${err.requestOptions.uri}');
+      if (err.response?.data != null) {
+        print('   Response Data: ${_stringifyBody(err.response!.data)}');
+      }
       if (err.error != null) {
         print('   Error: ${err.error}');
       }
@@ -216,9 +221,12 @@ class _ErrorInterceptor extends Interceptor {
           apiException = NotFoundException(message: message);
           break;
         case 422:
+          final validationErrors = data is Map && data['errors'] is Map
+              ? Map<String, dynamic>.from(data['errors'] as Map)
+              : null;
           apiException = ValidationException(
             message: message,
-            errors: data is Map ? data['errors'] : null,
+            errors: validationErrors,
           );
           break;
         case 500:
@@ -285,7 +293,7 @@ class _LoggingInterceptor extends Interceptor {
       print('➡️ REQUEST: ${options.method.toUpperCase()} ${options.uri}');
       print('   Headers: ${options.headers}');
       if (options.data != null) {
-        print('   Data: ${options.data}');
+        print('   Data: ${_stringifyBody(options.data)}');
       }
     }
     handler.next(options);
@@ -298,7 +306,7 @@ class _LoggingInterceptor extends Interceptor {
         '⬅️ RESPONSE: ${response.statusCode} ${response.requestOptions.uri}',
       );
       if (response.data != null) {
-        print('   Data: ${response.data}');
+        print('   Data: ${_stringifyBody(response.data)}');
       }
     }
     handler.next(response);
@@ -307,5 +315,29 @@ class _LoggingInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     handler.next(err);
+  }
+}
+
+String _stringifyBody(dynamic body) {
+  if (body == null) {
+    return '';
+  }
+
+  if (body is String) {
+    return body;
+  }
+
+  if (body is FormData) {
+    final fieldNames = body.fields.map((field) => field.key).join(', ');
+    final files = body.files
+        .map((file) => '${file.key}: ${file.value.filename}')
+        .join(', ');
+    return 'FormData(fields: [$fieldNames], files: [$files])';
+  }
+
+  try {
+    return jsonEncode(body);
+  } catch (_) {
+    return body.toString();
   }
 }

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/student/dashboard_provider.dart';
+import '../widgets/common/main_bottom_navigation.dart';
 import '../widgets/student/dashboard_app_bar.dart';
 import '../widgets/student/dashboard_menu.dart';
 import '../widgets/student/notification_section.dart';
 import '../widgets/student/quick_stats_section.dart';
-import '../widgets/student/dashboard_app_bar.dart';
 import '../widgets/student/student_header.dart';
 
 class StudentScreen extends StatefulWidget {
@@ -141,6 +141,7 @@ class _StudentScreenState extends State<StudentScreen> {
           );
         },
       ),
+      bottomNavigationBar: MainBottomNavigationBar(currentIndex: 2),
     );
   }
 }

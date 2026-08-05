@@ -16,15 +16,42 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    final title = (json['title'] ?? '').toString();
+    final message = (json['body'] ?? json['message'] ?? '').toString();
+    final createdAtRaw = json['createdAt'] ?? json['created_at'] ?? json['sentAt'];
+    final readAtRaw = json['readAt'];
+    final type = (json['type'] ?? json['icon'] ?? 'notification').toString();
+    final status = (json['status'] ?? '').toString().toUpperCase();
+
     return NotificationModel(
       id: json['id'] ?? 0,
-      title: json['title'] ?? '',
-      message: json['message'] ?? '',
-      icon: json['icon'] ?? 'notification',
-      isRead: json['isRead'] ?? false,
-      createdAt: DateTime.tryParse(json['created_at'] ?? '') ??
+      title: title,
+      message: message,
+      icon: _normalizeIcon(type),
+      isRead: readAtRaw != null || status == 'READ',
+      createdAt: DateTime.tryParse(createdAtRaw?.toString() ?? '') ??
           DateTime.now(),
     );
+  }
+
+  static String _normalizeIcon(String value) {
+    final normalized = value.trim().toLowerCase();
+
+    switch (normalized) {
+      case 'publication':
+      case 'publications':
+        return 'document';
+      case 'admission':
+      case 'concours':
+        return 'calendar';
+      case 'system':
+      case 'notification':
+        return 'info';
+      case 'marketing':
+        return 'community';
+      default:
+        return normalized.isEmpty ? 'notification' : normalized;
+    }
   }
 
   Map<String, dynamic> toJson() {
