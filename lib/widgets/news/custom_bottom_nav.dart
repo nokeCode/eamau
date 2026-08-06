@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../../routes/app_routes.dart';
 
 class CustomBottomNav extends StatelessWidget {
-  const CustomBottomNav({super.key});
+  final int currentIndex;
+
+  const CustomBottomNav({super.key, this.currentIndex = 2});
 
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      currentIndex: 2,
+      currentIndex: currentIndex,
       type: BottomNavigationBarType.fixed,
       selectedItemColor: const Color(0xFF0066FF),
       unselectedItemColor: Colors.black54,
@@ -26,6 +28,10 @@ class CustomBottomNav extends StatelessWidget {
               context,
               AppRoutes.news,
             );
+            break;
+
+          case 3:
+            Navigator.pushNamed(context, AppRoutes.publications);
             break;
 
           case 4: //profile
@@ -51,8 +57,8 @@ class CustomBottomNav extends StatelessWidget {
         ),
 
         BottomNavigationBarItem(
-          icon: Icon(Icons.school_outlined),
-          label: "Mes Études",
+          icon: Icon(Icons.menu_book_outlined),
+          label: "Publication Scientifique",
         ),
 
         BottomNavigationBarItem(

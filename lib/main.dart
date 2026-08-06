@@ -2,6 +2,7 @@ import 'package:eamau/providers/admission_provider.dart';
 import 'package:eamau/providers/admission_tracking_provider.dart';
 import 'package:eamau/providers/auth_provider.dart';
 import 'package:eamau/providers/notification_provider.dart';
+import 'package:eamau/providers/registration/registration_provider.dart';
 import 'package:eamau/providers/student/dashboard_provider.dart';
 import 'package:eamau/routes/app_pages.dart';
 import 'package:eamau/routes/app_routes.dart';
@@ -61,14 +62,13 @@ Future<void> main() async {
     print("======================================");
 
     final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings();
 
     await flutterLocalNotificationsPlugin.initialize(
-      const InitializationSettings(
-        android: androidSettings,
-        iOS: iosSettings,
-      ),
+      const InitializationSettings(android: androidSettings, iOS: iosSettings),
     );
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -94,19 +94,11 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => NotificationProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => DashboardProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => AdmissionTrackingProvider(),
-        ),
-
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => AdmissionTrackingProvider()),
+        ChangeNotifierProvider(create: (_) => RegistrationProvider()),
       ],
       child: const MyApp(),
     ),

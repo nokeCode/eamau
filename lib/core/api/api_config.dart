@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'http://192.168.2.89:9090/api';
+  static const String baseUrl = 'http://192.168.0.222:9090/api';
   static const String apiVersion = '/v1';
   static const String fullBaseUrl = '$baseUrl$apiVersion';
 
@@ -11,6 +11,7 @@ class ApiConfig {
   }
 
   static String imageUrl(String path) {
+    if (path.trim().isEmpty) return '';
     if (path.startsWith('http')) return path;
     final normalizedPath = path.startsWith('/') ? path : '/$path';
     return '$mediaBaseUrl$normalizedPath';

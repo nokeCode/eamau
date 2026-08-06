@@ -1,3 +1,4 @@
+import 'package:eamau/core/api/api_config.dart';
 import 'package:eamau/models/news/news_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,6 +43,30 @@ void main() {
       expect(meta.perPage, 10);
       expect(meta.total, 34);
       expect(meta.lastPage, 4);
+    });
+
+    test('resolves relative media paths for news and publications', () {
+      final article = NewsModel.fromJson({
+        'id': 1,
+        'title': 'Actualité',
+        'image': 'uploads/news/image.jpg',
+      });
+      final publication = NewsModel.fromJson({
+        'id': 2,
+        'title': 'Publication',
+        'files': [
+          {
+            'fileName': 'couverture.jpg',
+            'mimeType': 'image/jpeg',
+          },
+        ],
+      });
+
+      expect(article.image, ApiConfig.imageUrl('uploads/news/image.jpg'));
+      expect(
+        publication.image,
+        ApiConfig.imageUrl('uploads/couverture.jpg'),
+      );
     });
   });
 }

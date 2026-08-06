@@ -3,9 +3,12 @@ class AppRoutes {
   static const home = '/home';
   static const login = '/login';
   static const register = '/register';
+  static const registration = '/registration';
   static const verify2fa = '/verify-2fa';
   static const news = '/news';
   static const newsDetail = '/news-detail';
+  static const publications = '/publications';
+  static const publicationDetail = '/publication-detail';
   static const profile = '/profile';
   static const user = '/dashboard';
   static const student = '/student';

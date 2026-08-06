@@ -5,21 +5,21 @@ import 'package:flutter/material.dart';
 import '../../models/news/news_category_model.dart';
 import '../../models/news/news_model.dart';
 import '../../routes/app_routes.dart';
-import '../../services/news/news_service.dart';
+import '../../services/publication/publication_service.dart';
 import '../widgets/news/custom_bottom_nav.dart';
 import '../widgets/news/featured_news_carousel.dart';
 import '../widgets/news/news_card.dart';
 import '../widgets/news/news_header.dart';
 
-class NewsScreen extends StatefulWidget {
-  const NewsScreen({super.key});
+class PublicationScreen extends StatefulWidget {
+  const PublicationScreen({super.key});
 
   @override
-  State<NewsScreen> createState() => _NewsScreenState();
+  State<PublicationScreen> createState() => _PublicationScreenState();
 }
 
-class _NewsScreenState extends State<NewsScreen> {
-  final NewsService _service = NewsService();
+class _PublicationScreenState extends State<PublicationScreen> {
+  final PublicationService _service = PublicationService();
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   Timer? _debounceTimer;
@@ -30,8 +30,8 @@ class _NewsScreenState extends State<NewsScreen> {
   bool _isLoadingMore = false;
   bool _hasReachedEnd = false;
   String? _errorMessage;
-  List<NewsModel> _news = [];
-  List<NewsModel> _featuredNews = [];
+  List<NewsModel> _publications = [];
+  List<NewsModel> _featuredPublications = [];
   List<NewsCategoryModel> _categories = [];
   NewsMeta? _meta;
 
@@ -40,8 +40,8 @@ class _NewsScreenState extends State<NewsScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     _loadCategories();
-    _loadFeaturedNews();
-    _loadInitialNews();
+    _loadFeaturedPublications();
+    _loadInitialPublications();
   }
 
   @override
@@ -71,26 +71,26 @@ class _NewsScreenState extends State<NewsScreen> {
     }
   }
 
-  Future<void> _loadFeaturedNews() async {
+  Future<void> _loadFeaturedPublications() async {
     try {
-      final featured = await _service.getFeaturedNews();
+      final featured = await _service.getFeaturedPublications();
       if (!mounted) {
         return;
       }
       setState(() {
-        _featuredNews = featured;
+        _featuredPublications = featured;
       });
     } catch (_) {
       if (!mounted) {
         return;
       }
       setState(() {
-        _featuredNews = [];
+        _featuredPublications = [];
       });
     }
   }
 
-  Future<void> _loadInitialNews() async {
+  Future<void> _loadInitialPublications() async {
     if (!mounted) {
       return;
     }
@@ -99,25 +99,29 @@ class _NewsScreenState extends State<NewsScreen> {
       _isInitialLoading = true;
       _isLoadingMore = false;
       _errorMessage = null;
-      _news = [];
+      _publications = [];
       _meta = null;
       _hasReachedEnd = false;
     });
 
     try {
       final result = _searchQuery.trim().isEmpty
-          ? await _service.getNewsPage(
+          ? await _service.getPublicationsPage(
               page: 1,
               categoryId: selectedCategory == 0 ? null : selectedCategory,
             )
-          : await _service.searchNews(_searchQuery, page: 1);
+          : await _service.searchPublications(
+              _searchQuery,
+              page: 1,
+              categoryId: selectedCategory == 0 ? null : selectedCategory,
+            );
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _news = result.items;
+        _publications = result.items;
         _meta = result.meta;
         _hasReachedEnd = result.meta.page >= result.meta.lastPage;
       });
@@ -137,7 +141,7 @@ class _NewsScreenState extends State<NewsScreen> {
     }
   }
 
-  Future<void> _loadMoreNews() async {
+  Future<void> _loadMorePublications() async {
     if (_isLoadingMore ||
         _hasReachedEnd ||
         _meta == null ||
@@ -151,18 +155,22 @@ class _NewsScreenState extends State<NewsScreen> {
 
     try {
       final result = _searchQuery.trim().isEmpty
-          ? await _service.getNewsPage(
+          ? await _service.getPublicationsPage(
               page: _meta!.page + 1,
               categoryId: selectedCategory == 0 ? null : selectedCategory,
             )
-          : await _service.searchNews(_searchQuery, page: _meta!.page + 1);
+          : await _service.searchPublications(
+              _searchQuery,
+              page: _meta!.page + 1,
+              categoryId: selectedCategory == 0 ? null : selectedCategory,
+            );
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _news.addAll(result.items);
+        _publications.addAll(result.items);
         _meta = result.meta;
         _hasReachedEnd = result.meta.page >= result.meta.lastPage;
       });
@@ -182,17 +190,17 @@ class _NewsScreenState extends State<NewsScreen> {
     }
   }
 
-  Future<void> loadNews(int categoryId) async {
+  Future<void> loadPublications(int categoryId) async {
     setState(() {
       selectedCategory = categoryId;
       _searchController.clear();
       _searchQuery = '';
     });
-    await _loadInitialNews();
+    await _loadInitialPublications();
   }
 
-  Future<void> _refreshNews() async {
-    await _loadInitialNews();
+  Future<void> _refreshPublications() async {
+    await _loadInitialPublications();
   }
 
   void _onSearchChanged(String value) {
@@ -205,22 +213,26 @@ class _NewsScreenState extends State<NewsScreen> {
       setState(() {
         _searchQuery = query;
       });
-      _loadInitialNews();
+      _loadInitialPublications();
     });
   }
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      _loadMoreNews();
+      _loadMorePublications();
     }
   }
 
-  void _openNewsDetail(NewsModel news) {
-    if (news.slug.isEmpty) {
+  void _openPublicationDetail(NewsModel publication) {
+    if (publication.slug.isEmpty) {
       return;
     }
-    Navigator.pushNamed(context, AppRoutes.newsDetail, arguments: news.slug);
+    Navigator.pushNamed(
+      context,
+      AppRoutes.publicationDetail,
+      arguments: publication.slug,
+    );
   }
 
   @override
@@ -232,7 +244,7 @@ class _NewsScreenState extends State<NewsScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       extendBodyBehindAppBar: true,
-      bottomNavigationBar: const CustomBottomNav(currentIndex: 2),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 3),
       body: Stack(
         children: [
           Container(
@@ -252,7 +264,7 @@ class _NewsScreenState extends State<NewsScreen> {
               NewsHeader(
                 categories: categories,
                 selectedCategory: selectedCategory,
-                onCategorySelected: loadNews,
+                onCategorySelected: loadPublications,
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -270,7 +282,7 @@ class _NewsScreenState extends State<NewsScreen> {
                     controller: _searchController,
                     decoration: const InputDecoration(
                       border: InputBorder.none,
-                      hintText: 'Rechercher une actualité',
+                      hintText: 'Rechercher une publication scientifique',
                       icon: Icon(Icons.search, color: Color(0xFF0A84FF)),
                     ),
                     onChanged: _onSearchChanged,
@@ -279,7 +291,7 @@ class _NewsScreenState extends State<NewsScreen> {
               ),
               Expanded(
                 child: RefreshIndicator(
-                  onRefresh: _refreshNews,
+                  onRefresh: _refreshPublications,
                   child: ListView(
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -296,7 +308,7 @@ class _NewsScreenState extends State<NewsScreen> {
   }
 
   List<Widget> _buildListContent() {
-    if (_isInitialLoading && _news.isEmpty) {
+    if (_isInitialLoading && _publications.isEmpty) {
       return [
         const SizedBox(height: 8),
         _buildFeaturedSkeleton(),
@@ -320,12 +332,12 @@ class _NewsScreenState extends State<NewsScreen> {
       ];
     }
 
-    if (_news.isEmpty) {
+    if (_publications.isEmpty) {
       return [
         const SizedBox(height: 40),
         const Center(
           child: Text(
-            'Aucune actualité disponible pour le moment.',
+            'Aucune publication scientifique disponible pour le moment.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey),
           ),
@@ -336,15 +348,15 @@ class _NewsScreenState extends State<NewsScreen> {
     final widgets = <Widget>[
       const SizedBox(height: 8),
       FeaturedNewsCarousel(
-        news: _featuredNews.isEmpty ? _news : _featuredNews,
-        onNewsTapped: _openNewsDetail,
+        news: _featuredPublications.isEmpty ? _publications : _featuredPublications,
+        onNewsTapped: _openPublicationDetail,
       ),
       const SizedBox(height: 24),
       const Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'Dernières actualités',
+            'Dernières publications scientifiques',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
         ],
@@ -353,10 +365,10 @@ class _NewsScreenState extends State<NewsScreen> {
     ];
 
     widgets.addAll(
-      _news.map(
+      _publications.map(
         (item) => Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: NewsCard(news: item, onTap: () => _openNewsDetail(item)),
+          child: NewsCard(news: item, onTap: () => _openPublicationDetail(item)),
         ),
       ),
     );

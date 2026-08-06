@@ -5,6 +5,7 @@ import '../../widgets/admission/admission_card.dart';
 import '../../widgets/admission/admission_header.dart';
 import '../../widgets/admission/admission_intro.dart';
 import '../../widgets/admission/admission_bottom_nav.dart';
+import '../registration/registration_screen.dart';
 import 'admission_conditions_screen.dart';
 
 class AdmissionScreen extends StatefulWidget {
@@ -41,17 +42,13 @@ class _AdmissionScreenState extends State<AdmissionScreen> {
       backgroundColor: const Color(0xFFF7F9FC),
       body: Column(
         children: [
-          AdmissionHeader(
-            onNotification: () {},
-          ),
+          AdmissionHeader(onNotification: () {}),
           Expanded(
             child: Container(
               transform: Matrix4.translationValues(0, -45, 0),
               decoration: const BoxDecoration(
                 color: Color(0xFFF7F9FC),
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: loading
                   ? SingleChildScrollView(
@@ -98,7 +95,8 @@ class _AdmissionScreenState extends State<AdmissionScreen> {
                                 const SizedBox(height: 10),
                                 Container(
                                   height: 14,
-                                  width: MediaQuery.of(context).size.width * 0.65,
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.65,
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade300,
                                     borderRadius: BorderRadius.circular(8),
@@ -139,6 +137,43 @@ class _AdmissionScreenState extends State<AdmissionScreen> {
                                   ),
                                 );
                               },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 8,
+                            ),
+                            child: Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: ListTile(
+                                leading: const CircleAvatar(
+                                  backgroundColor: Color(0xFF0F4DA8),
+                                  child: Icon(
+                                    Icons.school_outlined,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                title: const Text('Inscription académique'),
+                                subtitle: const Text(
+                                  'Ouvrir le wizard d’inscription en 4 étapes',
+                                ),
+                                trailing: const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 16,
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const RegistrationScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                           const SizedBox(height: 20),
