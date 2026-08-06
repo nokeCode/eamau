@@ -16,6 +16,12 @@ class MenuCard extends StatelessWidget {
     this.onTap,
   });
 
+  String _truncateSubtitle(String text) {
+    final words = text.split(RegExp(r'\s+')).where((word) => word.isNotEmpty).toList();
+    if (words.length <= 4) return text;
+    return '${words.take(4).join(' ')}...';
+  }
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -40,8 +46,8 @@ class MenuCard extends StatelessWidget {
             const SizedBox(height: 4),
 
             Text(
-              subtitle,
-              maxLines: 3,
+              _truncateSubtitle(subtitle),
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11),
             ),

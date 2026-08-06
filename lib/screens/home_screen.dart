@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/registration/registration_provider.dart';
+import '../models/registration/registration_status_model.dart';
 import '../widgets/common/main_bottom_navigation.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/search_bar_widget.dart';
@@ -56,38 +57,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 20),
 
-              if (registrationProvider.isRegistrationStatusLoading)
-                const Center(child: CircularProgressIndicator()),
-              if (!registrationProvider.isRegistrationStatusLoading &&
-                  showRegistrationButton)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, AppRoutes.registration);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0F4DA8),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text('Demander une inscription'),
-                    ),
-                  ),
-                ),
-              if (!registrationProvider.isRegistrationStatusLoading &&
-                  !showRegistrationButton &&
-                  registrationProvider.registrationStatus != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: Text(
-                    registrationProvider.registrationStatus?.message ??
-                        'Les inscriptions ne sont pas disponibles.',
-                    style: const TextStyle(color: Color(0xFF475569)),
-                  ),
-                ),
-
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -98,6 +67,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 childAspectRatio: 0.7,
 
                 children: [
+                  if (registrationProvider.isRegistrationStatusLoading)
+                    _buildRegistrationSkeletonCard()
+                  else
+                    _buildRegistrationMenuCard(
+                      showRegistrationButton,
+                      registrationStatus,
+                    ),
                   MenuCard(
                     icon: Icons.newspaper_outlined,
                     title: 'Actualité',
@@ -269,6 +245,119 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
 
       bottomNavigationBar: MainBottomNavigationBar(currentIndex: 0),
+    );
+  }
+
+
+  Widget _buildRegistrationSkeletonCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            height: 16,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: 140,
+            height: 14,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          const Spacer(),
+          Container(
+            width: double.infinity,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegistrationMenuCard(
+    bool showRegistrationButton,
+    RegistrationStatus? registrationStatus,
+  ) {
+    final isOpen = showRegistrationButton;
+    return Container(
+      decoration: BoxDecoration(
+        color: isOpen ? const Color(0xFF0D4B9C) : const Color(0xFF64748B),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isOpen
+              ? () {
+                  Navigator.pushNamed(context, AppRoutes.registration);
+                }
+              : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.app_registration_outlined,
+                  color: Colors.white,
+                  size: 30,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isOpen ? 'Demander une inscription' : 'Inscriptions fermées',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isOpen
+                      ? 'Démarrez votre demande…'
+                      : registrationStatus?.message ??
+                          'Les inscriptions ne sont pas disponibles.',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, color: Colors.white70),
+                ),
+                const Spacer(),
+                const Align(
+                  alignment: Alignment.bottomRight,
+                  child: Icon(Icons.chevron_right, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
