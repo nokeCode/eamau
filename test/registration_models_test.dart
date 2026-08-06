@@ -1,4 +1,5 @@
 import 'package:eamau/models/registration/registration_referential_model.dart';
+import 'package:eamau/models/registration/registration_status_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -43,5 +44,36 @@ void main() {
     });
 
     expect(option.label, 'Option');
+  });
+
+  test('RegistrationStatus parses API payload', () {
+    final payload = {
+      'data': {
+        'open': true,
+        'canCreate': true,
+        'activeSchoolYear': {'id': 3, 'label': '2026-2027'},
+        'message': 'Les demandes d’inscriptions sont ouvertes.',
+      },
+    };
+
+    final status = RegistrationStatus.fromJson(payload['data']);
+
+    expect(status.open, isTrue);
+    expect(status.canCreate, isTrue);
+    expect(status.activeSchoolYear?.label, '2026-2027');
+    expect(status.message, 'Les demandes d’inscriptions sont ouvertes.');
+  });
+
+  test('RegistrationOption uses name from API payload as label', () {
+    final option = RegistrationOption.fromJson({
+      'id': 1,
+      'name': 'Certificat Médical',
+      'required': false,
+      'type': 'administratif',
+    });
+
+    expect(option.id, '1');
+    expect(option.label, 'Certificat Médical');
+    expect(option.value, 'Certificat Médical');
   });
 }

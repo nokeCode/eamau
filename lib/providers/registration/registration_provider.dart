@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../models/registration/registration_referential_model.dart';
+import '../../models/registration/registration_status_model.dart';
 import '../../services/registration/registration_service.dart';
 
 enum RegistrationFlowStatus { idle, loading, submitting, success, error }
@@ -12,6 +14,9 @@ class RegistrationProvider extends ChangeNotifier {
   RegistrationFlowStatus status = RegistrationFlowStatus.idle;
   String? message;
   RegistrationReferentialCollection? referentials;
+  RegistrationStatus? registrationStatus;
+  bool isRegistrationStatusLoading = false;
+  String? registrationStatusError;
   RegistrationDraft draft = const RegistrationDraft();
   final List<RegistrationDocument> documents = [];
   int currentStep = 1;
@@ -29,6 +34,26 @@ class RegistrationProvider extends ChangeNotifier {
       message = 'Impossible de charger les référentiels depuis l’API.';
     }
 
+    notifyListeners();
+  }
+
+  Future<void> loadRegistrationStatus() async {
+    isRegistrationStatusLoading = true;
+    registrationStatusError = null;
+    notifyListeners();
+
+    try {
+      final status = await _service.getRegistrationStatus();
+      registrationStatus = status;
+      if (status.activeSchoolYear != null && draft.schoolYear == null) {
+        draft = draft.copyWith(schoolYear: status.activeSchoolYear);
+      }
+    } catch (error) {
+      registrationStatusError =
+          'Impossible de vérifier l’état des inscriptions.';
+    }
+
+    isRegistrationStatusLoading = false;
     notifyListeners();
   }
 
@@ -79,12 +104,75 @@ class RegistrationProvider extends ChangeNotifier {
         break;
       case 'grade':
         draft = draft.copyWith(grade: option);
+        _applyDefaultSemestersForGrade(option);
         break;
       case 'group':
         draft = draft.copyWith(group: option);
         break;
     }
     notifyListeners();
+  }
+
+  void _applyDefaultSemestersForGrade(RegistrationOption? gradeOption) {
+    if (gradeOption == null) return;
+    if (referentials == null) return;
+
+    // If user already added semesters manually, don't override.
+    if (draft.semesters.isNotEmpty) return;
+
+    final label = gradeOption.label.toLowerCase();
+    int? level;
+    bool isLicence = false;
+    bool isMaster = false;
+
+    final licenceMatch = RegExp(r'licen?ce\s*(\d+)', caseSensitive: false).firstMatch(label);
+    final masterMatch = RegExp(r'master\s*(\d+)', caseSensitive: false).firstMatch(label);
+
+    if (licenceMatch != null) {
+      level = int.tryParse(licenceMatch.group(1) ?? '');
+      isLicence = true;
+    } else if (masterMatch != null) {
+      level = int.tryParse(masterMatch.group(1) ?? '');
+      isMaster = true;
+    }
+
+    if (level == null) return;
+
+    int startSemester;
+    if (isLicence) {
+      startSemester = 1 + (level - 1) * 2;
+    } else if (isMaster) {
+      startSemester = 7 + (level - 1) * 2;
+    } else {
+      return;
+    }
+
+    final s1 = _findSemesterOptionByNumber(startSemester);
+    final s2 = _findSemesterOptionByNumber(startSemester + 1);
+
+    final entries = <RegistrationSemesterEntry>[];
+    if (s1 != null) entries.add(RegistrationSemesterEntry(semester: s1));
+    if (s2 != null) entries.add(RegistrationSemesterEntry(semester: s2));
+
+    if (entries.isNotEmpty) {
+      draft = draft.copyWith(semesters: entries);
+      notifyListeners();
+    }
+  }
+
+  RegistrationOption? _findSemesterOptionByNumber(int number) {
+    final sems = referentials?.semesters ?? [];
+    for (final opt in sems) {
+      final label = opt.label.toLowerCase();
+      // match exact number occurrence
+      if (RegExp(r'\b' + number.toString() + r'\b').hasMatch(label)) {
+        return opt;
+      }
+      // try value if contains number
+      if (opt.value.toLowerCase().contains(number.toString())) return opt;
+      if (opt.id.toString() == number.toString()) return opt;
+    }
+    return null;
   }
 
   void addSemester() {
@@ -166,6 +254,33 @@ class RegistrationProvider extends ChangeNotifier {
     }
   }
 
+  /// Add a picked file (already on device) as a registration document.
+  void addDocumentFromFilePath({
+    required String filePath,
+    required String fileName,
+    required String type,
+  }) {
+    try {
+      final file = File(filePath);
+      final size = file.existsSync() ? file.lengthSync() : 0;
+      final document = RegistrationDocument(
+        fileName: fileName,
+        filePath: filePath,
+        type: type,
+        sizeBytes: size,
+      );
+
+      documents.add(document);
+      status = RegistrationFlowStatus.success;
+      message = 'Pièce ajoutée avec succès.';
+      notifyListeners();
+    } catch (e) {
+      status = RegistrationFlowStatus.error;
+      message = 'Impossible d’ajouter la pièce.';
+      notifyListeners();
+    }
+  }
+
   void removeDocument(int index) {
     if (index < documents.length) {
       documents.removeAt(index);
@@ -179,12 +294,8 @@ class RegistrationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      for (final document in documents) {
-        await _service.uploadDocument(document);
-      }
-
-      final payload = await _service.submitRegistration(draft, documents);
-      if (payload.isEmpty) {
+      final success = await _service.submitRegistration(draft, documents);
+      if (!success) {
         status = RegistrationFlowStatus.error;
         message = 'Échec de la soumission. Veuillez réessayer.';
         notifyListeners();

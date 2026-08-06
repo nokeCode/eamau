@@ -4,11 +4,13 @@ import '../../models/registration/registration_referential_model.dart';
 class UploadPreview extends StatelessWidget {
   final List<RegistrationDocument> documents;
   final ValueChanged<int> onRemove;
+  final ValueChanged<int> onPreview;
 
   const UploadPreview({
     super.key,
     required this.documents,
     required this.onRemove,
+    required this.onPreview,
   });
 
   @override
@@ -60,6 +62,13 @@ class UploadPreview extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.remove_red_eye_outlined,
+                  color: Color(0xFF0F4DA8),
+                ),
+                onPressed: () => onPreview(index),
               ),
               IconButton(
                 icon: const Icon(

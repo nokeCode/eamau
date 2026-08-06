@@ -1,91 +1,200 @@
 import 'package:dio/dio.dart';
 import '../../core/api/dio_client.dart';
 import '../../models/registration/registration_referential_model.dart';
+import '../../models/registration/registration_status_model.dart';
 
 class RegistrationService {
   final Dio _dio = DioClient().dio;
 
   Future<RegistrationReferentialCollection> getReferentials() async {
-    final endpoints = <String>[
-      '/registration/referentials',
-      '/registrations/referentials',
-      '/academic-registrations/referentials',
-      '/academic/registration/referentials',
-    ];
+    final filieres = await _getOptions('/filieres');
+    final grades = await _getOptions('/grades');
+    final groups = await _getOptions('/groupes');
+    final schoolYears = await _getOptions('/annees-scolaires');
+    final documentTypes = await _getOptions('/inscriptions/pieces');
+    // Provide a sensible local fallback if the backend returns no pieces so
+    // the UI remains usable while diagnosing API issues.
+    final documentTypesWithFallback = documentTypes.isNotEmpty
+      ? documentTypes
+      : [
+        RegistrationOption(id: '1', value: 'Demande manuscrites', label: 'Demande manuscrites'),
+        RegistrationOption(id: '2', value: 'Certificat Médical', label: 'Certificat Médical'),
+        RegistrationOption(id: '3', value: 'Extrait de naissance', label: 'Extrait de naissance'),
+        RegistrationOption(id: '4', value: 'Certificat de nationalité', label: 'Certificat de nationalité'),
+        RegistrationOption(id: '5', value: 'Copie certifié conforme de diplôme', label: 'Copie certifié conforme de diplôme'),
+        RegistrationOption(id: '6', value: "Preuve de versement frais d'inscription", label: "Preuve de versement frais d'inscription"),
+        RegistrationOption(id: '7', value: 'Preuve de versement frais de scolarité', label: 'Preuve de versement frais de scolarité'),
+        RegistrationOption(id: '8', value: "Preuve d'attestation de bourse ou liste collective de boursiers", label: "Preuve d'attestation de bourse ou liste collective de boursiers"),
+        ];
+    final statuses = await _getOptions('/inscriptions/status');
+    final semesters = await _getOptions('/semestres');
 
-    for (final endpoint in endpoints) {
-      try {
-        final response = await _dio.get(endpoint);
-        if (response.statusCode != null &&
-            response.statusCode! >= 200 &&
-            response.statusCode! < 300) {
-          return RegistrationReferentialCollection.fromJson(response.data);
-        }
-      } catch (_) {}
+    if (filieres.isEmpty && grades.isEmpty && groups.isEmpty &&
+        schoolYears.isEmpty && documentTypes.isEmpty &&
+        statuses.isEmpty && semesters.isEmpty) {
+      return const RegistrationReferentialCollection();
     }
 
-    return const RegistrationReferentialCollection();
+    return RegistrationReferentialCollection(
+      filieres: filieres,
+      grades: grades,
+      groups: groups,
+      schoolYears: schoolYears,
+      documentTypes: documentTypesWithFallback,
+      statuses: statuses,
+      semesters: semesters,
+    );
   }
 
-  Future<Map<String, dynamic>> submitRegistration(
+  Future<bool> submitRegistration(
     RegistrationDraft draft,
     List<RegistrationDocument> documents,
   ) async {
-    final endpoints = <String>[
-      '/registration/submissions',
-      '/registrations',
-      '/academic-registrations',
-    ];
-
-    for (final endpoint in endpoints) {
-      try {
-        final formData = {
-          ...draft.toJson(),
-          'documents': documents.map((item) => item.toJson()).toList(),
-        };
-        final response = await _dio.post(endpoint, data: formData);
-        if (response.statusCode != null &&
-            response.statusCode! >= 200 &&
-            response.statusCode! < 300) {
-          return response.data is Map
-              ? Map<String, dynamic>.from(response.data as Map)
-              : {};
-        }
-      } catch (_) {}
+    final registrationId = await _createRegistration(draft);
+    if (registrationId == null) {
+      return false;
     }
 
-    return {};
+    for (final document in documents) {
+      final uploaded = await _uploadDocument(registrationId, document);
+      if (!uploaded) {
+        return false;
+      }
+    }
+
+    return await _finalizeRegistration(registrationId);
   }
 
-  Future<Map<String, dynamic>> uploadDocument(
+  Future<int?> _createRegistration(RegistrationDraft draft) async {
+    try {
+      final response = await _dio.post('/inscriptions', data: draft.toJson());
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        final payload = <String, dynamic>{};
+        if (response.data is Map) {
+          final rawMap = response.data as Map;
+          rawMap.forEach((key, value) {
+            payload[key.toString()] = value;
+          });
+        }
+        return _parseId(payload);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<bool> _uploadDocument(
+    int registrationId,
     RegistrationDocument document,
   ) async {
-    final endpoints = <String>[
-      '/registration/documents',
-      '/registrations/documents',
-      '/academic-registrations/documents',
-    ];
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          document.filePath,
+          filename: document.fileName,
+        ),
+        'documentType': document.type,
+      });
 
-    for (final endpoint in endpoints) {
+      final response = await _dio.post(
+        '/inscriptions/$registrationId/documents',
+        data: formData,
+      );
+
+      return response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300;
+    } catch (_) {}
+    return false;
+  }
+
+  Future<bool> _finalizeRegistration(int registrationId) async {
+    try {
+      final response = await _dio.post('/inscriptions/$registrationId/submit');
+      return response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300;
+    } catch (_) {}
+    return false;
+  }
+
+  int? _parseId(Map<String, dynamic> payload) {
+    if (payload['data'] is Map) {
+      final data = Map<String, dynamic>.from(payload['data'] as Map);
+      return _parseId(data);
+    }
+
+    final idValue = payload['id'] ?? payload['inscriptionId'] ?? payload['registrationId'];
+    if (idValue is int) {
+      return idValue;
+    }
+    if (idValue is String) {
+      return int.tryParse(idValue);
+    }
+    return null;
+  }
+
+  Future<List<RegistrationOption>> _getOptions(String endpoint) async {
+    try {
+      final fullUrl = (_dio.options.baseUrl ?? '') + endpoint;
+      print('RegistrationService: GET $fullUrl');
+      final response = await _dio.get(endpoint);
+      print('RegistrationService: RESPONSE ${response.statusCode} for $fullUrl');
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        final parsed = _parseOptionList(response.data);
+        print('RegistrationService: parsed ${parsed.length} items from $fullUrl');
+        return parsed;
+      }
+    } catch (e) {
       try {
-        final formData = FormData.fromMap({
-          'file': await MultipartFile.fromFile(
-            document.filePath,
-            filename: document.fileName,
-          ),
-          'documentType': document.type,
-        });
-        final response = await _dio.post(endpoint, data: formData);
-        if (response.statusCode != null &&
-            response.statusCode! >= 200 &&
-            response.statusCode! < 300) {
-          return response.data is Map
-              ? Map<String, dynamic>.from(response.data as Map)
-              : {};
+        print('RegistrationService: error for endpoint $endpoint -> $e');
+        if (e is DioException) {
+          final resp = e.response;
+          if (resp != null) {
+            print('RegistrationService: dio response data: ${resp.data}');
+            print('RegistrationService: dio status code: ${resp.statusCode}');
+          }
         }
       } catch (_) {}
     }
+    return const [];
+  }
 
-    return {};
+  List<RegistrationOption> _parseOptionList(dynamic responseData) {
+    if (responseData is List) {
+      return responseData.map((item) => RegistrationOption.fromJson(item)).toList();
+    }
+
+    if (responseData is Map) {
+      final payload = Map<String, dynamic>.from(responseData);
+      final list = payload['data'] ?? payload['items'] ?? payload['results'];
+      if (list is List) {
+        return list.map((item) => RegistrationOption.fromJson(item)).toList();
+      }
+    }
+
+    return const [];
+  }
+
+  Future<RegistrationStatus> getRegistrationStatus() async {
+    try {
+      final response = await _dio.get('/inscriptions/status');
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        return RegistrationStatus.fromJson(
+          response.data['data'] ?? response.data,
+        );
+      }
+    } catch (_) {}
+    return const RegistrationStatus(
+      open: false,
+      canCreate: false,
+      activeSchoolYear: null,
+      message: 'Impossible de vérifier l’état des inscriptions.',
+    );
   }
 }

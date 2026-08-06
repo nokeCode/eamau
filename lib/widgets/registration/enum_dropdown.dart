@@ -20,8 +20,40 @@ class EnumDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Deduplicate items by label to avoid multiple DropdownMenuItem with
+    // the same logical value which causes Flutter assertion failures.
+    final List<T> uniqueItems = [];
+    final seen = <String>{};
+    for (final item in items) {
+      try {
+        final label = labelBuilder(item);
+        if (!seen.contains(label)) {
+          seen.add(label);
+          uniqueItems.add(item);
+        }
+      } catch (_) {
+        if (!uniqueItems.contains(item)) uniqueItems.add(item);
+      }
+    }
+
+    final T? selected = () {
+      try {
+        if (value == null) return null;
+        // Prefer the actual instance from uniqueItems to avoid identity mismatches.
+        for (final item in uniqueItems) {
+          if (item == value) return item;
+        }
+        final valueLabel = labelBuilder(value as T);
+        for (final item in uniqueItems) {
+          if (labelBuilder(item) == valueLabel) return item;
+        }
+      } catch (_) {}
+      return null;
+    }();
+
     return DropdownButtonFormField<T>(
-      initialValue: value,
+      isExpanded: true,
+      initialValue: selected,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: const Color(0xFF0F4DA8)),
@@ -32,11 +64,14 @@ class EnumDropdown<T> extends StatelessWidget {
           borderSide: BorderSide.none,
         ),
       ),
-      items: items
+      items: uniqueItems
           .map(
             (item) => DropdownMenuItem<T>(
               value: item,
-              child: Text(labelBuilder(item)),
+              child: Text(
+                labelBuilder(item),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           )
           .toList(),

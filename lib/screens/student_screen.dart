@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/registration/registration_provider.dart';
 import '../providers/student/dashboard_provider.dart';
+import '../routes/app_routes.dart';
 import '../widgets/common/main_bottom_navigation.dart';
 import '../widgets/student/dashboard_app_bar.dart';
 import '../widgets/student/dashboard_menu.dart';
@@ -23,6 +25,7 @@ class _StudentScreenState extends State<StudentScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DashboardProvider>().loadDashboard();
+      context.read<RegistrationProvider>().loadRegistrationStatus();
     });
   }
 
@@ -35,22 +38,16 @@ class _StudentScreenState extends State<StudentScreen> {
     return Scaffold(
       appBar: DashboardAppBar(
         onNotificationPressed: () {
-          Navigator.pushNamed(
-            context,
-            '/notifications',
-          );
+          Navigator.pushNamed(context, '/notifications');
         },
       ),
       body: Consumer<DashboardProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.dashboard == null) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
-          if (provider.error != null &&
-              provider.dashboard == null) {
+          if (provider.error != null && provider.dashboard == null) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -63,16 +60,11 @@ class _StudentScreenState extends State<StudentScreen> {
                       color: Colors.red,
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      provider.error!,
-                      textAlign: TextAlign.center,
-                    ),
+                    Text(provider.error!, textAlign: TextAlign.center),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: provider.loadDashboard,
-                      child: const Text(
-                        'Réessayer',
-                      ),
+                      child: const Text('Réessayer'),
                     ),
                   ],
                 ),
@@ -86,14 +78,18 @@ class _StudentScreenState extends State<StudentScreen> {
             return const SizedBox.shrink();
           }
 
+          final registrationProvider = context.watch<RegistrationProvider>();
+          final registrationStatus = registrationProvider.registrationStatus;
+          final showRegistrationButton =
+              registrationStatus?.open == true &&
+              registrationStatus?.canCreate == true;
+
           return RefreshIndicator(
             onRefresh: _refresh,
             child: SingleChildScrollView(
-              physics:
-              const AlwaysScrollableScrollPhysics(),
+              physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   StudentHeader(
                     firstName: dashboard.firstName,
@@ -102,32 +98,60 @@ class _StudentScreenState extends State<StudentScreen> {
 
                   const SizedBox(height: 24),
 
-                  QuickStatsSection(
-                    stats: dashboard.quickStats,
-                  ),
+                  QuickStatsSection(stats: dashboard.quickStats),
+
+                  const SizedBox(height: 28),
+
+                  if (registrationProvider.isRegistrationStatusLoading)
+                    const Center(child: CircularProgressIndicator()),
+                  if (!registrationProvider.isRegistrationStatusLoading &&
+                      showRegistrationButton)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.registration,
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0F4DA8),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: const Text('Demander une inscription'),
+                        ),
+                      ),
+                    ),
+                  if (!registrationProvider.isRegistrationStatusLoading &&
+                      !showRegistrationButton &&
+                      registrationProvider.registrationStatus != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        registrationProvider.registrationStatus?.message ??
+                            'Les inscriptions ne sont pas disponibles.',
+                        style: const TextStyle(color: Color(0xFF475569)),
+                      ),
+                    ),
 
                   const SizedBox(height: 28),
 
                   DashboardMenu(
                     menu: dashboard.menu,
                     onItemTap: (item) {
-                      Navigator.pushNamed(
-                        context,
-                        item.route,
-                      );
+                      Navigator.pushNamed(context, item.route);
                     },
                   ),
 
                   const SizedBox(height: 28),
 
                   NotificationSection(
-                    notifications:
-                    dashboard.notifications,
+                    notifications: dashboard.notifications,
                     onSeeAll: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/notifications',
-                      );
+                      Navigator.pushNamed(context, '/notifications');
                     },
                     onTap: (notification) {
                       // Détail de la notification

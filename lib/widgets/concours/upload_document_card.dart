@@ -14,6 +14,8 @@ class UploadDocumentCard extends StatefulWidget {
   final String subtitle;
   final ValueChanged<File?> onFileSelected;
   final bool isImageField;
+  final bool requireSelectionBeforePick;
+  final String selectionPlaceholder;
 
   const UploadDocumentCard({
     super.key,
@@ -22,6 +24,8 @@ class UploadDocumentCard extends StatefulWidget {
     required this.subtitle,
     required this.onFileSelected,
     this.isImageField = false,
+    this.requireSelectionBeforePick = false,
+    this.selectionPlaceholder = 'Type de pièce',
   });
 
   @override
@@ -64,6 +68,13 @@ class _UploadDocumentCardState extends State<UploadDocumentCard> {
     return '${_safePdfBaseName(title)}.pdf';
   }
 
+  bool _shouldBlockSelection() {
+    final normalizedTitle = widget.title.trim();
+    final normalizedPlaceholder = widget.selectionPlaceholder.trim();
+    return widget.requireSelectionBeforePick &&
+        (normalizedTitle.isEmpty || normalizedTitle == normalizedPlaceholder);
+  }
+
   Future<File> _convertImageToPdf(File sourceFile, String title) async {
     final bytes = await sourceFile.readAsBytes();
     final pdf = pw.Document();
@@ -84,6 +95,13 @@ class _UploadDocumentCardState extends State<UploadDocumentCard> {
   }
 
   Future<void> _pickFile() async {
+    if (_shouldBlockSelection()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sélectionnez d’abord un type de pièce.')),
+      );
+      return;
+    }
+
     final source = await showModalBottomSheet<_UploadSource>(
       context: context,
       shape: const RoundedRectangleBorder(

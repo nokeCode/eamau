@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/registration/registration_provider.dart';
 import '../widgets/common/main_bottom_navigation.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/search_bar_widget.dart';
@@ -17,7 +20,21 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showAdmissionOptions = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<RegistrationProvider>().loadRegistrationStatus();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final registrationProvider = context.watch<RegistrationProvider>();
+    final registrationStatus = registrationProvider.registrationStatus;
+    final showRegistrationButton =
+        registrationStatus?.open == true &&
+        registrationStatus?.canCreate == true;
+
     return Scaffold(
       backgroundColor: Colors.white,
 
@@ -38,6 +55,38 @@ class _HomeScreenState extends State<HomeScreen> {
               const AdmissionBanner(),
 
               const SizedBox(height: 20),
+
+              if (registrationProvider.isRegistrationStatusLoading)
+                const Center(child: CircularProgressIndicator()),
+              if (!registrationProvider.isRegistrationStatusLoading &&
+                  showRegistrationButton)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppRoutes.registration);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F4DA8),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('Demander une inscription'),
+                    ),
+                  ),
+                ),
+              if (!registrationProvider.isRegistrationStatusLoading &&
+                  !showRegistrationButton &&
+                  registrationProvider.registrationStatus != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Text(
+                    registrationProvider.registrationStatus?.message ??
+                        'Les inscriptions ne sont pas disponibles.',
+                    style: const TextStyle(color: Color(0xFF475569)),
+                  ),
+                ),
 
               GridView.count(
                 shrinkWrap: true,

@@ -37,7 +37,19 @@ class UploadCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            initialValue: selectedType,
+            initialValue: () {
+              try {
+                if (selectedType == null) return null;
+                // Deduplicate options and ensure initialValue exists in the
+                // unique list to avoid duplicate-value assertion.
+                final unique = <String>{};
+                for (final o in options) {
+                  unique.add(o);
+                }
+                return unique.contains(selectedType) ? selectedType : null;
+              } catch (_) {}
+              return null;
+            }(),
             decoration: InputDecoration(
               labelText: 'Type de pièce',
               filled: true,
@@ -47,14 +59,16 @@ class UploadCard extends StatelessWidget {
                 borderSide: BorderSide.none,
               ),
             ),
-            items: options
-                .map(
-                  (option) => DropdownMenuItem<String>(
-                    value: option,
-                    child: Text(option),
-                  ),
-                )
-                .toList(),
+            items: () {
+              final seen = <String>{};
+              final list = <DropdownMenuItem<String>>[];
+              for (final option in options) {
+                if (seen.add(option)) {
+                  list.add(DropdownMenuItem<String>(value: option, child: Text(option)));
+                }
+              }
+              return list;
+            }(),
             onChanged: onTypeChanged,
           ),
           const SizedBox(height: 10),

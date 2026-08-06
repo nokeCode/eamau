@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/registration/registration_referential_model.dart';
 import '../../providers/registration/registration_provider.dart';
@@ -8,7 +11,7 @@ import '../../widgets/registration/enum_dropdown.dart';
 import '../../widgets/registration/registration_card.dart';
 import '../../widgets/registration/registration_stepper.dart';
 import '../../widgets/registration/summary_tile.dart';
-import '../../widgets/registration/upload_card.dart';
+import '../../widgets/concours/upload_document_card.dart';
 import '../../widgets/registration/upload_preview.dart';
 
 class RegistrationScreen extends StatefulWidget {
@@ -19,7 +22,7 @@ class RegistrationScreen extends StatefulWidget {
 }
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
-  String? _selectedDocumentType;
+  RegistrationOption? _selectedDocumentType;
 
   @override
   void initState() {
@@ -237,6 +240,29 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFDBE7FF)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('Licence 1 : semestre 1 et semestre 2'),
+                SizedBox(height: 4),
+                Text('Licence 2 : semestre 3 et semestre 4'),
+                SizedBox(height: 4),
+                Text('Licence 3 : semestre 5 et semestre 6'),
+                SizedBox(height: 4),
+                Text('Master 1 : semestre 7 et semestre 8'),
+                SizedBox(height: 4),
+                Text('Master 2 : semestre 9 et semestre 10'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           RegistrationCard(
             title: 'Semestres',
             subtitle:
@@ -271,9 +297,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         ),
                         const SizedBox(height: 10),
                         EnumDropdown<RegistrationOption>(
-                          label: 'Statut du semestre',
+                          label: 'Nouveau dans le semestre ?',
                           value: provider.draft.semesters[index].status,
-                          items: provider.referentials?.statuses ?? [],
+                          items: [
+                            const RegistrationOption(id: 'ancien', value: 'ancien', label: 'Ancien'),
+                            const RegistrationOption(id: 'nouveau', value: 'nouveau', label: 'Nouveau'),
+                          ],
                           labelBuilder: (option) => option.label.isEmpty
                               ? option.value
                               : option.label,
@@ -373,41 +402,45 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             subtitle: 'PDF, DOC, DOCX et images sont acceptés jusqu’à 5 Mo.',
             child: Column(
               children: [
-                UploadCard(
-                  label: 'Ajouter une pièce',
-                  selectedType: _selectedDocumentType,
-                  options:
-                      provider.referentials?.documentTypes
-                          .map(
-                            (item) =>
-                                item.label.isEmpty ? item.value : item.label,
-                          )
-                          .toList() ??
-                      const [],
-                  onPick: () {
-                    if (_selectedDocumentType == null ||
-                        _selectedDocumentType!.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Sélectionnez d’abord un type de pièce.',
-                          ),
-                        ),
-                      );
-                      return;
-                    }
-                    provider.pickDocument(_selectedDocumentType!);
-                  },
-                  onTypeChanged: (value) {
+                EnumDropdown<RegistrationOption>(
+                  label: 'Type de pièce',
+                  value: _selectedDocumentType,
+                  items: provider.referentials?.documentTypes ?? [],
+                  labelBuilder: (option) =>
+                      option.label.isEmpty ? option.value : option.label,
+                  onChanged: (value) {
                     setState(() {
                       _selectedDocumentType = value;
                     });
+                  },
+                  icon: Icons.description_outlined,
+                ),
+                const SizedBox(height: 10),
+                UploadDocumentCard(
+                  icon: Icons.insert_drive_file_outlined,
+                  title: _selectedDocumentType?.label.isNotEmpty == true
+                      ? _selectedDocumentType!.label
+                      : (_selectedDocumentType?.value ?? 'Type de pièce'),
+                  subtitle: 'Sélectionner ou prendre une photo',
+                  isImageField: false,
+                  requireSelectionBeforePick: true,
+                  selectionPlaceholder: 'Type de pièce',
+                  onFileSelected: (file) {
+                    if (file == null) return;
+                    provider.addDocumentFromFilePath(
+                      filePath: file.path,
+                      fileName: file.path.split('/').last,
+                      type: _selectedDocumentType?.value ??
+                          _selectedDocumentType?.label ??
+                          'unknown',
+                    );
                   },
                 ),
                 const SizedBox(height: 10),
                 UploadPreview(
                   documents: provider.documents,
                   onRemove: (index) => provider.removeDocument(index),
+                  onPreview: (index) => _showDocumentPreview(context, provider.documents[index]),
                 ),
               ],
             ),
@@ -492,6 +525,92 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showDocumentPreview(
+    BuildContext context,
+    RegistrationDocument document,
+  ) async {
+    final extension = document.extension;
+    final isPreviewableImage = [
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'bmp',
+      'webp',
+      'heic',
+    ].contains(extension);
+
+    if (isPreviewableImage) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) {
+          final file = File(document.filePath);
+          return AlertDialog(
+            title: Text(document.fileName),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: InteractiveViewer(
+                child: Image.file(
+                  file,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Fermer'),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(document.fileName),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Aperçu non pris en charge dans l’application pour ce type de fichier.',
+              ),
+              const SizedBox(height: 10),
+              Text('Chemin : ${document.filePath}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Fermer'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final uri = Uri.file(document.filePath);
+                Navigator.of(context).pop();
+                if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Impossible d’ouvrir le fichier.'),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Ouvrir'),
+            ),
+          ],
+        );
+      },
     );
   }
 

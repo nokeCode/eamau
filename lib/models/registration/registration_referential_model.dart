@@ -19,18 +19,36 @@ class RegistrationOption {
     if (source is Map) {
       final map = Map<String, dynamic>.from(source);
       final id = map['id']?.toString() ?? '';
-      final value = map['value']?.toString() ?? '';
-      final label =
-          map['label']?.toString() ??
-          map['name']?.toString() ??
-          map['title']?.toString() ??
-          map['code']?.toString() ??
-          value;
+      final rawValue = map['value']?.toString() ?? '';
+      final rawLabel = map['label']?.toString() ?? '';
+      final rawName = map['name']?.toString() ?? '';
+      final rawTitle = map['title']?.toString() ?? '';
+      final rawCode = map['code']?.toString() ?? '';
+
+      final value = rawValue.isNotEmpty
+          ? rawValue
+          : rawName.isNotEmpty
+              ? rawName
+              : rawLabel.isNotEmpty
+                  ? rawLabel
+                  : rawTitle.isNotEmpty
+                      ? rawTitle
+                      : rawCode;
+      final label = rawLabel.isNotEmpty
+          ? rawLabel
+          : rawName.isNotEmpty
+              ? rawName
+              : rawTitle.isNotEmpty
+                  ? rawTitle
+                  : rawCode.isNotEmpty
+                      ? rawCode
+                      : value;
+
       return RegistrationOption(
         id: id.isNotEmpty ? id : value,
         value: value.isNotEmpty ? value : label,
         label: label.isNotEmpty ? label : value,
-        code: map['code']?.toString(),
+        code: rawCode.isNotEmpty ? rawCode : null,
       );
     }
 
@@ -236,9 +254,9 @@ class RegistrationDraft {
       'lastName': lastName,
       'email': email,
       'phone': phone,
-      'matricule': matricule,
-      'author': author,
-      'alreadyRegistered': alreadyRegistered,
+      if (matricule.isNotEmpty) 'matricule': matricule,
+      if (author.isNotEmpty) 'author': author,
+      'oldStudent': alreadyRegistered,
       if (schoolYear != null) 'schoolYearId': schoolYear!.id,
       if (status != null) 'statusId': status!.id,
       if (filiere != null) 'filiereId': filiere!.id,
