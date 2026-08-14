@@ -1,42 +1,25 @@
-import 'package:eamau/providers/admission_provider.dart';
-import 'package:eamau/providers/admission_tracking_provider.dart';
-import 'package:eamau/providers/auth_provider.dart';
-import 'package:eamau/providers/notification_provider.dart';
-import 'package:eamau/providers/registration/registration_provider.dart';
-import 'package:eamau/providers/student/dashboard_provider.dart';
-import 'package:eamau/routes/app_pages.dart';
-import 'package:eamau/routes/app_routes.dart';
-import 'package:eamau/screens/admission/admission_conditions_screen.dart';
-import 'package:eamau/screens/admission/admission_request_screen.dart';
-import 'package:eamau/screens/admission/admission_screen.dart';
-import 'package:eamau/screens/admission/admission_tracking_screen.dart';
-import 'package:eamau/screens/concours/application_form_screen.dart';
-import 'package:eamau/screens/concours/concours_list_screen.dart';
-import 'package:eamau/screens/concours/confirmation_candidature_screen.dart';
-import 'package:eamau/screens/concours/detail_concours_screen.dart';
-import 'package:eamau/screens/concours/suivi_candidature_screen.dart';
-import 'package:eamau/screens/contact_screen.dart';
-import 'package:eamau/screens/filiere_screen.dart';
-import 'package:eamau/screens/notification_screen.dart';
-import 'package:eamau/screens/register_screen.dart';
-import 'package:eamau/screens/student_screen.dart';
-import 'package:eamau/screens/teacher_evaluation_screen.dart';
-import 'package:eamau/screens/user_screen.dart';
+import 'dart:convert';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
+
 import 'firebase_options.dart';
-import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/verify_2fa_screen.dart';
-import 'screens/news_screen.dart';
-import 'screens/news_detail_screen.dart';
+import 'providers/admission_tracking_provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/notification_provider.dart';
+import 'providers/registration/registration_provider.dart';
+import 'providers/student/dashboard_provider.dart';
+import 'routes/app_pages.dart';
+import 'routes/app_routes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Ensure background handler is registered before Firebase initialization
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   try {
     await Firebase.initializeApp(
@@ -51,17 +34,22 @@ Future<void> main() async {
       sound: true,
     );
 
-    // ignore: avoid_print
-    print("Permission : ${settings.authorizationStatus}");
+    debugPrint("Permission : ${settings.authorizationStatus}");
 
     String? token = await messaging.getToken();
 
-    print("======================================");
-    print("FCM TOKEN :");
-    print(token);
-    print("======================================");
+    debugPrint("======================================");
+    debugPrint("FCM TOKEN :");
+    debugPrint(token ?? 'null');
+    debugPrint("======================================");
 
     final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    const channel = AndroidNotificationChannel(
+      'eamau_channel',
+      'EAMAU Notifications',
+      description: 'Channel for EAMAU push notifications',
+      importance: Importance.max,
+    );
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
@@ -71,24 +59,76 @@ Future<void> main() async {
       const InitializationSettings(android: androidSettings, iOS: iosSettings),
     );
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      // ignore: avoid_print
-      print("Notification reçue");
-      // ignore: avoid_print
-      print(message.notification?.title);
-      // ignore: avoid_print
-      print(message.notification?.body);
+    // Foreground messages: show a local notification
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      debugPrint("Notification reçue (foreground)");
+      debugPrint(message.notification?.title ?? '');
+      debugPrint(message.notification?.body ?? '');
+
+      final notification = message.notification;
+      final payloadData = {
+        'type': _notificationStringValue(
+          message.data,
+          ['type', 'notificationType', 'notification_type'],
+        ),
+        'notificationId': _notificationStringValue(
+          message.data,
+          ['notificationId', 'notification_id', 'notificationid'],
+        ),
+        'entityId': _notificationStringValue(
+          message.data,
+          ['entityId', 'entity_id', 'entityid', 'id', 'resource_id', 'slug'],
+        ),
+        'route': _notificationStringValue(
+          message.data,
+          ['route', 'deepLink', 'deeplink'],
+        ),
+        'raw': message.data,
+      };
+
+      if (notification != null) {
+        final androidDetails = AndroidNotificationDetails(
+          channel.id,
+          channel.name,
+          channelDescription: channel.description,
+          importance: Importance.max,
+          priority: Priority.high,
+        );
+
+        final details = NotificationDetails(
+          android: androidDetails,
+          iOS: const DarwinNotificationDetails(),
+        );
+
+        await flutterLocalNotificationsPlugin.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          details,
+          payload: jsonEncode(payloadData),
+        );
+      }
     });
+
+    // When the app is opened from a notification
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      debugPrint('onMessageOpenedApp: ${message.messageId}');
+      _handleNavigationFromMessage(message);
+    });
+
+    // If the app was completely terminated and opened from a notification
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      _handleNavigationFromMessage(initialMessage);
+    }
   } catch (e, st) {
     // If Firebase cannot initialize (e.g. on unsupported desktop platforms
     // or temporary channel errors), log and continue so the app can still run.
     // This prevents a hard crash / white screen during development.
     // Consider reporting this to your error monitoring or handling differently
     // for production builds.
-    // ignore: avoid_print
-    print('Firebase initialization error: $e');
-    // ignore: avoid_print
-    print(st);
+    debugPrint('Firebase initialization error: $e');
+    debugPrint(st.toString());
   }
 
   runApp(
@@ -105,6 +145,141 @@ Future<void> main() async {
   );
 }
 
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (_) {}
+
+  // Keep background handling minimal; rely on system notification when provided.
+  // Log for debugging.
+  debugPrint('Background message received: ${message.messageId}');
+}
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+String _notificationStringValue(
+  Map<String, dynamic> data,
+  List<String> keys, {
+  String fallback = '',
+}) {
+  for (final key in keys) {
+    final value = data[key];
+    if (value != null && value.toString().trim().isNotEmpty) {
+      return value.toString();
+    }
+  }
+  return fallback;
+}
+
+void _handleNavigationFromMessage(RemoteMessage message) {
+  final data = message.data;
+
+  final type = _notificationStringValue(
+    data,
+    ['type', 'notificationType', 'notification_type'],
+  ).toUpperCase();
+  final route = _notificationStringValue(
+    data,
+    ['route', 'deepLink', 'deeplink'],
+  );
+  final notificationId = _notificationStringValue(
+    data,
+    ['notificationId', 'notification_id', 'notificationid'],
+  );
+  final entityId = _notificationStringValue(
+    data,
+    ['entityId', 'entity_id', 'entityid', 'id', 'resource_id', 'slug'],
+  );
+
+  final nav = navigatorKey.currentState;
+  if (nav == null) return;
+
+  final normalizedRoute = route.trim();
+  final normalizedType = type.trim();
+
+  if (normalizedRoute.isNotEmpty) {
+    final routeName = normalizedRoute.replaceFirst(RegExp(r'^/'), '').split('?').first;
+    final routeValue = routeName.trim().toLowerCase().replaceAll('_', '-');
+
+    if (routeValue == 'news-detail' ||
+        routeValue == 'news' ||
+        routeValue.startsWith('news-') ||
+        routeValue.contains('news')) {
+      nav.pushNamed(
+        AppRoutes.newsDetail,
+        arguments: entityId.isNotEmpty ? entityId : 'news',
+      );
+      return;
+    }
+
+    if (routeValue == 'concours' ||
+        routeValue == 'contest' ||
+        routeValue == 'concours-detail' ||
+        routeValue.contains('concours')) {
+      nav.pushNamed(AppRoutes.concours);
+      return;
+    }
+
+    if (routeValue == 'admission' ||
+        routeValue == 'admission-tracking' ||
+        routeValue == 'admissiontracking' ||
+        routeValue.startsWith('admission') ||
+        routeValue.contains('admission')) {
+      final requestId = int.tryParse(entityId) ?? 0;
+      nav.pushNamed(AppRoutes.admissionTracking, arguments: requestId);
+      return;
+    }
+
+    if (routeValue == 'registration' ||
+        routeValue == 'inscription' ||
+        routeValue.contains('registration') ||
+        routeValue.contains('inscription')) {
+      nav.pushNamed(AppRoutes.registration);
+      return;
+    }
+
+    if (routeValue == 'notifications' ||
+        routeValue == 'notification' ||
+        routeValue.contains('notification')) {
+      nav.pushNamed('/notifications');
+      return;
+    }
+  }
+
+  switch (normalizedType) {
+    case 'NEWS':
+      nav.pushNamed(
+        AppRoutes.newsDetail,
+        arguments: entityId.isNotEmpty ? entityId : 'news',
+      );
+      return;
+    case 'CONCOURS':
+      nav.pushNamed(AppRoutes.concours);
+      return;
+    case 'ADMISSION':
+    case 'ADMISSION_DECISION':
+      final requestId = int.tryParse(entityId) ?? 0;
+      nav.pushNamed(AppRoutes.admissionTracking, arguments: requestId);
+      return;
+    case 'INSCRIPTION':
+      nav.pushNamed(AppRoutes.registration);
+      return;
+    case 'SYSTEM':
+      nav.pushNamed('/notifications');
+      return;
+  }
+
+  if (notificationId.isNotEmpty || entityId.isNotEmpty) {
+    nav.pushNamed('/notifications');
+    return;
+  }
+
+  nav.pushNamed('/notifications');
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -113,6 +288,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'EAMAU',
+      navigatorKey: navigatorKey,
       //home: const DetailConcoursScreen(concoursId: 1),
       //home: const SuiviCandidatureScreen(candidatureId: 1)
       //home: const AdmissionScreen(),

@@ -2,6 +2,7 @@ import 'package:eamau/screens/admission/admission_request_screen.dart';
 import 'package:eamau/screens/admission/admission_screen.dart';
 import 'package:eamau/screens/admission/admission_tracking_screen.dart';
 import 'package:eamau/screens/concours/concours_list_screen.dart';
+import 'package:eamau/screens/notification_screen.dart';
 import 'package:eamau/screens/register_screen.dart';
 import 'package:eamau/screens/registration/registration_screen.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +31,7 @@ class AppPages {
     AppRoutes.registration: (_) => const RegistrationScreen(),
     AppRoutes.verify2fa: (_) => const VerificationScreen(),
     AppRoutes.news: (_) => const NewsScreen(),
+    '/notifications': (_) => const NotificationScreen(),
     AppRoutes.newsDetail: (context) {
       final slug = ModalRoute.of(context)?.settings.arguments as String?;
       return NewsDetailScreen(slug: slug);

@@ -250,19 +250,14 @@ class RegistrationDraft {
 
   Map<String, dynamic> toJson() {
     return {
-      'firstName': firstName,
-      'lastName': lastName,
-      'email': email,
-      'phone': phone,
+      // Backend récupère firstName, lastName, email, phone du JWT/profil utilisateur
+      // Ne pas les envoyer ici
+      'anneeScolaireId': schoolYear?.id,
       if (matricule.isNotEmpty) 'matricule': matricule,
-      if (author.isNotEmpty) 'author': author,
       'oldStudent': alreadyRegistered,
-      if (schoolYear != null) 'schoolYearId': schoolYear!.id,
-      if (status != null) 'statusId': status!.id,
       if (filiere != null) 'filiereId': filiere!.id,
       if (grade != null) 'gradeId': grade!.id,
-      if (group != null) 'groupId': group!.id,
-      'semesters': semesters.map((item) => item.toJson()).toList(),
+      if (group != null) 'groupeId': group!.id,
     };
   }
 }

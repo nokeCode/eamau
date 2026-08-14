@@ -36,8 +36,8 @@ class SuiviCandidatureModel {
   final String nomComplet;
   final String programme;
   final String dateSoumission;
+  final String dateExamen;
   final String statutActuel;
-  final String attestationUrl;
   final List<SuiviEtapeModel> etapes;
 
   const SuiviCandidatureModel({
@@ -45,8 +45,8 @@ class SuiviCandidatureModel {
     required this.nomComplet,
     required this.programme,
     required this.dateSoumission,
+    required this.dateExamen,
     required this.statutActuel,
-    required this.attestationUrl,
     required this.etapes,
   });
 
@@ -55,23 +55,11 @@ class SuiviCandidatureModel {
         json['status']?.toString() ?? json['statut']?.toString() ?? '';
     return SuiviCandidatureModel(
       reference: json['reference']?.toString() ?? '',
-      nomComplet:
-          json['nom_complet']?.toString() ??
-          json['full_name']?.toString() ??
-          '',
-      programme:
-          json['programme']?.toString() ??
-          json['programme_name']?.toString() ??
-          '',
-      dateSoumission:
-          json['date_soumission']?.toString() ??
-          json['submission_date']?.toString() ??
-          '',
+      nomComplet: json['candidateFullName']?.toString() ?? '',
+      programme: json['program']?.toString() ?? '',
+      dateSoumission: json['submittedAt']?.toString() ?? '',
+      dateExamen: json['examDate']?.toString() ?? '',
       statutActuel: _mapStatusToLabel(rawStatus),
-      attestationUrl:
-          json['attestation_url']?.toString() ??
-          json['attestationUrl']?.toString() ??
-          '',
       etapes:
           (json['timeline'] as List<dynamic>?)
               ?.map((e) => SuiviEtapeModel.fromJson(e as Map<String, dynamic>))

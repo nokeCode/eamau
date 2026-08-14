@@ -89,6 +89,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   value: provider.draft.firstName,
                   field: 'firstName',
                   provider: provider,
+                  readOnly: true,
                 ),
                 const SizedBox(height: 10),
                 _buildTextField(
@@ -96,6 +97,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   value: provider.draft.lastName,
                   field: 'lastName',
                   provider: provider,
+                  readOnly: true,
                 ),
                 const SizedBox(height: 10),
                 _buildTextField(
@@ -620,20 +622,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     required String field,
     required RegistrationProvider provider,
     TextInputType? keyboardType,
+    bool readOnly = false,
   }) {
     return TextFormField(
       initialValue: value,
       keyboardType: keyboardType,
+      readOnly: readOnly,
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: const Color(0xFFF5F7FB),
+        fillColor: readOnly ? const Color(0xFFE8EAF6) : const Color(0xFFF5F7FB),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
       ),
-      onChanged: (newValue) => provider.updateField(field, newValue),
+      onChanged: readOnly ? null : (newValue) => provider.updateField(field, newValue),
     );
   }
 }

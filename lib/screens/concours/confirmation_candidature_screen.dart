@@ -2,9 +2,7 @@ import 'package:eamau/screens/concours/suivi_candidature_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../services/concours/confirmation_candidature_service.dart';
 import '../../services/concours/concours_form_service.dart';
-import '../../models/concours/confirmation_candidature_model.dart';
 import '../../widgets/concours/confirmation_action_button.dart';
 import '../../widgets/concours/confirmation_success_widget.dart';
 
@@ -25,20 +23,11 @@ class ConfirmationCandidatureScreen extends StatefulWidget {
 
 class _ConfirmationCandidatureScreenState
     extends State<ConfirmationCandidatureScreen> {
-  final ConfirmationCandidatureService _service =
-      ConfirmationCandidatureService();
   final ConcoursFormService _concoursFormService = ConcoursFormService();
 
-  late Future<ConfirmationCandidatureModel> _future;
   bool _isSubmitting = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _future = _service.getConfirmation(widget.candidatureId);
-  }
-
-  Future<void> _confirmSubmission(String reference) async {
+  Future<void> _confirmSubmission() async {
     if (_isSubmitting) {
       return;
     }
@@ -53,11 +42,18 @@ class _ConfirmationCandidatureScreenState
         postulationToken: widget.postulationToken,
       );
 
-      final message = (result['data'] is Map<String, dynamic>)
-          ? (result['data'] as Map<String, dynamic>)['message'] ??
-                result['message'] ??
-                'Candidature confirmée avec succès.'
-          : (result['message'] ?? 'Candidature confirmée avec succès.');
+      final data = result['data'];
+      if (data is! Map) {
+        throw Exception('La réponse de soumission est invalide.');
+      }
+
+      final reference = data['reference']?.toString() ?? '';
+      if (reference.isEmpty) {
+        throw Exception('La référence de candidature est absente.');
+      }
+
+      final message = result['message']?.toString() ??
+          'Candidature confirmée avec succès.';
 
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -112,45 +108,31 @@ class _ConfirmationCandidatureScreenState
             ],
           ),
         ),
-        body: FutureBuilder<ConfirmationCandidatureModel>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Column(
+              children: [
+                const Spacer(),
 
-            final data = snapshot.data ?? fallbackConfirmation;
-
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  children: [
-                    const Spacer(),
-
-                    ConfirmationSuccessWidget(
-                      title: "Candidature enregistrée",
-                      message: data.message,
-                    ),
-
-                    const SizedBox(height: 60),
-
-                    ConfirmationActionButton(
-                      text: "Confirmer ma candidature",
-                      icon: Icons.check_circle_outline,
-                      onPressed: _isSubmitting
-                          ? null
-                          : () {
-                              _confirmSubmission(data.numeroCandidature);
-                            },
-                    ),
-
-                    const Spacer(),
-                  ],
+                const ConfirmationSuccessWidget(
+                  title: "Candidature enregistrée",
+                  message:
+                      "Votre dossier est prêt. Confirmez sa soumission pour obtenir votre référence.",
                 ),
-              ),
-            );
-          },
+
+                const SizedBox(height: 60),
+
+                ConfirmationActionButton(
+                  text: "Confirmer ma candidature",
+                  icon: Icons.check_circle_outline,
+                  onPressed: _isSubmitting ? null : _confirmSubmission,
+                ),
+
+                const Spacer(),
+              ],
+            ),
+          ),
         ),
       ),
     );

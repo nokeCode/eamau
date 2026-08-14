@@ -1,3 +1,4 @@
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -18,8 +19,13 @@ import '../../widgets/admission/admission_submit_button.dart';
 
 class AdmissionRequestScreen extends StatefulWidget {
   final int campaignId;
+  final AdmissionRequestService? service;
 
-  const AdmissionRequestScreen({super.key, required this.campaignId});
+  const AdmissionRequestScreen({
+    super.key,
+    required this.campaignId,
+    this.service,
+  });
 
   @override
   State<AdmissionRequestScreen> createState() => _AdmissionRequestScreenState();
@@ -27,7 +33,8 @@ class AdmissionRequestScreen extends StatefulWidget {
 
 class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _service = AdmissionRequestService();
+  final _uploadSectionKey = GlobalKey<AdmissionUploadSectionState>();
+  late final AdmissionRequestService _service;
 
   bool loading = true;
   bool submitting = false;
@@ -109,6 +116,7 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
   @override
   void initState() {
     super.initState();
+    _service = widget.service ?? AdmissionRequestService();
     loadData();
   }
 
@@ -253,15 +261,34 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
 
   Future<void> _uploadPendingDocumentsIfNeeded() async {
     if (_requestId == null) return;
-    final uploadState = context.findAncestorStateOfType<AdmissionUploadSectionState>();
+    final uploadState = _uploadSectionKey.currentState;
     if (uploadState == null) return;
     await uploadState.uploadPendingDocuments();
   }
 
   Future<void> submitForm() async {
+    FocusScope.of(context).unfocus();
+
+    // When returning from the summary, the request already exists. Only send
+    // the documents selected to complete it, then reload the same summary.
+    if (_requestId != null) {
+      setState(() => submitting = true);
+      try {
+        await _uploadPendingDocumentsIfNeeded();
+        await _loadRequestSummary(_requestId!);
+      } finally {
+        if (mounted) {
+          setState(() => submitting = false);
+        }
+      }
+      return;
+    }
+
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) {
-      setState(() => _formErrorMessage = 'Veuillez corriger les champs en rouge.');
+      setState(
+        () => _formErrorMessage = 'Veuillez corriger les champs en rouge.',
+      );
       _focusFirstInvalidField();
       return;
     }
@@ -279,7 +306,8 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
       birthDate: birthController.text.isEmpty
           ? null
           : DateTime.tryParse(
-              birthController.text.split('/').reversed.join('-')),
+              birthController.text.split('/').reversed.join('-'),
+            ),
       nationality: _extractValue(nationality),
       profession: professionController.text.trim(),
       address: addressController.text.trim(),
@@ -293,55 +321,76 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
       documents: const {},
     );
 
-    final response = await _service.createAdmissionRequest(widget.campaignId, model);
-
-    if (!mounted) return;
-
-    setState(() => submitting = false);
-
-    if (response == null) {
-      final message = _service.lastStatusCode == 401
-          ? 'Veuillez vous connecter pour continuer.'
-          : 'Erreur lors de l’enregistrement${_service.lastStatusCode != null ? ' (${_service.lastStatusCode})' : ''}.';
-      final details = _service.lastErrorMessage;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(details != null && details.isNotEmpty
-              ? '$message\n$details'
-              : message),
-          duration: const Duration(seconds: 5),
-        ),
+    try {
+      final response = await _service.createAdmissionRequest(
+        widget.campaignId,
+        model,
       );
-      if (_service.lastStatusCode == 401) {
-        Navigator.pushNamed(context, AppRoutes.login);
+
+      if (!mounted) return;
+
+      setState(() => submitting = false);
+
+      if (response == null) {
+        final message = _service.lastStatusCode == 401
+            ? 'Veuillez vous connecter pour continuer.'
+            : 'Erreur lors de l’enregistrement${_service.lastStatusCode != null ? ' (${_service.lastStatusCode})' : ''}.';
+        final details = _service.lastErrorMessage;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red,
+            content: Text(
+              details != null && details.isNotEmpty
+                  ? '$message\n$details'
+                  : message,
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        if (_service.lastStatusCode == 401) {
+          Navigator.pushNamed(context, AppRoutes.login);
+        }
+        return;
       }
-      return;
-    }
 
-    if (response.id <= 0) {
+      if (response.id <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.red,
+            content: Text(
+              'Le serveur n’a pas renvoyé d’identifiant de demande valide.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _requestId = response.id;
+      });
+
+      // The upload section receives requestId through its widget. Wait for the
+      // rebuild so its state uses the newly-created request before uploading.
+      await WidgetsBinding.instance.endOfFrame;
+      await _uploadPendingDocumentsIfNeeded();
+      await _loadRequestSummary(response.id);
+      if (!mounted) return;
+      if (_requestSummary == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.red,
+            content: Text('Impossible de charger le récapitulatif.'),
+          ),
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => submitting = false);
+      final message = error is TimeoutException
+          ? 'Le serveur met trop de temps à répondre. Veuillez réessayer.'
+          : 'Une erreur inattendue est survenue pendant la création de la demande.';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text('Le serveur n’a pas renvoyé d’identifiant de demande valide.'),
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _requestId = response.id;
-    });
-
-    await _uploadPendingDocumentsIfNeeded();
-    await _loadRequestSummary(response.id);
-    if (!mounted) return;
-    if (_requestSummary == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text('Impossible de charger le récapitulatif.'),
-        ),
+        SnackBar(backgroundColor: Colors.red, content: Text(message)),
       );
     }
   }
@@ -359,10 +408,7 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
           ? 'Veuillez vous connecter pour soumettre la demande.'
           : 'Impossible de soumettre la demande.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(message),
-        ),
+        SnackBar(backgroundColor: Colors.red, content: Text(message)),
       );
       if (_service.lastStatusCode == 401) {
         Navigator.pushNamed(context, AppRoutes.login);
@@ -457,7 +503,8 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                     ),
                     Chip(
                       label: Text(summary.status),
-                      backgroundColor: summary.status.toLowerCase() == 'brouillon'
+                      backgroundColor:
+                          summary.status.toLowerCase() == 'brouillon'
                           ? const Color(0xffF1F6FF)
                           : const Color(0xffE8F5E9),
                       labelStyle: TextStyle(
@@ -512,10 +559,7 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
               children: [
                 const Text(
                   'Documents uploadés',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 const SizedBox(height: 12),
                 if (summary.documents.isEmpty)
@@ -524,26 +568,39 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                     style: TextStyle(color: Colors.grey),
                   )
                 else
-                  ...summary.documents.map(
-                    (document) => Padding(
+                  ...summary.documents.map((document) {
+                    final displayName = document.originalFilename.isNotEmpty
+                        ? document.originalFilename
+                        : document.attachmentType;
+                    return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Row(
                         children: [
                           Expanded(
                             child: Text(
-                              document.originalFilename,
+                              displayName,
                               style: const TextStyle(fontSize: 13),
                             ),
                           ),
-                          Icon(
-                            document.validated ? Icons.check_circle : Icons.error_outline,
-                            color: document.validated ? const Color(0xff2E7D32) : Colors.orange,
-                            size: 18,
+                          const SizedBox(width: 8),
+                          Tooltip(
+                            message: document.validated
+                                ? 'Document validé'
+                                : 'Document envoyé, en attente de validation',
+                            child: Icon(
+                              document.validated
+                                  ? Icons.check_circle
+                                  : Icons.schedule,
+                              color: document.validated
+                                  ? const Color(0xff2E7D32)
+                                  : Colors.orange,
+                              size: 18,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
+                    );
+                  }),
               ],
             ),
           ),
@@ -561,18 +618,17 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
               children: [
                 const Text(
                   'Pièces manquantes',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 const SizedBox(height: 12),
-                if (summary.missingDocuments.isEmpty)
+                if (summary.documents.isEmpty &&
+                    summary.missingDocuments.isEmpty)
                   const Text(
                     'Aucune pièce manquante.',
                     style: TextStyle(color: Colors.grey),
                   )
-                else
+                else if (summary.documents.isEmpty &&
+                    summary.missingDocuments.isNotEmpty)
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -605,9 +661,13 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: AdmissionSubmitButton(
-              text: summary.isComplete ? 'Soumettre la demande' : 'Compléter le dossier',
+              text: summary.documents.isNotEmpty
+                  ? 'Soumettre la demande'
+                  : 'Compléter le dossier',
               loading: submitting,
-              onPressed: summary.isComplete ? () => submitRequest() : _continueToCompleteDossier,
+              onPressed: summary.documents.isNotEmpty
+                  ? () => submitRequest()
+                  : _continueToCompleteDossier,
             ),
           ),
           const SizedBox(height: 24),
@@ -619,9 +679,7 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_requestSummary != null || _summaryLoading || _summaryError != null) {
@@ -654,10 +712,15 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                   padding: const EdgeInsets.only(bottom: 24),
                   child: Column(
                     children: [
-                      const AdmissionSectionTitle(title: "Informations personnelles"),
+                      const AdmissionSectionTitle(
+                        title: "Informations personnelles",
+                      ),
                       if (_formErrorMessage != null)
                         Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF1F0),
@@ -666,7 +729,10 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.error_outline, color: Color(0xFFB00020)),
+                              const Icon(
+                                Icons.error_outline,
+                                color: Color(0xFFB00020),
+                              ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
@@ -721,12 +787,18 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                         value: nationality,
                         items: List<dynamic>.from(formData["nationalities"]),
                         itemLabel: (item) => item is Map
-                            ? (item['label'] ?? item['name'] ?? item['value'] ?? item['title'] ?? item.toString()).toString()
+                            ? (item['label'] ??
+                                      item['name'] ??
+                                      item['value'] ??
+                                      item['title'] ??
+                                      item.toString())
+                                  .toString()
                             : item.toString(),
                         onChanged: (v) => setState(() => nationality = v),
                         focusNode: nationalityFocus,
                         validator: (value) {
-                          if (value == null || value.toString().trim().isEmpty) {
+                          if (value == null ||
+                              value.toString().trim().isEmpty) {
                             return 'Veuillez choisir une nationalité.';
                           }
                           return null;
@@ -752,7 +824,9 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                           if (value == null || value.trim().isEmpty) {
                             return 'L’email est requis.';
                           }
-                          if (!RegExp(r"^[^@\s]+@[^@\s]+\.[^@\s]+$").hasMatch(value.trim())) {
+                          if (!RegExp(
+                            r"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+                          ).hasMatch(value.trim())) {
                             return 'Veuillez saisir une adresse email valide.';
                           }
                           return null;
@@ -790,12 +864,18 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                         value: diploma,
                         items: List<dynamic>.from(formData["diplomas"]),
                         itemLabel: (item) => item is Map
-                            ? (item['label'] ?? item['name'] ?? item['value'] ?? item['title'] ?? item.toString()).toString()
+                            ? (item['label'] ??
+                                      item['name'] ??
+                                      item['value'] ??
+                                      item['title'] ??
+                                      item.toString())
+                                  .toString()
                             : item.toString(),
                         onChanged: (v) => setState(() => diploma = v),
                         focusNode: diplomaFocus,
                         validator: (value) {
-                          if (value == null || value.toString().trim().isEmpty) {
+                          if (value == null ||
+                              value.toString().trim().isEmpty) {
                             return 'Le diplôme est requis.';
                           }
                           return null;
@@ -827,7 +907,9 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                         },
                       ),
 
-                      const AdmissionSectionTitle(title: "Établissement précédent"),
+                      const AdmissionSectionTitle(
+                        title: "Établissement précédent",
+                      ),
                       AdmissionTextField(
                         controller: schoolController,
                         hint: "Nom de l'établissement",
@@ -846,12 +928,18 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                         value: country,
                         items: List<dynamic>.from(formData["countries"]),
                         itemLabel: (item) => item is Map
-                            ? (item['label'] ?? item['name'] ?? item['value'] ?? item['title'] ?? item.toString()).toString()
+                            ? (item['label'] ??
+                                      item['name'] ??
+                                      item['value'] ??
+                                      item['title'] ??
+                                      item.toString())
+                                  .toString()
                             : item.toString(),
                         onChanged: (v) => setState(() => country = v),
                         focusNode: countryFocus,
                         validator: (value) {
-                          if (value == null || value.toString().trim().isEmpty) {
+                          if (value == null ||
+                              value.toString().trim().isEmpty) {
                             return 'Veuillez choisir un pays.';
                           }
                           return null;
@@ -865,12 +953,18 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                         value: level,
                         items: List<dynamic>.from(formData["levels"]),
                         itemLabel: (item) => item is Map
-                            ? (item['label'] ?? item['name'] ?? item['value'] ?? item['title'] ?? item.toString()).toString()
+                            ? (item['label'] ??
+                                      item['name'] ??
+                                      item['value'] ??
+                                      item['title'] ??
+                                      item.toString())
+                                  .toString()
                             : item.toString(),
                         onChanged: (v) => setState(() => level = v),
                         focusNode: levelFocus,
                         validator: (value) {
-                          if (value == null || value.toString().trim().isEmpty) {
+                          if (value == null ||
+                              value.toString().trim().isEmpty) {
                             return 'Veuillez choisir un niveau.';
                           }
                           return null;
@@ -882,12 +976,18 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                         value: program,
                         items: List<dynamic>.from(formData["programs"]),
                         itemLabel: (item) => item is Map
-                            ? (item['label'] ?? item['name'] ?? item['value'] ?? item['title'] ?? item.toString()).toString()
+                            ? (item['label'] ??
+                                      item['name'] ??
+                                      item['value'] ??
+                                      item['title'] ??
+                                      item.toString())
+                                  .toString()
                             : item.toString(),
                         onChanged: (v) => setState(() => program = v),
                         focusNode: programFocus,
                         validator: (value) {
-                          if (value == null || value.toString().trim().isEmpty) {
+                          if (value == null ||
+                              value.toString().trim().isEmpty) {
                             return 'Veuillez choisir un programme.';
                           }
                           return null;
@@ -896,6 +996,7 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
 
                       const AdmissionSectionTitle(title: "Pièces à joindre"),
                       AdmissionUploadSection(
+                        key: _uploadSectionKey,
                         requestId: _requestId,
                         service: _service,
                       ),
@@ -903,7 +1004,7 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                       AdmissionSubmitButton(
                         text: "Continuer",
                         loading: submitting,
-                        onPressed: submitForm,
+                        onPressed: submitting ? null : submitForm,
                       ),
                     ],
                   ),

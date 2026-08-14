@@ -50,22 +50,26 @@ class RegistrationService {
     RegistrationDraft draft,
     List<RegistrationDocument> documents,
   ) async {
-    final registrationId = await _createRegistration(draft);
-    if (registrationId == null) {
+    final creationResult = await _createRegistration(draft);
+    if (creationResult == null) {
       return false;
     }
 
+    if (creationResult.alreadyExisting) {
+      return true;
+    }
+
     for (final document in documents) {
-      final uploaded = await _uploadDocument(registrationId, document);
+      final uploaded = await _uploadDocument(creationResult.registrationId, document);
       if (!uploaded) {
         return false;
       }
     }
 
-    return await _finalizeRegistration(registrationId);
+    return await _finalizeRegistration(creationResult.registrationId);
   }
 
-  Future<int?> _createRegistration(RegistrationDraft draft) async {
+  Future<_RegistrationCreationResult?> _createRegistration(RegistrationDraft draft) async {
     try {
       final response = await _dio.post('/inscriptions', data: draft.toJson());
       if (response.statusCode != null &&
@@ -78,10 +82,72 @@ class RegistrationService {
             payload[key.toString()] = value;
           });
         }
-        return _parseId(payload);
+        final id = _parseId(payload);
+        return id != null ? _RegistrationCreationResult(registrationId: id) : null;
+      }
+    } on DioException catch (e) {
+      final response = e.response;
+      if (response?.statusCode == 400 &&
+          _isAlreadyExistingRegistrationError(response?.data)) {
+        final schoolYearId = int.tryParse(draft.schoolYear?.id ?? '5') ?? 5;
+        final existingId = await _findExistingRegistrationId(schoolYearId);
+        if (existingId != null) {
+          return _RegistrationCreationResult(
+            registrationId: existingId,
+            alreadyExisting: true,
+          );
+        }
+      }
+    }
+    return null;
+  }
+
+  Future<int?> _findExistingRegistrationId(int schoolYearId) async {
+    try {
+      final response = await _dio.get('/inscriptions');
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        final items = _extractList(response.data);
+        for (final item in items) {
+          if (item is Map) {
+            final yearIdValue = item['anneeScolaireId'] ?? item['annee_scolaire_id'];
+            final yearId = yearIdValue is int
+                ? yearIdValue
+                : int.tryParse(yearIdValue?.toString() ?? '');
+            if (yearId == schoolYearId) {
+              return _parseId(Map<String, dynamic>.from(item));
+            }
+          }
+        }
       }
     } catch (_) {}
     return null;
+  }
+
+  bool _isAlreadyExistingRegistrationError(dynamic data) {
+    final message = data is String
+        ? data
+        : data is Map
+            ? data['message']?.toString() ?? data['error']?.toString() ?? ''
+            : '';
+    return message
+        .contains("Une demande d'inscription existe déjà pour cette année scolaire.");
+  }
+
+  List<dynamic> _extractList(dynamic responseData) {
+    if (responseData is List) {
+      return responseData;
+    }
+
+    if (responseData is Map) {
+      final list = responseData['data'] ?? responseData['items'] ?? responseData['results'];
+      if (list is List) {
+        return list;
+      }
+    }
+
+    return const [];
   }
 
   Future<bool> _uploadDocument(
@@ -197,4 +263,14 @@ class RegistrationService {
       message: 'Impossible de vérifier l’état des inscriptions.',
     );
   }
+}
+
+class _RegistrationCreationResult {
+  final int registrationId;
+  final bool alreadyExisting;
+
+  const _RegistrationCreationResult({
+    required this.registrationId,
+    this.alreadyExisting = false,
+  });
 }

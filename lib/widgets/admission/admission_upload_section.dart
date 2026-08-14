@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -21,83 +22,109 @@ class AdmissionUploadSection extends StatefulWidget {
 }
 
 class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
-
   final Map<String, File?> documents = {
     "Photo d'identité": null,
+    "CNI ou Passeport": null,
     "Acte de naissance": null,
     "Diplôme": null,
     "Relevé de notes": null,
     "Lettre de motivation": null,
     "Casier judiciaire": null,
     "Certificat médical": null,
+    "CV": null,
   };
 
   final Map<String, UploadStatus> _documentStatus = {
     "Photo d'identité": UploadStatus.none,
+    "CNI ou Passeport": UploadStatus.none,
     "Acte de naissance": UploadStatus.none,
     "Diplôme": UploadStatus.none,
     "Relevé de notes": UploadStatus.none,
     "Lettre de motivation": UploadStatus.none,
     "Casier judiciaire": UploadStatus.none,
     "Certificat médical": UploadStatus.none,
+    "CV": UploadStatus.none,
   };
 
   final Map<String, File?> _previewFiles = {
     "Photo d'identité": null,
+    "CNI ou Passeport": null,
     "Acte de naissance": null,
     "Diplôme": null,
     "Relevé de notes": null,
     "Lettre de motivation": null,
     "Casier judiciaire": null,
     "Certificat médical": null,
+    "CV": null,
   };
 
   final Map<String, String?> _documentErrors = {
     "Photo d'identité": null,
+    "CNI ou Passeport": null,
     "Acte de naissance": null,
     "Diplôme": null,
     "Relevé de notes": null,
     "Lettre de motivation": null,
     "Casier judiciaire": null,
     "Certificat médical": null,
+    "CV": null,
   };
 
   Future<bool> uploadPendingDocuments() async {
     if (widget.requestId == null || widget.service == null) return false;
 
-    final pendingFiles = <String, File>{};
-    for (final entry in documents.entries) {
-      if (entry.value != null && _documentStatus[entry.key] != UploadStatus.success) {
-        pendingFiles[entry.key] = entry.value!;
-      }
-    }
-
+    final pendingFiles = documents.entries
+        .where(
+          (entry) =>
+              entry.value != null &&
+              _documentStatus[entry.key] != UploadStatus.success,
+        )
+        .toList();
     if (pendingFiles.isEmpty) return false;
 
-    setState(() {
-      for (final key in pendingFiles.keys) {
-        _documentStatus[key] = UploadStatus.uploading;
-        _documentErrors[key] = null;
-      }
-    });
+    bool allSuccess = true;
+    for (final entry in pendingFiles) {
+      setState(() {
+        _documentStatus[entry.key] = UploadStatus.uploading;
+        _documentErrors[entry.key] = null;
+      });
 
-    final success = await widget.service!.uploadDocuments(widget.requestId!, pendingFiles);
-    if (success) {
-      setState(() {
-        for (final key in pendingFiles.keys) {
-          _documentStatus[key] = UploadStatus.success;
-          _documentErrors[key] = null;
+      try {
+        final preparedFile = await widget.service!.prepareFileForUpload(
+          entry.value!,
+          entry.key,
+        );
+        final attachmentType =
+            AdmissionRequestService.normalizeAttachmentTypeCode(entry.key);
+        final success = await widget.service!.uploadDocument(
+          widget.requestId!,
+          attachmentType,
+          preparedFile,
+        );
+
+        if (success) {
+          setState(() {
+            _documentStatus[entry.key] = UploadStatus.success;
+            _documentErrors[entry.key] = null;
+          });
+          continue;
         }
-      });
-    } else {
-      setState(() {
-        for (final key in pendingFiles.keys) {
-          _documentStatus[key] = UploadStatus.failure;
-          _documentErrors[key] = widget.service!.lastErrorMessage;
-        }
-      });
+
+        allSuccess = false;
+        setState(() {
+          _documentStatus[entry.key] = UploadStatus.failure;
+          _documentErrors[entry.key] = widget.service!.lastErrorMessage;
+        });
+      } catch (error) {
+        allSuccess = false;
+        setState(() {
+          _documentStatus[entry.key] = UploadStatus.failure;
+          _documentErrors[entry.key] = error.toString();
+        });
+      }
     }
-    return success;
+
+    return allSuccess;
   }
 
   Future<void> _uploadPendingDocumentsAndNotify() async {
@@ -111,14 +138,19 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           backgroundColor: const Color(0xFFB00020),
           content: Text.rich(
             TextSpan(
               children: [
                 const TextSpan(
                   text: 'Échec de l’envoi des documents\n',
-                  style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
                 ),
                 TextSpan(
                   text: message,
@@ -196,24 +228,35 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
     if (source == null) return;
 
     if (source == _UploadSource.document) {
-      final result = await FilePicker.platform.pickFiles();
+      final result = await FilePicker.platform.pickFiles(withData: true);
       if (result == null || result.files.isEmpty) return;
 
-      final path = result.files.single.path;
-      if (path == null || path.isEmpty) return;
+      final selected = result.files.single;
+      File? picked;
 
-      File picked = File(path);
-      File prepared = picked;
-      if (widget.service != null) {
-        try {
-          prepared = await widget.service!.prepareFileForUpload(picked, key);
-        } catch (_) {
-          prepared = picked;
+      if (selected.path != null && selected.path!.isNotEmpty) {
+        final candidate = File(selected.path!);
+        if (await candidate.exists() && await candidate.length() > 0) {
+          picked = candidate;
         }
       }
 
+      if (picked == null &&
+          selected.bytes != null &&
+          selected.bytes!.isNotEmpty) {
+        picked = await _writeTempFile(selected.bytes!, selected.name);
+      }
+
+      if (picked == null) {
+        setState(() {
+          _documentErrors[key] = 'Impossible de lire le fichier sélectionné.';
+          _documentStatus[key] = UploadStatus.failure;
+        });
+        return;
+      }
+
       setState(() {
-        documents[key] = prepared;
+        documents[key] = picked;
         _previewFiles[key] = picked;
         _documentStatus[key] = UploadStatus.selected;
         _documentErrors[key] = null;
@@ -227,23 +270,23 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
 
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
-      source: source == _UploadSource.camera ? ImageSource.camera : ImageSource.gallery,
+      source: source == _UploadSource.camera
+          ? ImageSource.camera
+          : ImageSource.gallery,
       imageQuality: 85,
     );
 
     if (pickedFile == null) return;
-    File picked = File(pickedFile.path);
-    File prepared = picked;
-    if (widget.service != null) {
-      try {
-        prepared = await widget.service!.prepareFileForUpload(picked, key);
-      } catch (_) {
-        prepared = picked;
-      }
+    final picked = File(pickedFile.path);
+    if (!await picked.exists() || await picked.length() == 0) {
+      setState(() {
+        _documentErrors[key] = 'Impossible de lire l’image sélectionnée.';
+        _documentStatus[key] = UploadStatus.failure;
+      });
+      return;
     }
-
     setState(() {
-      documents[key] = prepared;
+      documents[key] = picked;
       _previewFiles[key] = picked;
       _documentStatus[key] = UploadStatus.selected;
       _documentErrors[key] = null;
@@ -252,6 +295,13 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
     if (widget.requestId != null && widget.service != null) {
       await _uploadPendingDocumentsAndNotify();
     }
+  }
+
+  Future<File> _writeTempFile(Uint8List bytes, String name) async {
+    final tempPath = '${Directory.systemTemp.path}/$name';
+    final file = File(tempPath);
+    await file.writeAsBytes(bytes, flush: true);
+    return file;
   }
 
   @override

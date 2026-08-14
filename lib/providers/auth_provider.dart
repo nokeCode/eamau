@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:eamau/core/api/api_client.dart';
@@ -7,6 +9,7 @@ import 'package:eamau/models/auth/user.dart';
 import 'package:eamau/services/auth/auth_service.dart';
 import 'package:eamau/services/auth/user_session_service.dart';
 import 'package:eamau/services/notification/notification_service.dart';
+import 'package:eamau/core/storage/device_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -19,6 +22,14 @@ class AuthProvider extends ChangeNotifier {
     if (checkLoginStatus) {
       _checkLoginStatus();
     }
+    // Subscribe to token refresh events to keep backend in sync when logged in
+    FirebaseMessaging.instance.onTokenRefresh.listen((token) async {
+      try {
+        if (_isLoggedIn) {
+          await _handleTokenRefresh(token);
+        }
+      } catch (_) {}
+    });
   }
 
   bool _isLoading = false;
@@ -128,7 +139,7 @@ class AuthProvider extends ChangeNotifier {
         return;
       }
 
-      debugPrint(token);
+      debugPrint('FCM TOKEN: $token');
 
       final packageInfo = await PackageInfo.fromPlatform();
       final payload = {
@@ -143,12 +154,59 @@ class AuthProvider extends ChangeNotifier {
         'timezone': DateTime.now().timeZoneName,
       };
 
-      await NotificationService().registerDevice(payload);
+      // Avoid duplicate registrations: compare stored token
+      final deviceStorage = DeviceStorage();
+      final stored = await deviceStorage.getDeviceToken();
+      if (stored == token) {
+        return;
+      }
+
+      final resp = await NotificationService().registerDevice(payload);
+
+      // Persist token and optionally device id returned by backend
+      await deviceStorage.saveDeviceToken(token);
+      if (resp != null) {
+        final id = resp['id'] ?? resp['deviceId'] ?? resp['device_id'];
+        if (id != null) {
+          await deviceStorage.saveDeviceId(id.toString());
+        }
+      }
     } catch (e) {
       if (kDebugMode) {
         print('FCM registration error: $e');
       }
     }
+  }
+
+  Future<void> _handleTokenRefresh(String token) async {
+    try {
+      if (token.isEmpty) return;
+      final deviceStorage = DeviceStorage();
+      final stored = await deviceStorage.getDeviceToken();
+      if (stored == token) return;
+
+      final packageInfo = await PackageInfo.fromPlatform();
+      final payload = {
+        'deviceToken': token,
+        'platform': Platform.isAndroid ? 'android' : 'ios',
+        'deviceName': Platform.localHostname,
+        'manufacturer': Platform.isAndroid ? 'Android' : 'Apple',
+        'model': Platform.localHostname,
+        'osVersion': Platform.operatingSystemVersion,
+        'appVersion': packageInfo.version,
+        'language': 'fr',
+        'timezone': DateTime.now().timeZoneName,
+      };
+
+      final resp = await NotificationService().registerDevice(payload);
+      await deviceStorage.saveDeviceToken(token);
+      if (resp != null) {
+        final id = resp['id'] ?? resp['deviceId'] ?? resp['device_id'];
+        if (id != null) {
+          await deviceStorage.saveDeviceId(id.toString());
+        }
+      }
+    } catch (_) {}
   }
 
   /// Login
@@ -381,6 +439,10 @@ class AuthProvider extends ChangeNotifier {
       _isLoggedIn = false;
       _sessionService.clearSession();
       _error = null;
+      // Clear stored device info so next login re-registers the device
+      try {
+        await DeviceStorage().clear();
+      } catch (_) {}
       _setLoading(false);
     }
   }

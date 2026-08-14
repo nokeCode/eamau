@@ -2,14 +2,17 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../models/profile/user_model.dart';
 import '../../models/registration/registration_referential_model.dart';
 import '../../models/registration/registration_status_model.dart';
+import '../../services/profile/profile_service.dart';
 import '../../services/registration/registration_service.dart';
 
 enum RegistrationFlowStatus { idle, loading, submitting, success, error }
 
 class RegistrationProvider extends ChangeNotifier {
   final RegistrationService _service = RegistrationService();
+  final ProfileService _profileService = ProfileService();
 
   RegistrationFlowStatus status = RegistrationFlowStatus.idle;
   String? message;
@@ -17,6 +20,7 @@ class RegistrationProvider extends ChangeNotifier {
   RegistrationStatus? registrationStatus;
   bool isRegistrationStatusLoading = false;
   String? registrationStatusError;
+  UserModel? userProfile;
   RegistrationDraft draft = const RegistrationDraft();
   final List<RegistrationDocument> documents = [];
   int currentStep = 1;
@@ -27,14 +31,30 @@ class RegistrationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      await _loadUserProfile();
       referentials = await _service.getReferentials();
       status = RegistrationFlowStatus.idle;
     } catch (error) {
       status = RegistrationFlowStatus.error;
-      message = 'Impossible de charger les référentiels depuis l’API.';
+      message = "Impossible de charger les référentiels depuis l'API.";
     }
 
     notifyListeners();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      userProfile = await _profileService.getProfile();
+      // Remplir les champs firstName et lastName avec les données du profil
+      if (userProfile != null && userProfile!.firstName.isNotEmpty) {
+        draft = draft.copyWith(
+          firstName: userProfile!.firstName,
+          lastName: userProfile!.lastName,
+        );
+      }
+    } catch (error) {
+      // Continuer même si le chargement du profil échoue
+    }
   }
 
   Future<void> loadRegistrationStatus() async {

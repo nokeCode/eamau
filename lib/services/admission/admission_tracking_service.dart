@@ -21,28 +21,51 @@ class AdmissionTrackingService {
     return headers;
   }
 
-  Future<AdmissionTrackingModel> getTracking(int requestId) async {
+  Future<AdmissionTrackingModel> getTracking({
+    int? requestId,
+    String? uuid,
+  }) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/admission/requests/$requestId/tracking'),
-        headers: await _headers(),
-      );
+      Uri uri;
+      if (uuid != null && uuid.isNotEmpty) {
+        uri = Uri.parse('$baseUrl/admissions/$uuid/tracking');
+      } else if (requestId != null) {
+        uri = Uri.parse('$baseUrl/admission/requests/$requestId/tracking');
+      } else {
+        return AdmissionTrackingModel.fromJson(fallbackTrackingData);
+      }
+
+      final response = await http.get(uri, headers: await _headers());
       if (response.statusCode == 200) {
-        return AdmissionTrackingModel.fromJson(
-          Map<String, dynamic>.from(jsonDecode(response.body)),
-        );
+        final decoded = jsonDecode(response.body);
+        Map<String, dynamic> payload;
+        if (decoded is Map && decoded['data'] != null) {
+          payload = Map<String, dynamic>.from(decoded['data'] as Map);
+        } else if (decoded is Map) {
+          payload = Map<String, dynamic>.from(decoded);
+        } else {
+          payload = {};
+        }
+
+        return AdmissionTrackingModel.fromJson(payload);
       }
     } catch (_) {}
 
     return AdmissionTrackingModel.fromJson(fallbackTrackingData);
   }
 
-  Future<bool> refreshTracking(int requestId) async {
+  Future<bool> refreshTracking({int? requestId, String? uuid}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/admission/requests/$requestId/tracking'),
-        headers: await _headers(),
-      );
+      Uri uri;
+      if (uuid != null && uuid.isNotEmpty) {
+        uri = Uri.parse('$baseUrl/admissions/$uuid/tracking');
+      } else if (requestId != null) {
+        uri = Uri.parse('$baseUrl/admission/requests/$requestId/tracking');
+      } else {
+        return false;
+      }
+
+      final response = await http.get(uri, headers: await _headers());
       return response.statusCode == 200;
     } catch (_) {
       return false;
@@ -76,15 +99,15 @@ const Map<String, dynamic> fallbackTrackingData = {
     'currentLevel': 'L2',
     'requestedLevel': 'L3',
     'currentField': 'Informatique',
-    'requestedField': 'Génie logiciel'
+    'requestedField': 'Génie logiciel',
   },
   'documents': [
     {
       'uuid': 'a1b2c3d4',
       'originalFilename': 'cv.pdf',
       'attachmentType': 'Curriculum vitae',
-      'validated': false
-    }
+      'validated': false,
+    },
   ],
   'missingDocuments': ['Pièce d’identité', 'Relevé de notes'],
   'isComplete': false,
@@ -93,13 +116,13 @@ const Map<String, dynamic> fallbackTrackingData = {
       'step': 'created',
       'label': 'Demande créée',
       'status': 'BROUILLON',
-      'date': '2026-08-02T10:00:00+00:00'
+      'date': '2026-08-02T10:00:00+00:00',
     },
     {
       'step': 'documents_received',
       'label': 'Documents reçus',
       'status': 'BROUILLON',
-      'date': '2026-08-02T10:10:00+00:00'
-    }
-  ]
+      'date': '2026-08-02T10:10:00+00:00',
+    },
+  ],
 };

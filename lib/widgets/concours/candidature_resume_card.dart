@@ -4,6 +4,7 @@ class CandidatureResumeCard extends StatelessWidget {
   final String nomComplet;
   final String programme;
   final String dateSoumission;
+  final String dateExamen;
   final String statut;
 
   const CandidatureResumeCard({
@@ -11,6 +12,7 @@ class CandidatureResumeCard extends StatelessWidget {
     required this.nomComplet,
     required this.programme,
     required this.dateSoumission,
+    required this.dateExamen,
     required this.statut,
   });
 
@@ -55,6 +57,11 @@ class CandidatureResumeCard extends StatelessWidget {
             "Date de soumission",
             dateSoumission,
           ),
+
+          if (dateExamen.isNotEmpty) ...[
+            const Divider(height: 32),
+            _buildRow("Date d'examen", dateExamen),
+          ],
 
           const Divider(height: 32),
 

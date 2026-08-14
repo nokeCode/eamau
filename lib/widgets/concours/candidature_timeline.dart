@@ -10,6 +10,12 @@ class CandidatureTimeline extends StatelessWidget {
     required this.etapes,
   });
 
+  String _formatDate(BuildContext context, String value) {
+    final date = DateTime.tryParse(value);
+    if (date == null) return value;
+    return MaterialLocalizations.of(context).formatMediumDate(date.toLocal());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -88,18 +94,20 @@ class CandidatureTimeline extends StatelessWidget {
                               color: Color(0xff1B315E),
                             ),
                           ),
-                          const SizedBox(height: 5),
-                          Text(
-                            etape.description,
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 14,
+                          if (etape.description.isNotEmpty) ...[
+                            const SizedBox(height: 5),
+                            Text(
+                              etape.description,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
                             ),
-                          ),
+                          ],
                           if (etape.date.isNotEmpty) ...[
                             const SizedBox(height: 5),
                             Text(
-                              etape.date,
+                              _formatDate(context, etape.date),
                               style: TextStyle(
                                 color: Colors.grey.shade500,
                                 fontSize: 13,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/concours/suivi_candidature_model.dart';
 import '../../services/concours/suivi_candidature_service.dart';
@@ -27,6 +26,18 @@ class _SuiviCandidatureScreenState extends State<SuiviCandidatureScreen> {
     _future = _service.getSuivi(widget.reference);
   }
 
+  void _reload() {
+    setState(() {
+      _future = _service.getSuivi(widget.reference);
+    });
+  }
+
+  String _formatDate(BuildContext context, String value) {
+    final date = DateTime.tryParse(value);
+    if (date == null) return value;
+    return MaterialLocalizations.of(context).formatMediumDate(date.toLocal());
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -40,7 +51,33 @@ class _SuiviCandidatureScreenState extends State<SuiviCandidatureScreen> {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final suivi = snapshot.data ?? fallbackSuivi;
+            if (snapshot.hasError || !snapshot.hasData) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        snapshot.error?.toString() ??
+                            'Aucune donnée de suivi disponible.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _reload,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Réessayer'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final suivi = snapshot.data!;
 
             return Column(
               children: [
@@ -121,54 +158,10 @@ class _SuiviCandidatureScreenState extends State<SuiviCandidatureScreen> {
                         CandidatureResumeCard(
                           nomComplet: suivi.nomComplet,
                           programme: suivi.programme,
-                          dateSoumission: suivi.dateSoumission,
+                          dateSoumission:
+                              _formatDate(context, suivi.dateSoumission),
+                          dateExamen: _formatDate(context, suivi.dateExamen),
                           statut: suivi.statutActuel,
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xff1565C0),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              final attestationUrl =
-                                  suivi.attestationUrl.isNotEmpty
-                                  ? suivi.attestationUrl
-                                  : 'https://www.eamau.org/attestation.pdf';
-                              final uri = Uri.parse(attestationUrl);
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(
-                                  uri,
-                                  mode: LaunchMode.externalApplication,
-                                );
-                              } else {
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Impossible d\'ouvrir le lien de l\'attestation.',
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.download_outlined),
-                            label: const Text(
-                              'Télécharger l\'attestation',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
                         ),
                       ],
                     ),
