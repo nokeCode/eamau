@@ -11,12 +11,27 @@ class NewsRepository {
 
   Future<List<NewsModel>> getNewsList() async {
     final localData = await local.getAllNews();
-    // return local data immediately
-    if (localData.isNotEmpty) return localData;
+    if (localData.isNotEmpty) {
+      // trigger background refresh
+      remote.fetchNewsPage(1, 20).then((remoteData) async {
+        if (remoteData.isNotEmpty) {
+          await local.saveNews(remoteData);
+        }
+      }).catchError((_) {});
+      return localData;
+    }
 
-    // otherwise fetch remote and persist locally
+    // no local data: fetch remote and persist then return
     final remoteData = await remote.fetchNewsPage(1, 20);
     await local.saveNews(remoteData);
     return remoteData;
+  }
+
+  Future<NewsModel?> getNewsDetail(String slug) async {
+    final localItem = await local.getNewsDetail(slug);
+    if (localItem != null) return localItem;
+    final remoteModel = await remote.fetchNewsDetail(slug);
+    if (remoteModel != null) await local.saveNews([remoteModel]);
+    return remoteModel;
   }
 }

@@ -10,10 +10,13 @@ import 'firebase_options.dart';
 import 'providers/admission_tracking_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/news_provider.dart';
 import 'providers/registration/registration_provider.dart';
 import 'providers/student/dashboard_provider.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
+import 'core/database/app_database.dart';
+import 'core/sync/sync_engine.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -131,11 +134,16 @@ Future<void> main() async {
     debugPrint(st.toString());
   }
 
+  // Initialize local database before providers that may access it
+  await AppDatabase.init();
+  SyncEngine().start();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => NewsProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => AdmissionTrackingProvider()),
         ChangeNotifierProvider(create: (_) => RegistrationProvider()),

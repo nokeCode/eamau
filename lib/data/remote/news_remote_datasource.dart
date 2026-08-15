@@ -1,14 +1,24 @@
 import '../../models/news/news_model.dart';
+import '../../services/news/news_service.dart';
 
-/// Remote datasource for news - delegates to existing NewsService
+/// Remote datasource for news - wraps `NewsService`.
 class NewsRemoteDatasource {
-  // TODO: inject NewsService (or Dio client)
+  final NewsService service;
+
+  NewsRemoteDatasource({required this.service});
+
   Future<List<NewsModel>> fetchNewsPage(int page, int limit, {int? categoryId}) async {
-    // call API and return mapped models
-    return [];
+    final result = await service.getNewsPage(page: page, limit: limit, categoryId: categoryId);
+    return result.items;
   }
 
   Future<NewsModel?> fetchNewsDetail(String slug) async {
-    return null;
+    try {
+      final model = await service.getNewsBySlug(slug);
+      return model;
+    } catch (_) {
+      return null;
+    }
   }
 }
+
