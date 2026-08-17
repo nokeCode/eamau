@@ -7,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
+import 'providers/admission_provider.dart';
 import 'providers/admission_tracking_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/notification_provider.dart';
@@ -145,6 +146,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => NewsProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => AdmissionProvider()),
         ChangeNotifierProvider(create: (_) => AdmissionTrackingProvider()),
         ChangeNotifierProvider(create: (_) => RegistrationProvider()),
       ],

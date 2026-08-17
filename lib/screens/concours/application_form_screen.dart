@@ -6,6 +6,11 @@ import 'package:flutter/services.dart';
 import '../../models/concours/dynamic_form_model.dart';
 import '../../models/filiere/filiere_model.dart';
 import '../../services/concours/concours_form_service.dart';
+import '../../data/local/postulation_local_datasource.dart';
+import '../../core/sync/sync_queue.dart';
+import '../../core/sync/sync_engine.dart';
+import 'dart:convert';
+import 'package:uuid/uuid.dart';
 import '../../services/filiere/filiere_service.dart';
 import '../../widgets/concours/candidature_header.dart';
 import '../../widgets/concours/step_indicator.dart';
@@ -43,6 +48,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   String? _selectedCandidateTypeId;
   String? _postulationId;
   String? _postulationToken;
+  int? _localDraftId;
   int _currentStage = 1;
   bool _isLoading = true;
   bool _isSubmitting = false;
@@ -211,6 +217,19 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       );
       _postulationToken = verification.postulationToken;
       _postulationId = verification.postulation.id;
+      // Persist draft locally immediately after OTP verification
+      try {
+        final postLocal = PostulationLocalDatasource();
+        final dataJson = jsonEncode({'email': _values['email']?.toString() ?? ''});
+        final draftId = await postLocal.saveDraft(
+          concoursSlug: widget.concoursSlug,
+          dataJson: dataJson,
+          status: 'verified',
+          remoteId: _postulationId,
+          postulationToken: _postulationToken,
+        );
+        _localDraftId = draftId;
+      } catch (_) {}
       setState(() {
         _currentStage = 3;
       });
@@ -295,14 +314,22 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         }
       }
 
+      // Persist values locally and enqueue save operation
+      final postLocal = PostulationLocalDatasource();
+      final draftId = _localDraftId ?? await postLocal.saveDraft(
+        concoursSlug: widget.concoursSlug,
+        dataJson: jsonEncode({'email': _values['email']?.toString() ?? ''}),
+        status: 'verified',
+        remoteId: _postulationId,
+        postulationToken: _postulationToken,
+      );
+      _localDraftId = draftId;
+
       if (values.isNotEmpty) {
-        await _service.saveValues(
-          postulationId,
-          values,
-          postulationToken: _postulationToken,
-        );
+        await postLocal.updateDraftData(draftId, jsonEncode(values));
       }
 
+      // Save attached files locally and enqueue uploads
       for (final entry in _attachedFiles.entries) {
         final slug = entry.key;
         final attribute = visibleAttributes.firstWhere(
@@ -313,14 +340,40 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           continue;
         }
 
-        final document = await _service.uploadDocument(
-          postulationId: postulationId,
-          attributeSlug: slug,
-          file: entry.value,
-          postulationToken: _postulationToken,
-        );
-        _uploadedDocumentIds[slug] = document.id;
+        try {
+          final file = entry.value;
+          final fileName = file.path.split('/').last;
+          final mimeType = 'application/octet-stream';
+          final docId = await postLocal.attachDocument(
+            draftId: draftId,
+            file: file,
+            fileName: fileName,
+            mimeType: mimeType,
+            documentType: slug,
+          );
+          _uploadedDocumentIds[slug] = docId.toString();
+        } catch (e) {
+          debugPrint('Error saving attachment locally: $e');
+        }
       }
+
+      // Enqueue postulation.save operation
+      final saveOpId = const Uuid().v4();
+      final saveOp = SyncOperation(
+        clientOperationId: saveOpId,
+        type: 'postulation.save',
+        payload: {'draftId': draftId},
+      );
+      await SyncEngine().enqueueOperation(saveOp);
+
+      // Enqueue postulation.submit operation (will be processed immediately if online)
+      final submitOpId = const Uuid().v4();
+      final submitOp = SyncOperation(
+        clientOperationId: submitOpId,
+        type: 'postulation.submit',
+        payload: {'draftId': draftId},
+      );
+      await SyncEngine().enqueueOperation(submitOp);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

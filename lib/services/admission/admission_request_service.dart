@@ -12,6 +12,7 @@ import '../../models/admission/admission_request_model.dart';
 import '../../models/admission/admission_request_response_model.dart';
 import '../../models/admission/admission_request_submit_response_model.dart';
 import '../../models/admission/admission_request_summary_model.dart';
+import '../../data/local/admission_local_datasource.dart';
 
 class AdmissionRequestService {
   static const String baseUrl = ApiConfig.fullBaseUrl;
@@ -23,6 +24,8 @@ class AdmissionRequestService {
   AdmissionRequestService({http.Client? client, TokenStorage? tokenStorage})
     : _client = client ?? http.Client(),
       _tokenStorage = tokenStorage ?? TokenStorage();
+
+  final AdmissionLocalDatasource _local = AdmissionLocalDatasource();
 
   Future<Map<String, String>> _headers({bool includeJson = true}) async {
     final headers = <String, String>{'Accept': 'application/json'};
@@ -58,7 +61,12 @@ class AdmissionRequestService {
       );
       lastStatusCode = response.statusCode;
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final decoded = jsonDecode(response.body);
+        // Cache the fetched form
+        try {
+          await _local.cacheAdmissionForm(jsonEncode(decoded));
+        } catch (_) {}
+        return decoded;
       }
     } catch (error) {
       lastErrorMessage = error is TimeoutException
@@ -66,6 +74,13 @@ class AdmissionRequestService {
                 'Le serveur met trop de temps à répondre. Veuillez réessayer.'
           : error.toString();
     }
+    // On error, try to return cached form first
+    try {
+      final cached = await _local.getCachedAdmissionForm();
+      if (cached != null && cached.isNotEmpty) {
+        return jsonDecode(cached) as Map<String, dynamic>;
+      }
+    } catch (_) {}
     return fallbackFormData;
   }
 
@@ -80,9 +95,12 @@ class AdmissionRequestService {
         ),
       );
       if (response.statusCode == 200) {
-        return AdmissionCampaignDetailModel.fromJson(
-          Map<String, dynamic>.from(jsonDecode(response.body)),
-        );
+        final decoded = Map<String, dynamic>.from(jsonDecode(response.body));
+        // Cache campaign detail
+        try {
+          await _local.cacheCampaignDetail(campaignId, jsonEncode(decoded));
+        } catch (_) {}
+        return AdmissionCampaignDetailModel.fromJson(decoded);
       }
     } catch (error) {
       lastErrorMessage = error is TimeoutException
@@ -90,6 +108,15 @@ class AdmissionRequestService {
                 'Le serveur met trop de temps à répondre. Veuillez réessayer.'
           : error.toString();
     }
+    // On error, try to return cached campaign detail
+    try {
+      final cached = await _local.getCachedCampaignDetail(campaignId);
+      if (cached != null && cached.isNotEmpty) {
+        return AdmissionCampaignDetailModel.fromJson(
+          Map<String, dynamic>.from(jsonDecode(cached)),
+        );
+      }
+    } catch (_) {}
     return null;
   }
 

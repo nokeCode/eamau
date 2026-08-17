@@ -7,6 +7,9 @@ import '../../models/admission/admission_campaign_detail_model.dart';
 import '../../models/admission/admission_request_model.dart';
 import '../../models/admission/admission_request_summary_model.dart';
 import '../../services/admission/admission_request_service.dart';
+import '../../data/repositories/admission_repository.dart';
+import '../../data/local/admission_local_datasource.dart';
+import '../../data/remote/admission_remote_datasource.dart';
 import '../../widgets/admission/admission_request_header.dart';
 import '../../widgets/admission/admission_stepper.dart';
 import '../../widgets/admission/admission_section_title.dart';
@@ -35,6 +38,7 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
   final _formKey = GlobalKey<FormState>();
   final _uploadSectionKey = GlobalKey<AdmissionUploadSectionState>();
   late final AdmissionRequestService _service;
+  late final AdmissionRepository _repository;
 
   bool loading = true;
   bool submitting = false;
@@ -42,6 +46,7 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
   AdmissionCampaignDetailModel? campaignDetail;
   AdmissionRequestSummaryModel? _requestSummary;
   int? _requestId;
+  int? _localDraftId;
   bool _summaryLoading = false;
   String? _summaryError;
 
@@ -117,6 +122,10 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
   void initState() {
     super.initState();
     _service = widget.service ?? AdmissionRequestService();
+    _repository = AdmissionRepository(
+      local: AdmissionLocalDatasource(),
+      remote: AdmissionRemoteDatasource(),
+    );
     loadData();
   }
 
@@ -322,75 +331,47 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
     );
 
     try {
-      final response = await _service.createAdmissionRequest(
-        widget.campaignId,
-        model,
+      // Persist draft locally via repository and enqueue sync operations
+      final draftMap = model.toJson();
+      draftMap['campaignId'] = widget.campaignId;
+      final draftId = await _repository.saveDraftLocally(
+        draftData: draftMap,
+        status: 'draft',
       );
 
-      if (!mounted) return;
+      final queued = await _repository.submitDraft(draftId);
 
+      if (!mounted) return;
       setState(() => submitting = false);
 
-      if (response == null) {
-        final message = _service.lastStatusCode == 401
-            ? 'Veuillez vous connecter pour continuer.'
-            : 'Erreur lors de l’enregistrement${_service.lastStatusCode != null ? ' (${_service.lastStatusCode})' : ''}.';
-        final details = _service.lastErrorMessage;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.red,
-            content: Text(
-              details != null && details.isNotEmpty
-                  ? '$message\n$details'
-                  : message,
-            ),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-        if (_service.lastStatusCode == 401) {
-          Navigator.pushNamed(context, AppRoutes.login);
-        }
-        return;
-      }
-
-      if (response.id <= 0) {
+      if (!queued) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Colors.red,
-            content: Text(
-              'Le serveur n’a pas renvoyé d’identifiant de demande valide.',
-            ),
+            content: Text('Impossible d’enregistrer la demande localement.'),
           ),
         );
         return;
       }
 
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.green,
+          content: Text('Demande sauvegardée en local et mise en file de synchronisation.'),
+        ),
+      );
+
+      // After local submission, pass the draftId to the upload section so
+      // selected documents are attached to the local draft and queued.
       setState(() {
-        _requestId = response.id;
+        _requestId = null;
+        _localDraftId = draftId;
       });
-
-      // The upload section receives requestId through its widget. Wait for the
-      // rebuild so its state uses the newly-created request before uploading.
-      await WidgetsBinding.instance.endOfFrame;
-      await _uploadPendingDocumentsIfNeeded();
-      await _loadRequestSummary(response.id);
-      if (!mounted) return;
-      if (_requestSummary == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Colors.red,
-            content: Text('Impossible de charger le récapitulatif.'),
-          ),
-        );
-      }
     } catch (error) {
       if (!mounted) return;
       setState(() => submitting = false);
-      final message = error is TimeoutException
-          ? 'Le serveur met trop de temps à répondre. Veuillez réessayer.'
-          : 'Une erreur inattendue est survenue pendant la création de la demande.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(backgroundColor: Colors.red, content: Text(message)),
+        const SnackBar(backgroundColor: Colors.red, content: Text('Erreur lors de l’enregistrement local.')),
       );
     }
   }
@@ -997,7 +978,8 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
                       const AdmissionSectionTitle(title: "Pièces à joindre"),
                       AdmissionUploadSection(
                         key: _uploadSectionKey,
-                        requestId: _requestId,
+                        remoteRequestId: _requestId,
+                        localDraftId: _localDraftId,
                         service: _service,
                       ),
 

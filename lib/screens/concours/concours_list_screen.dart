@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/concours/concours_model.dart';
-import '../../services/concours/concours_service.dart';
+import '../../data/local/concours_local_datasource.dart';
+import '../../data/remote/concours_remote_datasource.dart';
+import '../../data/repositories/concours_repository.dart';
 import '../../widgets/concours/concours_card.dart';
 import '../../widgets/concours/concours_header.dart';
 import '../../widgets/concours/concours_search_filter.dart';
@@ -18,7 +20,10 @@ class ConcoursListScreen extends StatefulWidget {
 }
 
 class _ConcoursListScreenState extends State<ConcoursListScreen> {
-  final ConcoursService _service = ConcoursService();
+  final ConcoursRepository _repo = ConcoursRepository(
+    local: ConcoursLocalDatasource(),
+    remote: ConcoursRemoteDatasource(),
+  );
   final TextEditingController _searchController = TextEditingController();
 
   List<ConcoursModel> _allConcours = [];
@@ -41,7 +46,7 @@ class _ConcoursListScreenState extends State<ConcoursListScreen> {
     });
 
     try {
-      final concours = await _service.getConcours(query: query);
+      final concours = await _repo.getConcours(query: query);
       if (!mounted) return;
       setState(() {
         _allConcours = concours;

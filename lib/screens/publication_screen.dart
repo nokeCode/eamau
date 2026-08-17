@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import '../../models/news/news_category_model.dart';
 import '../../models/news/news_model.dart';
 import '../../routes/app_routes.dart';
-import '../../services/publication/publication_service.dart';
+import '../../data/local/publication_local_datasource.dart';
+import '../../data/remote/publication_remote_datasource.dart';
+import '../../data/repositories/publication_repository.dart';
+import '../../core/sync/sync_engine.dart';
 import '../widgets/news/custom_bottom_nav.dart';
 import '../widgets/news/featured_news_carousel.dart';
 import '../widgets/news/news_card.dart';
@@ -19,10 +22,14 @@ class PublicationScreen extends StatefulWidget {
 }
 
 class _PublicationScreenState extends State<PublicationScreen> {
-  final PublicationService _service = PublicationService();
+  final PublicationRepository _repo = PublicationRepository(
+    local: PublicationLocalDatasource(),
+    remote: PublicationRemoteDatasource(),
+  );
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   Timer? _debounceTimer;
+  StreamSubscription? _syncSub;
 
   int selectedCategory = 0;
   String _searchQuery = '';
@@ -42,6 +49,11 @@ class _PublicationScreenState extends State<PublicationScreen> {
     _loadCategories();
     _loadFeaturedPublications();
     _loadInitialPublications();
+    _syncSub = SyncEngine().onPublicationsSynced.listen((_) {
+      if (mounted) {
+        _loadInitialPublications();
+      }
+    });
   }
 
   @override
@@ -49,12 +61,13 @@ class _PublicationScreenState extends State<PublicationScreen> {
     _debounceTimer?.cancel();
     _searchController.dispose();
     _scrollController.dispose();
+    _syncSub?.cancel();
     super.dispose();
   }
 
   Future<void> _loadCategories() async {
     try {
-      final categories = await _service.getCategories();
+      final categories = await _repo.getCategories();
       if (!mounted) {
         return;
       }
@@ -73,7 +86,7 @@ class _PublicationScreenState extends State<PublicationScreen> {
 
   Future<void> _loadFeaturedPublications() async {
     try {
-      final featured = await _service.getFeaturedPublications();
+      final featured = await _repo.getFeaturedPublications();
       if (!mounted) {
         return;
       }
@@ -106,11 +119,11 @@ class _PublicationScreenState extends State<PublicationScreen> {
 
     try {
       final result = _searchQuery.trim().isEmpty
-          ? await _service.getPublicationsPage(
+          ? await _repo.getPublicationsPage(
               page: 1,
               categoryId: selectedCategory == 0 ? null : selectedCategory,
             )
-          : await _service.searchPublications(
+          : await _repo.searchPublications(
               _searchQuery,
               page: 1,
               categoryId: selectedCategory == 0 ? null : selectedCategory,
@@ -155,11 +168,11 @@ class _PublicationScreenState extends State<PublicationScreen> {
 
     try {
       final result = _searchQuery.trim().isEmpty
-          ? await _service.getPublicationsPage(
+          ? await _repo.getPublicationsPage(
               page: _meta!.page + 1,
               categoryId: selectedCategory == 0 ? null : selectedCategory,
             )
-          : await _service.searchPublications(
+          : await _repo.searchPublications(
               _searchQuery,
               page: _meta!.page + 1,
               categoryId: selectedCategory == 0 ? null : selectedCategory,

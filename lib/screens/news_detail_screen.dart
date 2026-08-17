@@ -3,6 +3,9 @@ import 'package:flutter_html/flutter_html.dart';
 
 import '../../models/news/news_model.dart';
 import '../../services/news/news_service.dart';
+import '../../data/local/news_local_datasource.dart';
+import '../../data/remote/news_remote_datasource.dart';
+import '../../data/repositories/news_repository.dart';
 import '../widgets/newDetail/news_category_badge.dart';
 import '../widgets/newDetail/news_detail_header.dart';
 import '../widgets/newDetail/shar_article_buttom.dart';
@@ -30,7 +33,15 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
     if (widget.slug == null || widget.slug!.trim().isEmpty) {
       throw Exception('Actualité introuvable');
     }
-    return _service.getNewsBySlug(widget.slug!);
+    final local = NewsLocalDatasource();
+    final remote = NewsRemoteDatasource(service: NewsService());
+    final repository = NewsRepository(local: local, remote: remote);
+
+    final model = await repository.getNewsDetail(widget.slug!);
+    if (model != null) return model;
+
+    // If still null, provide a user-friendly offline message
+    throw Exception('Cette actualité n\'est pas disponible hors connexion.');
   }
 
   @override

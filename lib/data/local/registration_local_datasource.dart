@@ -6,57 +6,11 @@ import 'package:uuid/uuid.dart';
 import '../../core/database/app_database.dart';
 import '../../core/sync/sync_engine.dart';
 
-/// Local datasource for admission: saves drafts and documents to SQLite
-class AdmissionLocalDatasource {
+/// Local datasource for registration: saves drafts and documents to SQLite
+class RegistrationLocalDatasource {
   final AppDatabase _db = AppDatabase();
 
-  /// Cache the admission form JSON
-  Future<void> cacheAdmissionForm(String dataJson) async {
-    // Clear previous entries and insert the latest
-    await _db.delete(_db.admissionForms).go();
-    final companion = AdmissionFormsCompanion(
-      dataJson: Value(dataJson),
-      updatedAt: Value(DateTime.now()),
-    );
-    await _db.into(_db.admissionForms).insert(companion);
-  }
-
-  /// Get cached admission form JSON if available
-  Future<String?> getCachedAdmissionForm() async {
-    final row = await (_db.select(_db.admissionForms)..limit(1)).getSingleOrNull();
-    return row?.dataJson;
-  }
-
-  /// Cache campaign detail JSON for a given remoteId
-  Future<void> cacheCampaignDetail(int remoteId, String dataJson) async {
-    // Try to find existing row
-    final existing = await (_db.select(_db.admissionCampaigns)
-          ..where((t) => t.remoteId.equals(remoteId)))
-        .getSingleOrNull();
-    final companion = AdmissionCampaignsCompanion(
-      remoteId: Value(remoteId),
-      dataJson: Value(dataJson),
-      updatedAt: Value(DateTime.now()),
-    );
-    if (existing == null) {
-      await _db.into(_db.admissionCampaigns).insert(companion);
-    } else {
-      await (_db.update(_db.admissionCampaigns)
-            ..where((t) => t.remoteId.equals(remoteId)))
-          .write(companion);
-    }
-  }
-
-  /// Get cached campaign detail by remoteId
-  Future<String?> getCachedCampaignDetail(int remoteId) async {
-    final row = await (_db.select(_db.admissionCampaigns)
-          ..where((t) => t.remoteId.equals(remoteId))
-          ..limit(1))
-        .getSingleOrNull();
-    return row?.dataJson;
-  }
-
-  /// Save an admission draft locally
+  /// Save a registration draft locally
   Future<int> saveDraft({
     required String dataJson,
     required String status,
@@ -65,7 +19,7 @@ class AdmissionLocalDatasource {
     final localUuid = const Uuid().v4();
     final now = DateTime.now();
 
-    final companion = AdmissionDraftsCompanion(
+    final companion = RegistrationDraftsCompanion(
       localUuid: Value(localUuid),
       remoteId: remoteId != null ? Value(remoteId) : const Value.absent(),
       dataJson: Value(dataJson),
@@ -74,7 +28,7 @@ class AdmissionLocalDatasource {
       updatedAt: Value(now),
     );
 
-    return _db.into(_db.admissionDrafts).insert(companion);
+    return _db.into(_db.registrationDrafts).insert(companion);
   }
 
   /// Attach a document to a draft and enqueue sync
@@ -83,12 +37,12 @@ class AdmissionLocalDatasource {
     required File file,
     required String fileName,
     required String mimeType,
-    String? attachmentType,
+    String? documentType,
   }) async {
     final fileSize = await file.length();
     final localPath = file.absolute.path;
 
-    final companion = DocumentsCompanion(
+    final companion = RegistrationDocumentsCompanion(
       draftId: Value(draftId),
       localPath: Value(localPath),
       fileName: Value(fileName),
@@ -98,21 +52,22 @@ class AdmissionLocalDatasource {
       retryCount: const Value(0),
     );
 
-    final docId = await _db.into(_db.documents).insert(companion);
+    final docId = await _db.into(_db.registrationDocuments).insert(companion);
 
     // Enqueue document upload to sync engine
     await SyncEngine().enqueueDocumentUpload(
       docId,
-      attachmentType: attachmentType ?? 'OTHER',
+      isRegistration: true,
+      attachmentType: documentType ?? 'OTHER',
     );
 
     return docId;
   }
 
   /// Get a draft by ID
-  Future<AdmissionDraft?> getDraft(int draftId) async {
+  Future<RegistrationDraft?> getDraft(int draftId) async {
     try {
-      final row = await (_db.select(_db.admissionDrafts)
+      final row = await (_db.select(_db.registrationDrafts)
             ..where((t) => t.id.equals(draftId)))
           .getSingleOrNull();
       return row;
@@ -122,9 +77,9 @@ class AdmissionLocalDatasource {
   }
 
   /// Get all drafts (ordered by most recent first)
-  Future<List<AdmissionDraft>> getAllDrafts() async {
+  Future<List<RegistrationDraft>> getAllDrafts() async {
     try {
-      final rows = await (_db.select(_db.admissionDrafts)
+      final rows = await (_db.select(_db.registrationDrafts)
             ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
           .get();
       return rows;
@@ -134,9 +89,9 @@ class AdmissionLocalDatasource {
   }
 
   /// Get documents attached to a draft
-  Future<List<Document>> getDocumentsForDraft(int draftId) async {
+  Future<List<RegistrationDocument>> getDocumentsForDraft(int draftId) async {
     try {
-      final rows = await (_db.select(_db.documents)
+      final rows = await (_db.select(_db.registrationDocuments)
             ..where((d) => d.draftId.equals(draftId)))
           .get();
       return rows;
@@ -147,10 +102,10 @@ class AdmissionLocalDatasource {
 
   /// Update draft status (e.g., after remote submission)
   Future<void> updateDraftStatus(int draftId, String status, {int? remoteId}) async {
-    await (_db.update(_db.admissionDrafts)
+    await (_db.update(_db.registrationDrafts)
           ..where((t) => t.id.equals(draftId)))
         .write(
-      AdmissionDraftsCompanion(
+      RegistrationDraftsCompanion(
         status: Value(status),
         remoteId: remoteId != null ? Value(remoteId) : const Value.absent(),
         updatedAt: Value(DateTime.now()),
@@ -160,23 +115,23 @@ class AdmissionLocalDatasource {
 
   /// Delete a draft and its documents
   Future<void> deleteDraft(int draftId) async {
-    await (_db.delete(_db.documents)
+    await (_db.delete(_db.registrationDocuments)
           ..where((d) => d.draftId.equals(draftId)))
         .go();
-    await (_db.delete(_db.admissionDrafts)
+    await (_db.delete(_db.registrationDrafts)
           ..where((t) => t.id.equals(draftId)))
         .go();
   }
 
   /// Remove a single document
   Future<void> removeDocument(int docId) async {
-    await (_db.delete(_db.documents)..where((d) => d.id.equals(docId))).go();
+    await (_db.delete(_db.registrationDocuments)..where((d) => d.id.equals(docId))).go();
   }
 
   /// Get pending documents (not yet synced)
-  Future<List<Document>> getPendingDocuments() async {
+  Future<List<RegistrationDocument>> getPendingDocuments() async {
     try {
-      final allDocs = await _db.select(_db.documents).get();
+      final allDocs = await _db.select(_db.registrationDocuments).get();
       return allDocs.where((d) => d.uploadStatus != 'synced').toList();
     } catch (_) {
       return [];

@@ -3,35 +3,33 @@ import 'package:flutter/foundation.dart';
 import '../../models/news/news_model.dart';
 import '../../core/database/app_database.dart';
 
-/// Local datasource for news (Drift-backed)
-class NewsLocalDatasource {
+/// Local datasource for publications (Drift-backed)
+class PublicationLocalDatasource {
   final AppDatabase _db = AppDatabase();
 
-  Future<List<NewsModel>> getAllNews() async {
-    final rows = await _db.select(_db.news).get();
+  Future<List<NewsModel>> getAllPublications() async {
+    final List<Publication> rows = await _db.select(_db.publications).get();
     return rows.map(_rowToModel).toList();
   }
 
-  Future<void> saveNews(List<NewsModel> news) async {
+  Future<void> savePublications(List<NewsModel> items) async {
     final db = AppDatabase();
-    for (final n in news) {
+    for (final n in items) {
       try {
-        // Prefer matching by remoteId (NewsModel.id). Fallback to slug.
-        New? existing;
+        Publication? existing;
         if (n.id != 0) {
-          existing = await (db.select(db.news)..where((t) => t.remoteId.equals(n.id))).getSingleOrNull();
+          existing = await (db.select(db.publications)..where((t) => t.remoteId.equals(n.id))).getSingleOrNull();
         }
 
         if (existing == null && n.slug.isNotEmpty) {
-          existing = await (db.select(db.news)..where((t) => t.slug.equals(n.slug))).getSingleOrNull();
+          existing = await (db.select(db.publications)..where((t) => t.slug.equals(n.slug))).getSingleOrNull();
         }
 
         final now = DateTime.now();
         if (existing != null) {
-          // Update existing row
           final existingId = existing.id;
-          await (db.update(db.news)..where((t) => t.id.equals(existingId))).write(
-            NewsCompanion(
+          await (db.update(db.publications)..where((t) => t.id.equals(existingId))).write(
+            PublicationsCompanion(
               remoteId: Value(n.id),
               title: Value(n.title),
               slug: Value(n.slug),
@@ -40,14 +38,12 @@ class NewsLocalDatasource {
               image: Value(n.image),
               publishedAt: Value(_parseDateTime(n.publishedAt)),
               featured: Value(n.featured),
-              // preserve createdAt, update updatedAt
               updatedAt: Value(now),
             ),
           );
-          debugPrint('[NEWS] Détail mis à jour dans SQLite : ${n.slug}');
+          debugPrint('[PUBLICATIONS] Détail mis à jour dans SQLite : ${n.slug}');
         } else {
-          // Insert new row
-          final companion = NewsCompanion(
+          final companion = PublicationsCompanion(
             remoteId: Value(n.id),
             title: Value(n.title),
             slug: Value(n.slug),
@@ -59,40 +55,37 @@ class NewsLocalDatasource {
             createdAt: Value(now),
             updatedAt: Value(now),
           );
-          await db.into(db.news).insert(companion);
-          debugPrint('[NEWS] Nouvel article inséré dans SQLite : ${n.slug}');
+          await db.into(db.publications).insert(companion);
+          debugPrint('[PUBLICATIONS] Nouvel item inséré dans SQLite : ${n.slug}');
         }
       } catch (e) {
-        // Log and continue for robustness
-        debugPrint('[NEWS] Erreur lors de saveNews pour ${n.slug}: $e');
+        debugPrint('[PUBLICATIONS] Erreur lors de savePublications pour ${n.slug}: $e');
       }
     }
   }
 
-  Future<NewsModel?> getNewsDetail(String slug) async {
-    final row = await (_db.select(_db.news)..where((t) => t.slug.equals(slug))).getSingleOrNull();
+  Future<NewsModel?> getPublicationDetail(String slug) async {
+    final row = await (_db.select(_db.publications)..where((t) => t.slug.equals(slug))).getSingleOrNull();
     return row == null ? null : _rowToModel(row);
   }
 
-  /// Delete local news rows that have a remoteId but are not present in [remoteIds].
-  /// If [remoteIds] is empty, all rows with a non-null remoteId will be removed.
-  Future<void> deleteNewsNotIn(List<int> remoteIds) async {
+  Future<void> deletePublicationsNotIn(List<int> remoteIds) async {
     final db = AppDatabase();
     try {
       if (remoteIds.isEmpty) {
-        await (db.delete(db.news)..where((t) => t.remoteId.isNotNull())).go();
-        debugPrint('[NEWS] Suppression locale: aucune remoteId trouvé sur le serveur');
+        await (db.delete(db.publications)..where((t) => t.remoteId.isNotNull())).go();
+        debugPrint('[PUBLICATIONS] Suppression locale: aucune remoteId trouvé sur le serveur');
         return;
       }
 
-      await (db.delete(db.news)..where((t) => t.remoteId.isNotIn(remoteIds) & t.remoteId.isNotNull())).go();
-      debugPrint('[NEWS] Suppression locale: articles absents du serveur supprimés');
+      await (db.delete(db.publications)..where((t) => t.remoteId.isNotIn(remoteIds) & t.remoteId.isNotNull())).go();
+      debugPrint('[PUBLICATIONS] Suppression locale: items absents du serveur supprimés');
     } catch (e) {
-      debugPrint('[NEWS] Erreur lors de deleteNewsNotIn: $e');
+      debugPrint('[PUBLICATIONS] Erreur lors de deletePublicationsNotIn: $e');
     }
   }
 
-  NewsModel _rowToModel(New row) {
+  NewsModel _rowToModel(Publication row) {
     return NewsModel(
       id: row.remoteId ?? row.id,
       title: row.title,
@@ -117,4 +110,3 @@ class NewsLocalDatasource {
     }
   }
 }
-

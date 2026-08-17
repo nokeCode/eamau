@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 
 import '../../core/api/api_config.dart';
 import '../../models/concours/concours_detail_model.dart';
-import '../../services/concours/concours_detail_service.dart';
+import '../../data/local/concours_local_datasource.dart';
+import '../../data/remote/concours_remote_datasource.dart';
+import '../../data/repositories/concours_repository.dart';
 import '../../widgets/concours/concours_banner.dart';
 import '../../widgets/concours/concours_info_card.dart';
 import 'application_form_screen.dart';
@@ -21,14 +23,18 @@ class DetailConcoursScreen extends StatefulWidget {
 }
 
 class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
-  final ConcoursDetailService _service = ConcoursDetailService();
+
+  final ConcoursRepository _repo = ConcoursRepository(
+    local: ConcoursLocalDatasource(),
+    remote: ConcoursRemoteDatasource(),
+  );
 
   late Future<ConcoursDetailModel> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = _service.getConcoursDetail(widget.slug);
+    _future = _repo.getConcoursDetail(widget.slug);
   }
 
   @override

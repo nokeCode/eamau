@@ -7,15 +7,21 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../services/admission/admission_request_service.dart';
+import '../../data/repositories/admission_repository.dart';
+import '../../data/local/admission_local_datasource.dart';
 import 'upload_document_card.dart';
 
 enum _UploadSource { camera, gallery, document }
 
+/// Upload section supports two modes:
+/// - remoteRequestId != null: upload immediately via `service`
+/// - localDraftId != null: attach files locally to draft and enqueue uploads
 class AdmissionUploadSection extends StatefulWidget {
-  final int? requestId;
+  final int? remoteRequestId;
+  final int? localDraftId;
   final AdmissionRequestService? service;
 
-  const AdmissionUploadSection({super.key, this.requestId, this.service});
+  const AdmissionUploadSection({super.key, this.remoteRequestId, this.localDraftId, this.service});
 
   @override
   State<AdmissionUploadSection> createState() => AdmissionUploadSectionState();
@@ -71,69 +77,105 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
   };
 
   Future<bool> uploadPendingDocuments() async {
-    if (widget.requestId == null || widget.service == null) return false;
+    // Remote flow: use service
+    if (widget.remoteRequestId != null && widget.service != null) {
+      final pendingFiles = documents.entries
+          .where(
+            (entry) =>
+                entry.value != null &&
+                _documentStatus[entry.key] != UploadStatus.success,
+          )
+          .toList();
+      if (pendingFiles.isEmpty) return false;
 
-    final pendingFiles = documents.entries
-        .where(
-          (entry) =>
-              entry.value != null &&
-              _documentStatus[entry.key] != UploadStatus.success,
-        )
-        .toList();
-    if (pendingFiles.isEmpty) return false;
+      bool allSuccess = true;
+      for (final entry in pendingFiles) {
+        setState(() {
+          _documentStatus[entry.key] = UploadStatus.uploading;
+          _documentErrors[entry.key] = null;
+        });
 
-    bool allSuccess = true;
-    for (final entry in pendingFiles) {
-      setState(() {
-        _documentStatus[entry.key] = UploadStatus.uploading;
-        _documentErrors[entry.key] = null;
-      });
+        try {
+          final preparedFile = await widget.service!.prepareFileForUpload(
+            entry.value!,
+            entry.key,
+          );
+          final attachmentType =
+              AdmissionRequestService.normalizeAttachmentTypeCode(entry.key);
+          final success = await widget.service!.uploadDocument(
+            widget.remoteRequestId!,
+            attachmentType,
+            preparedFile,
+          );
 
-      try {
-        final preparedFile = await widget.service!.prepareFileForUpload(
-          entry.value!,
-          entry.key,
-        );
-        final attachmentType =
-            AdmissionRequestService.normalizeAttachmentTypeCode(entry.key);
-        final success = await widget.service!.uploadDocument(
-          widget.requestId!,
-          attachmentType,
-          preparedFile,
-        );
+          if (success) {
+            setState(() {
+              _documentStatus[entry.key] = UploadStatus.success;
+              _documentErrors[entry.key] = null;
+            });
+            continue;
+          }
 
-        if (success) {
+          allSuccess = false;
           setState(() {
-            _documentStatus[entry.key] = UploadStatus.success;
-            _documentErrors[entry.key] = null;
+            _documentStatus[entry.key] = UploadStatus.failure;
+            _documentErrors[entry.key] = widget.service!.lastErrorMessage;
           });
-          continue;
+        } catch (error) {
+          allSuccess = false;
+          setState(() {
+            _documentStatus[entry.key] = UploadStatus.failure;
+            _documentErrors[entry.key] = error.toString();
+          });
         }
-
-        allSuccess = false;
-        setState(() {
-          _documentStatus[entry.key] = UploadStatus.failure;
-          _documentErrors[entry.key] = widget.service!.lastErrorMessage;
-        });
-      } catch (error) {
-        allSuccess = false;
-        setState(() {
-          _documentStatus[entry.key] = UploadStatus.failure;
-          _documentErrors[entry.key] = error.toString();
-        });
       }
+
+      return allSuccess;
     }
 
-    return allSuccess;
+    // Offline/local flow: attach to local draft and let SyncEngine handle upload
+    if (widget.localDraftId != null) {
+      final repo = AdmissionRepository(
+        local: AdmissionLocalDatasource(),
+        remote: null as dynamic,
+      );
+
+      final entries = documents.entries.where((e) => e.value != null).toList();
+      if (entries.isEmpty) return false;
+
+      for (final entry in entries) {
+        try {
+          await repo.attachDocumentToDraft(
+            draftId: widget.localDraftId!,
+            file: entry.value!,
+            fileName: entry.value!.path.split('/').last,
+            mimeType: 'application/octet-stream',
+            attachmentType: AdmissionRequestService.normalizeAttachmentTypeCode(entry.key),
+          );
+          setState(() {
+            _documentStatus[entry.key] = UploadStatus.selected;
+            _documentErrors[entry.key] = null;
+          });
+        } catch (e) {
+          setState(() {
+            _documentStatus[entry.key] = UploadStatus.failure;
+            _documentErrors[entry.key] = e.toString();
+          });
+        }
+      }
+
+      return true;
+    }
+
+    return false;
   }
 
   Future<void> _uploadPendingDocumentsAndNotify() async {
-    if (widget.requestId == null || widget.service == null) return;
     final success = await uploadPendingDocuments();
     if (!mounted) return;
 
     if (!success) {
-      final rawError = widget.service!.lastErrorMessage;
+      final rawError = widget.service?.lastErrorMessage;
       final message = _formatUploadError(rawError);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -262,8 +304,22 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
         _documentErrors[key] = null;
       });
 
-      if (widget.requestId != null && widget.service != null) {
+      // If a remote request exists, upload immediately. Otherwise, attach
+      // file to the local draft via AdmissionRepository so it will be synced.
+      if (widget.remoteRequestId != null && widget.service != null) {
         await _uploadPendingDocumentsAndNotify();
+      } else if (widget.localDraftId != null) {
+        final repo = AdmissionRepository(
+          local: AdmissionLocalDatasource(),
+          remote: null as dynamic,
+        );
+        await repo.attachDocumentToDraft(
+          draftId: widget.localDraftId!,
+          file: picked,
+          fileName: picked.path.split('/').last,
+          mimeType: 'application/octet-stream',
+          attachmentType: AdmissionRequestService.normalizeAttachmentTypeCode(key),
+        );
       }
       return;
     }
@@ -292,8 +348,20 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
       _documentErrors[key] = null;
     });
 
-    if (widget.requestId != null && widget.service != null) {
+    if (widget.remoteRequestId != null && widget.service != null) {
       await _uploadPendingDocumentsAndNotify();
+    } else if (widget.localDraftId != null) {
+      final repo = AdmissionRepository(
+        local: AdmissionLocalDatasource(),
+        remote: null as dynamic,
+      );
+      await repo.attachDocumentToDraft(
+        draftId: widget.localDraftId!,
+        file: picked,
+        fileName: picked.path.split('/').last,
+        mimeType: 'application/octet-stream',
+        attachmentType: AdmissionRequestService.normalizeAttachmentTypeCode(key),
+      );
     }
   }
 

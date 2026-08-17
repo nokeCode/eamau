@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/concours/concours_form_service.dart';
+import '../../core/connectivity/connectivity_service.dart';
+import '../../data/local/postulation_local_datasource.dart';
+import '../../core/sync/sync_engine.dart';
+import '../../core/sync/sync_queue.dart' as sq;
+import '../../core/database/app_database.dart';
+import 'package:uuid/uuid.dart';
 import '../../widgets/concours/confirmation_action_button.dart';
 import '../../widgets/concours/confirmation_success_widget.dart';
 
@@ -37,6 +43,44 @@ class _ConfirmationCandidatureScreenState
     });
 
     try {
+      final online = await (ConnectivityService().isOnline());
+      if (!online) {
+        // Enqueue submission and mark draft pending_sync
+        try {
+          final dbLocal = PostulationLocalDatasource();
+          // find local draft by remoteId
+          // attempt to find a draft matching this remote id
+            final all = await dbLocal.getAllDrafts();
+            PostulationDraft? draft;
+            if (all.isNotEmpty) {
+              draft = all.firstWhere(
+                (d) => d.remoteId == widget.candidatureId,
+                orElse: () => all.first,
+              );
+            } else {
+              draft = null;
+            }
+            if (draft != null) {
+              final opId = const Uuid().v4();
+              final op = sq.SyncOperation(
+                clientOperationId: opId,
+                type: 'postulation.submit',
+                payload: {'draftId': draft.id},
+              );
+              await SyncEngine().enqueueOperation(op);
+              await dbLocal.updateDraftStatus(draft.id, 'pending_sync');
+            }
+        } catch (_) {}
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Candidature mise en attente et sera soumise à la reconnexion.'),
+        ));
+        Navigator.pop(context);
+        return;
+      }
+
+      // Online: perform immediate submission
       final result = await _concoursFormService.submit(
         widget.candidatureId,
         postulationToken: widget.postulationToken,

@@ -67,21 +67,51 @@ class AdmissionRepository {
       final draft = await local.getDraft(draftId);
       if (draft == null) return false;
 
-      // Mark draft as submitted locally
-      await local.updateDraftStatus(draftId, 'submitted');
+      // Mark draft as pending sync locally
+      await local.updateDraftStatus(draftId, 'pending_sync');
 
-      // Enqueue the submission operation in sync queue
-      final opId = const Uuid().v4();
-      final op = SyncOperation(
-        clientOperationId: opId,
-        type: 'admission.submit',
+      // Enqueue operations in the correct order: create -> upload documents -> submit
+      final createOpId = const Uuid().v4();
+      final createOp = SyncOperation(
+        clientOperationId: createOpId,
+        type: 'admission.create',
         payload: {
           'draftId': draftId,
-          'dataJson': draft.dataJson,
+          // campaignId must be provided by caller inside draft data when available
+          'campaignId': (jsonDecode(draft.dataJson) as Map<String, dynamic>?)?['campaignId'],
         },
       );
 
-      await SyncEngine().enqueueOperation(op);
+      await SyncEngine().enqueueOperation(createOp);
+
+      // Enqueue document uploads for existing attached documents
+      final pendingDocs = await local.getDocumentsForDraft(draftId);
+      for (final doc in pendingDocs) {
+        if (doc.uploadStatus == 'synced') continue;
+        final docOpId = const Uuid().v4();
+        final docOp = SyncOperation(
+          clientOperationId: docOpId,
+          type: 'document.upload',
+          payload: {
+            'documentId': doc.id,
+            'attachmentType': doc.mimeType ?? 'OTHER',
+            'isRegistration': false,
+          },
+        );
+        await SyncEngine().enqueueOperation(docOp);
+      }
+
+      // Finally enqueue submit operation which depends on remoteId being available
+      final submitOpId = const Uuid().v4();
+      final submitOp = SyncOperation(
+        clientOperationId: submitOpId,
+        type: 'admission.submit',
+        payload: {
+          'draftId': draftId,
+        },
+      );
+      await SyncEngine().enqueueOperation(submitOp);
+
       return true;
     } catch (_) {
       return false;

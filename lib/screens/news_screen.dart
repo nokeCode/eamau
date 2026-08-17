@@ -2,10 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:flutter/foundation.dart';
+
 import '../../models/news/news_category_model.dart';
 import '../../models/news/news_model.dart';
 import '../../routes/app_routes.dart';
 import '../../services/news/news_service.dart';
+import '../../core/connectivity/connectivity_service.dart';
+import '../../data/local/news_local_datasource.dart';
+import '../../data/remote/news_remote_datasource.dart';
+import '../../data/repositories/news_repository.dart';
 import '../widgets/news/custom_bottom_nav.dart';
 import '../widgets/news/featured_news_carousel.dart';
 import '../widgets/news/news_card.dart';
@@ -54,17 +60,34 @@ class _NewsScreenState extends State<NewsScreen> {
 
   Future<void> _loadCategories() async {
     try {
-      final categories = await _service.getCategories();
-      if (!mounted) {
+      final online = await ConnectivityService().isOnline();
+      if (!online) {
+        // Build categories from local cache when offline
+        final local = NewsLocalDatasource();
+        final localNews = await local.getAllNews();
+        final names = <String>{};
+        for (final n in localNews) {
+          if (n.categoryName.isNotEmpty) names.add(n.categoryName);
+        }
+        final list = <NewsCategoryModel>[const NewsCategoryModel(id: 0, name: 'Toutes')];
+        var id = 1;
+        for (final name in names) {
+          list.add(NewsCategoryModel(id: id++, name: name));
+        }
+        debugPrint('[NEWS] Categories chargées depuis SQLite');
+        if (!mounted) return;
+        setState(() => _categories = list);
         return;
       }
+
+      final categories = await _service.getCategories();
+      debugPrint('[NEWS] Categories chargées depuis API');
+      if (!mounted) return;
       setState(() {
         _categories = categories;
       });
     } catch (_) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() {
         _categories = const [NewsCategoryModel(id: 0, name: 'Toutes')];
       });
@@ -73,17 +96,31 @@ class _NewsScreenState extends State<NewsScreen> {
 
   Future<void> _loadFeaturedNews() async {
     try {
-      final featured = await _service.getFeaturedNews();
-      if (!mounted) {
+      final online = await ConnectivityService().isOnline();
+      final local = NewsLocalDatasource();
+      if (!online) {
+        final all = await local.getAllNews();
+        final featured = all.where((n) => n.featured).toList();
+        debugPrint('[NEWS] Featured chargées depuis SQLite');
+        if (!mounted) return;
+        setState(() => _featuredNews = featured);
         return;
       }
+
+      final featured = await _service.getFeaturedNews();
+      debugPrint('[NEWS] Featured chargées depuis API');
+      // persist featured to local so they are available offline
+      try {
+        await local.saveNews(featured);
+        debugPrint('[NEWS] Featured sauvegardées dans SQLite');
+      } catch (_) {}
+
+      if (!mounted) return;
       setState(() {
         _featuredNews = featured;
       });
     } catch (_) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() {
         _featuredNews = [];
       });
@@ -105,6 +142,22 @@ class _NewsScreenState extends State<NewsScreen> {
     });
 
     try {
+      final online = await ConnectivityService().isOnline();
+      final local = NewsLocalDatasource();
+
+      if (!online) {
+        // Offline: load from SQLite only
+        final localData = await local.getAllNews();
+        debugPrint('[NEWS] Liste chargée depuis SQLite');
+        if (!mounted) return;
+        setState(() {
+          _news = localData;
+          _meta = NewsMeta(page: 1, perPage: localData.length > 0 ? localData.length : 10, total: localData.length, lastPage: 1);
+          _hasReachedEnd = true;
+        });
+        return;
+      }
+
       final result = _searchQuery.trim().isEmpty
           ? await _service.getNewsPage(
               page: 1,
@@ -112,9 +165,13 @@ class _NewsScreenState extends State<NewsScreen> {
             )
           : await _service.searchNews(_searchQuery, page: 1);
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
+
+      // persist remote results locally
+      try {
+        await local.saveNews(result.items);
+        debugPrint('[NEWS] Liste sauvegardée dans SQLite');
+      } catch (_) {}
 
       setState(() {
         _news = result.items;
@@ -122,9 +179,7 @@ class _NewsScreenState extends State<NewsScreen> {
         _hasReachedEnd = result.meta.page >= result.meta.lastPage;
       });
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() {
         _errorMessage = '$error';
       });
@@ -144,12 +199,17 @@ class _NewsScreenState extends State<NewsScreen> {
         _isInitialLoading) {
       return;
     }
-
     setState(() {
       _isLoadingMore = true;
     });
 
     try {
+      final online = await ConnectivityService().isOnline();
+      if (!online) {
+        debugPrint('[NEWS] Ignoring loadMore while offline');
+        return;
+      }
+
       final result = _searchQuery.trim().isEmpty
           ? await _service.getNewsPage(
               page: _meta!.page + 1,
@@ -157,9 +217,14 @@ class _NewsScreenState extends State<NewsScreen> {
             )
           : await _service.searchNews(_searchQuery, page: _meta!.page + 1);
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
+
+      // persist new page
+      try {
+        final local = NewsLocalDatasource();
+        await local.saveNews(result.items);
+        debugPrint('[NEWS] Page ${result.meta.page} sauvegardée dans SQLite');
+      } catch (_) {}
 
       setState(() {
         _news.addAll(result.items);
@@ -167,9 +232,7 @@ class _NewsScreenState extends State<NewsScreen> {
         _hasReachedEnd = result.meta.page >= result.meta.lastPage;
       });
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() {
         _errorMessage = '$error';
       });

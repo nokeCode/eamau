@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 
 import '../../models/news/news_model.dart';
-import '../../services/publication/publication_service.dart';
+import '../../data/local/publication_local_datasource.dart';
+import '../../data/remote/publication_remote_datasource.dart';
+import '../../data/repositories/publication_repository.dart';
 import '../widgets/newDetail/news_category_badge.dart';
 import '../widgets/newDetail/news_detail_header.dart';
 import '../widgets/newDetail/shar_article_buttom.dart';
@@ -17,7 +19,10 @@ class PublicationDetailScreen extends StatefulWidget {
 }
 
 class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
-  final PublicationService _service = PublicationService();
+  final PublicationRepository _repo = PublicationRepository(
+    local: PublicationLocalDatasource(),
+    remote: PublicationRemoteDatasource(),
+  );
   late Future<NewsModel> _publicationFuture;
 
   @override
@@ -30,7 +35,7 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
     if (widget.slug == null || widget.slug!.trim().isEmpty) {
       throw Exception('Publication scientifique introuvable');
     }
-    return _service.getPublicationBySlug(widget.slug!);
+    return await _repo.getPublicationBySlug(widget.slug!);
   }
 
   @override
