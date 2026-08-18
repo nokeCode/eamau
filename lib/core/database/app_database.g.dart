@@ -5040,6 +5040,12 @@ class $PostulationDocumentsTable extends PostulationDocuments
   late final GeneratedColumn<int> size = GeneratedColumn<int>(
       'size', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _documentTypeMeta =
+      const VerificationMeta('documentType');
+  @override
+  late final GeneratedColumn<String> documentType = GeneratedColumn<String>(
+      'document_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _uploadStatusMeta =
       const VerificationMeta('uploadStatus');
   @override
@@ -5064,6 +5070,7 @@ class $PostulationDocumentsTable extends PostulationDocuments
         fileName,
         mimeType,
         size,
+        documentType,
         uploadStatus,
         retryCount
       ];
@@ -5103,6 +5110,12 @@ class $PostulationDocumentsTable extends PostulationDocuments
       context.handle(
           _sizeMeta, size.isAcceptableOrUnknown(data['size']!, _sizeMeta));
     }
+    if (data.containsKey('document_type')) {
+      context.handle(
+          _documentTypeMeta,
+          documentType.isAcceptableOrUnknown(
+              data['document_type']!, _documentTypeMeta));
+    }
     if (data.containsKey('upload_status')) {
       context.handle(
           _uploadStatusMeta,
@@ -5136,6 +5149,8 @@ class $PostulationDocumentsTable extends PostulationDocuments
           .read(DriftSqlType.string, data['${effectivePrefix}mime_type']),
       size: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}size']),
+      documentType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}document_type']),
       uploadStatus: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}upload_status'])!,
       retryCount: attachedDatabase.typeMapping
@@ -5157,6 +5172,7 @@ class PostulationDocument extends DataClass
   final String? fileName;
   final String? mimeType;
   final int? size;
+  final String? documentType;
   final String uploadStatus;
   final int retryCount;
   const PostulationDocument(
@@ -5166,6 +5182,7 @@ class PostulationDocument extends DataClass
       this.fileName,
       this.mimeType,
       this.size,
+      this.documentType,
       required this.uploadStatus,
       required this.retryCount});
   @override
@@ -5184,6 +5201,9 @@ class PostulationDocument extends DataClass
     }
     if (!nullToAbsent || size != null) {
       map['size'] = Variable<int>(size);
+    }
+    if (!nullToAbsent || documentType != null) {
+      map['document_type'] = Variable<String>(documentType);
     }
     map['upload_status'] = Variable<String>(uploadStatus);
     map['retry_count'] = Variable<int>(retryCount);
@@ -5204,6 +5224,9 @@ class PostulationDocument extends DataClass
           ? const Value.absent()
           : Value(mimeType),
       size: size == null && nullToAbsent ? const Value.absent() : Value(size),
+      documentType: documentType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documentType),
       uploadStatus: Value(uploadStatus),
       retryCount: Value(retryCount),
     );
@@ -5219,6 +5242,7 @@ class PostulationDocument extends DataClass
       fileName: serializer.fromJson<String?>(json['fileName']),
       mimeType: serializer.fromJson<String?>(json['mimeType']),
       size: serializer.fromJson<int?>(json['size']),
+      documentType: serializer.fromJson<String?>(json['documentType']),
       uploadStatus: serializer.fromJson<String>(json['uploadStatus']),
       retryCount: serializer.fromJson<int>(json['retryCount']),
     );
@@ -5233,6 +5257,7 @@ class PostulationDocument extends DataClass
       'fileName': serializer.toJson<String?>(fileName),
       'mimeType': serializer.toJson<String?>(mimeType),
       'size': serializer.toJson<int?>(size),
+      'documentType': serializer.toJson<String?>(documentType),
       'uploadStatus': serializer.toJson<String>(uploadStatus),
       'retryCount': serializer.toJson<int>(retryCount),
     };
@@ -5245,6 +5270,7 @@ class PostulationDocument extends DataClass
           Value<String?> fileName = const Value.absent(),
           Value<String?> mimeType = const Value.absent(),
           Value<int?> size = const Value.absent(),
+          Value<String?> documentType = const Value.absent(),
           String? uploadStatus,
           int? retryCount}) =>
       PostulationDocument(
@@ -5254,6 +5280,8 @@ class PostulationDocument extends DataClass
         fileName: fileName.present ? fileName.value : this.fileName,
         mimeType: mimeType.present ? mimeType.value : this.mimeType,
         size: size.present ? size.value : this.size,
+        documentType:
+            documentType.present ? documentType.value : this.documentType,
         uploadStatus: uploadStatus ?? this.uploadStatus,
         retryCount: retryCount ?? this.retryCount,
       );
@@ -5265,6 +5293,9 @@ class PostulationDocument extends DataClass
       fileName: data.fileName.present ? data.fileName.value : this.fileName,
       mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
       size: data.size.present ? data.size.value : this.size,
+      documentType: data.documentType.present
+          ? data.documentType.value
+          : this.documentType,
       uploadStatus: data.uploadStatus.present
           ? data.uploadStatus.value
           : this.uploadStatus,
@@ -5282,6 +5313,7 @@ class PostulationDocument extends DataClass
           ..write('fileName: $fileName, ')
           ..write('mimeType: $mimeType, ')
           ..write('size: $size, ')
+          ..write('documentType: $documentType, ')
           ..write('uploadStatus: $uploadStatus, ')
           ..write('retryCount: $retryCount')
           ..write(')'))
@@ -5290,7 +5322,7 @@ class PostulationDocument extends DataClass
 
   @override
   int get hashCode => Object.hash(id, draftId, localPath, fileName, mimeType,
-      size, uploadStatus, retryCount);
+      size, documentType, uploadStatus, retryCount);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5301,6 +5333,7 @@ class PostulationDocument extends DataClass
           other.fileName == this.fileName &&
           other.mimeType == this.mimeType &&
           other.size == this.size &&
+          other.documentType == this.documentType &&
           other.uploadStatus == this.uploadStatus &&
           other.retryCount == this.retryCount);
 }
@@ -5313,6 +5346,7 @@ class PostulationDocumentsCompanion
   final Value<String?> fileName;
   final Value<String?> mimeType;
   final Value<int?> size;
+  final Value<String?> documentType;
   final Value<String> uploadStatus;
   final Value<int> retryCount;
   const PostulationDocumentsCompanion({
@@ -5322,6 +5356,7 @@ class PostulationDocumentsCompanion
     this.fileName = const Value.absent(),
     this.mimeType = const Value.absent(),
     this.size = const Value.absent(),
+    this.documentType = const Value.absent(),
     this.uploadStatus = const Value.absent(),
     this.retryCount = const Value.absent(),
   });
@@ -5332,6 +5367,7 @@ class PostulationDocumentsCompanion
     this.fileName = const Value.absent(),
     this.mimeType = const Value.absent(),
     this.size = const Value.absent(),
+    this.documentType = const Value.absent(),
     this.uploadStatus = const Value.absent(),
     this.retryCount = const Value.absent(),
   }) : localPath = Value(localPath);
@@ -5342,6 +5378,7 @@ class PostulationDocumentsCompanion
     Expression<String>? fileName,
     Expression<String>? mimeType,
     Expression<int>? size,
+    Expression<String>? documentType,
     Expression<String>? uploadStatus,
     Expression<int>? retryCount,
   }) {
@@ -5352,6 +5389,7 @@ class PostulationDocumentsCompanion
       if (fileName != null) 'file_name': fileName,
       if (mimeType != null) 'mime_type': mimeType,
       if (size != null) 'size': size,
+      if (documentType != null) 'document_type': documentType,
       if (uploadStatus != null) 'upload_status': uploadStatus,
       if (retryCount != null) 'retry_count': retryCount,
     });
@@ -5364,6 +5402,7 @@ class PostulationDocumentsCompanion
       Value<String?>? fileName,
       Value<String?>? mimeType,
       Value<int?>? size,
+      Value<String?>? documentType,
       Value<String>? uploadStatus,
       Value<int>? retryCount}) {
     return PostulationDocumentsCompanion(
@@ -5373,6 +5412,7 @@ class PostulationDocumentsCompanion
       fileName: fileName ?? this.fileName,
       mimeType: mimeType ?? this.mimeType,
       size: size ?? this.size,
+      documentType: documentType ?? this.documentType,
       uploadStatus: uploadStatus ?? this.uploadStatus,
       retryCount: retryCount ?? this.retryCount,
     );
@@ -5399,6 +5439,9 @@ class PostulationDocumentsCompanion
     if (size.present) {
       map['size'] = Variable<int>(size.value);
     }
+    if (documentType.present) {
+      map['document_type'] = Variable<String>(documentType.value);
+    }
     if (uploadStatus.present) {
       map['upload_status'] = Variable<String>(uploadStatus.value);
     }
@@ -5417,6 +5460,7 @@ class PostulationDocumentsCompanion
           ..write('fileName: $fileName, ')
           ..write('mimeType: $mimeType, ')
           ..write('size: $size, ')
+          ..write('documentType: $documentType, ')
           ..write('uploadStatus: $uploadStatus, ')
           ..write('retryCount: $retryCount')
           ..write(')'))
@@ -8453,6 +8497,7 @@ typedef $$PostulationDocumentsTableCreateCompanionBuilder
   Value<String?> fileName,
   Value<String?> mimeType,
   Value<int?> size,
+  Value<String?> documentType,
   Value<String> uploadStatus,
   Value<int> retryCount,
 });
@@ -8464,6 +8509,7 @@ typedef $$PostulationDocumentsTableUpdateCompanionBuilder
   Value<String?> fileName,
   Value<String?> mimeType,
   Value<int?> size,
+  Value<String?> documentType,
   Value<String> uploadStatus,
   Value<int> retryCount,
 });
@@ -8492,6 +8538,7 @@ class $$PostulationDocumentsTableTableManager extends RootTableManager<
             Value<String?> fileName = const Value.absent(),
             Value<String?> mimeType = const Value.absent(),
             Value<int?> size = const Value.absent(),
+            Value<String?> documentType = const Value.absent(),
             Value<String> uploadStatus = const Value.absent(),
             Value<int> retryCount = const Value.absent(),
           }) =>
@@ -8502,6 +8549,7 @@ class $$PostulationDocumentsTableTableManager extends RootTableManager<
             fileName: fileName,
             mimeType: mimeType,
             size: size,
+            documentType: documentType,
             uploadStatus: uploadStatus,
             retryCount: retryCount,
           ),
@@ -8512,6 +8560,7 @@ class $$PostulationDocumentsTableTableManager extends RootTableManager<
             Value<String?> fileName = const Value.absent(),
             Value<String?> mimeType = const Value.absent(),
             Value<int?> size = const Value.absent(),
+            Value<String?> documentType = const Value.absent(),
             Value<String> uploadStatus = const Value.absent(),
             Value<int> retryCount = const Value.absent(),
           }) =>
@@ -8522,6 +8571,7 @@ class $$PostulationDocumentsTableTableManager extends RootTableManager<
             fileName: fileName,
             mimeType: mimeType,
             size: size,
+            documentType: documentType,
             uploadStatus: uploadStatus,
             retryCount: retryCount,
           ),
@@ -8553,6 +8603,11 @@ class $$PostulationDocumentsTableFilterComposer
 
   ColumnFilters<int> get size => $state.composableBuilder(
       column: $state.table.size,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get documentType => $state.composableBuilder(
+      column: $state.table.documentType,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -8608,6 +8663,11 @@ class $$PostulationDocumentsTableOrderingComposer
 
   ColumnOrderings<int> get size => $state.composableBuilder(
       column: $state.table.size,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get documentType => $state.composableBuilder(
+      column: $state.table.documentType,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 

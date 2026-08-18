@@ -339,12 +339,12 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
         status: 'draft',
       );
 
-      final queued = await _repository.submitDraft(draftId);
+      final outcome = await _repository.submitDraft(draftId);
 
       if (!mounted) return;
       setState(() => submitting = false);
 
-      if (!queued) {
+      if (outcome == AdmissionSubmitOutcome.failed) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Colors.red,
@@ -354,10 +354,20 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
         return;
       }
 
+      final snackBarMessage = switch (outcome) {
+        AdmissionSubmitOutcome.submittedOnline =>
+          'Votre demande a été soumise avec succès.',
+        AdmissionSubmitOutcome.queuedOffline =>
+          'Votre demande est sauvegardée localement et sera synchronisée dès que la connexion sera rétablie.',
+        AdmissionSubmitOutcome.queuedAfterError =>
+          'Votre demande est sauvegardée localement suite à une erreur d’envoi et sera synchronisée automatiquement.',
+        AdmissionSubmitOutcome.failed => 'Impossible d’enregistrer la demande localement.',
+      };
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           backgroundColor: Colors.green,
-          content: Text('Demande sauvegardée en local et mise en file de synchronisation.'),
+          content: Text(snackBarMessage),
         ),
       );
 

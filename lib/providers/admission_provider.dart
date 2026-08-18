@@ -98,30 +98,39 @@ class AdmissionProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> submitDraft(int draftId) async {
+  Future<AdmissionSubmitOutcome> submitDraft(int draftId) async {
     status = AdmissionFlowStatus.submitting;
     message = null;
     notifyListeners();
 
     try {
-      final success = await _repository.submitDraft(draftId);
-      if (!success) {
+      final outcome = await _repository.submitDraft(draftId);
+
+      if (outcome == AdmissionSubmitOutcome.failed) {
         status = AdmissionFlowStatus.error;
         message = 'La soumission a échoué.';
         notifyListeners();
-        return false;
+        return outcome;
       }
 
       await loadDrafts();
       status = AdmissionFlowStatus.success;
-      message = 'Demande d’admission soumise avec succès.';
+      message = switch (outcome) {
+        AdmissionSubmitOutcome.submittedOnline =>
+          'Votre demande a été soumise avec succès.',
+        AdmissionSubmitOutcome.queuedOffline =>
+          'Votre demande est sauvegardée localement et sera synchronisée dès que la connexion sera rétablie.',
+        AdmissionSubmitOutcome.queuedAfterError =>
+          'Votre demande est sauvegardée localement suite à une erreur d’envoi et sera synchronisée automatiquement.',
+        AdmissionSubmitOutcome.failed => 'La soumission a échoué.',
+      };
       notifyListeners();
-      return true;
+      return outcome;
     } catch (error) {
       status = AdmissionFlowStatus.error;
       message = 'Une erreur est survenue pendant la soumission.';
       notifyListeners();
-      return false;
+      return AdmissionSubmitOutcome.failed;
     }
   }
 

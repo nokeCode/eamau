@@ -73,6 +73,7 @@ class PostulationLocalDatasource {
       fileName: Value(fileName),
       mimeType: Value(mimeType),
       size: Value(fileSize),
+      documentType: documentType != null ? Value(documentType) : const Value.absent(),
       uploadStatus: Value('pending'),
       retryCount: const Value(0),
     );

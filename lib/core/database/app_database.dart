@@ -157,6 +157,7 @@ class PostulationDocuments extends Table {
   TextColumn get fileName => text().nullable()();
   TextColumn get mimeType => text().nullable()();
   IntColumn get size => integer().nullable()();
+  TextColumn get documentType => text().nullable()();
   TextColumn get uploadStatus => text().withDefault(const Constant('pending'))();
   IntColumn get retryCount => integer().withDefault(const Constant(0))();
 }
@@ -229,10 +230,14 @@ class AppDatabase extends _$AppDatabase {
               await m.createTable(admissionForms);
               await m.createTable(admissionCampaigns);
             }
+            if (from < 6) {
+              // Add documentType (concours attribute slug) to PostulationDocuments when upgrading to schemaVersion 6
+              await m.addColumn(postulationDocuments, postulationDocuments.documentType);
+            }
         },
       );
 
     @override
-    int get schemaVersion => 5;
+    int get schemaVersion => 6;
 }
 
