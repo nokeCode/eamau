@@ -9,21 +9,33 @@ class KeyDateService {
   Future<List<KeyDateModel>> getKeyDates() async {
     try {
       final response = await _dioClient.dio.get(
-        '/key-dates',
+        '/front/key-dates',
         options: Options(extra: {'skipAuth': true}),
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
+        final data = response.data;
         
-        return data
-            .where((item) => item['enabled'] == true)
-            .map((item) => KeyDateModel.fromJson(item))
-            .toList();
+        if (data is Map && data.containsKey('data') && data['data'] is List) {
+          return (data['data'] as List)
+              .where((item) => item['enabled'] == true)
+              .map((item) => KeyDateModel.fromJson(item))
+              .toList();
+        }
+        
+        if (data is List) {
+          return data
+              .where((item) => item['enabled'] == true)
+              .map((item) => KeyDateModel.fromJson(item))
+              .toList();
+        }
+        
+        return [];
       }
       
       return [];
     } catch (e) {
+      print('Error loading key dates: $e');
       return [];
     }
   }

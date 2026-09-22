@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 
-import '../../core/api/api_endpoints.dart';
 import '../../core/api/dio_client.dart';
 import '../../models/slide/slide_model.dart';
 
@@ -10,21 +9,34 @@ class SlideService {
   Future<List<SlideModel>> getSlides() async {
     try {
       final response = await _dioClient.dio.get(
-        ApiEndpoints.slides,
+        'front/slides',
         options: Options(extra: {'skipAuth': true}),
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
+        // L'API retourne un objet avec {data: [...], message: ..., code: ...}
+        final data = response.data;
         
-        return data
-            .where((item) => item['enabled'] == true)
-            .map((item) => SlideModel.fromJson(item))
-            .toList();
+        if (data is Map && data.containsKey('data') && data['data'] is List) {
+          return (data['data'] as List)
+              .where((item) => item['enabled'] == true)
+              .map((item) => SlideModel.fromJson(item))
+              .toList();
+        }
+        
+        if (data is List) {
+          return data
+              .where((item) => item['enabled'] == true)
+              .map((item) => SlideModel.fromJson(item))
+              .toList();
+        }
+        
+        return [];
       }
       
       return [];
     } catch (e) {
+      print('Error loading slides: $e');
       return [];
     }
   }
