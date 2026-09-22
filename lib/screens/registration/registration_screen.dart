@@ -1,11 +1,15 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/sync/sync_engine.dart';
 import '../../models/registration/registration_referential_model.dart';
+import '../../models/registration/registration_submit_outcome.dart';
 import '../../providers/registration/registration_provider.dart';
+import '../../routes/app_routes.dart';
 import '../../widgets/registration/confirmation_card.dart';
 import '../../widgets/registration/enum_dropdown.dart';
 import '../../widgets/registration/registration_card.dart';
@@ -13,9 +17,12 @@ import '../../widgets/registration/registration_stepper.dart';
 import '../../widgets/registration/summary_tile.dart';
 import '../../widgets/concours/upload_document_card.dart';
 import '../../widgets/registration/upload_preview.dart';
+import '../login_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({super.key});
+  final int? resumeDraftId;
+
+  const RegistrationScreen({super.key, this.resumeDraftId});
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();
@@ -23,13 +30,37 @@ class RegistrationScreen extends StatefulWidget {
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
   RegistrationOption? _selectedDocumentType;
+  StreamSubscription<int>? _syncSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RegistrationProvider>().loadReferentials();
+      final provider = context.read<RegistrationProvider>();
+      provider.loadReferentials();
+      if (widget.resumeDraftId != null) {
+        provider.resumeDraft(widget.resumeDraftId!);
+      }
     });
+
+    _syncSub = SyncEngine().onRegistrationSubmitted.listen((draftId) {
+      if (!mounted) return;
+      final prov = context.read<RegistrationProvider>();
+      if (prov.localDraftId == draftId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Color(0xFF2E7D32),
+            content: Text('Votre inscription a été synchronisée avec succès !'),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -497,15 +528,103 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             child: ElevatedButton(
               onPressed: provider.currentStep == 4
                   ? () async {
-                      final submitted = await provider.submitRegistration();
-                      if (submitted && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Inscription académique enregistrée.',
+                      final outcome = await provider.submitRegistration();
+                      if (!mounted) return;
+
+                      switch (outcome) {
+                        case RegistrationSubmitOutcome.submittedOnline:
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              backgroundColor: Color(0xFF2E7D32),
+                              content: Text('Inscription académique soumise avec succès !'),
                             ),
-                          ),
-                        );
+                          );
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            AppRoutes.student,
+                            (route) => false,
+                          );
+                          break;
+                        case RegistrationSubmitOutcome.queuedOffline:
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              backgroundColor: Color(0xFF1E40AF),
+                              content: Text(
+                                'Demande enregistrée localement. Elle sera transmise automatiquement dès le retour de la connexion.',
+                              ),
+                            ),
+                          );
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            AppRoutes.student,
+                            (route) => false,
+                          );
+                          break;
+                        case RegistrationSubmitOutcome.queuedAfterError:
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              backgroundColor: Color(0xFFD97706),
+                              content: Text(
+                                'Demande enregistrée localement. La synchronisation se poursuit en arrière-plan.',
+                              ),
+                            ),
+                          );
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            AppRoutes.student,
+                            (route) => false,
+                          );
+                          break;
+                        case RegistrationSubmitOutcome.requiresAuthentication:
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              backgroundColor: Color(0xFFD97706),
+                              content: Text(
+                                'Vous devez vous connecter. Vos informations saisies ont été enregistrées.',
+                              ),
+                            ),
+                          );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LoginScreen(
+                                resumeRegistrationDraftId: provider.localDraftId,
+                              ),
+                            ),
+                          );
+                          break;
+                        case RegistrationSubmitOutcome.alreadySubmittedElsewhere:
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: const Color(0xFFD97706),
+                              content: const Text(
+                                'Une demande est déjà soumise via cet email. Consultez-la sur votre tableau de bord.',
+                              ),
+                              duration: const Duration(seconds: 6),
+                              action: SnackBarAction(
+                                label: 'Tableau de bord',
+                                textColor: Colors.white,
+                                onPressed: () {
+                                  Navigator.pushNamedAndRemoveUntil(
+                                    context,
+                                    AppRoutes.student,
+                                    (route) => false,
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                          break;
+                        case RegistrationSubmitOutcome.failed:
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: const Color(0xFFB00020),
+                              content: Text(
+                                provider.message ?? 'Échec de l’enregistrement de l’inscription.',
+                              ),
+                            ),
+                          );
+                          break;
                       }
                     }
                   : provider.nextStep,

@@ -8,11 +8,13 @@ import '../../models/user/dashboard_user_model.dart';
 import '../../models/user/notification_preview_model.dart';
 import '../../services/user/dashboard_service.dart';
 import '../../widgets/common/main_bottom_navigation.dart';
+import '../../widgets/common/tracking_shortcuts_banner.dart';
 import '../../widgets/user/dashboard_header.dart';
 import '../../widgets/user/loading_dashboard.dart';
 import '../../widgets/user/notification_list.dart';
 import '../../widgets/user/status_card.dart';
 import '../../widgets/user/welcome_card.dart';
+import '../core/ui/auto_refresh_mixin.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -21,24 +23,56 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
-  late Future<DashboardUserModel> _dashboardFuture;
-
+class _DashboardScreenState extends State<DashboardScreen> with AutoRefreshMixin<DashboardScreen> {
   final DashboardService _service = DashboardService();
+
+  DashboardUserModel? _dashboard;
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _dashboardFuture = _service.getDashboard();
+    _load();
+    startAutoRefresh();
   }
 
-  Future<void> _refresh() async {
-    setState(() {
-      _dashboardFuture = _service.getDashboard();
-    });
-
-    await _dashboardFuture;
+  @override
+  void dispose() {
+    stopAutoRefresh();
+    super.dispose();
   }
+
+  @override
+  Future<void> onAutoRefresh() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
+
+    try {
+      final dashboard = await _service.getDashboard();
+      if (!mounted) return;
+      setState(() {
+        _dashboard = dashboard;
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      if (silent) return; // keep showing the last good data
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Impossible de charger les informations backend.';
+      });
+    }
+  }
+
+  Future<void> _refresh() => _load();
 
   void _onNotificationTap(NotificationPreviewModel notification) {
     // TODO
@@ -158,14 +192,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
       body: SafeArea(
-        child: FutureBuilder<DashboardUserModel>(
-          future: _dashboardFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+        child: Builder(
+          builder: (context) {
+            if (_isLoading) {
               return const LoadingDashboard();
             }
 
-            if (snapshot.hasError) {
+            if (_errorMessage != null) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
@@ -174,8 +207,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       const Icon(Icons.error_outline, size: 40),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Impossible de charger les informations backend.',
+                      Text(
+                        _errorMessage!,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
@@ -189,7 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             }
 
-            final user = snapshot.data!;
+            final user = _dashboard!;
 
             return Consumer<AuthProvider>(
               builder: (context, authProvider, _) {
@@ -245,6 +278,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onCompleteProfile: _onCompleteProfile,
                         ),
                         const SizedBox(height: 25),
+                        const TrackingShortcutsBanner(),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Text(

@@ -41,6 +41,46 @@ class SyncEngine {
   bool _isPublicationsSyncing = false;
   bool _isConcoursSyncing = false;
   final StreamController<void> _publicationsSyncedController = StreamController<void>.broadcast();
+  // Emits an admission draft's local id whenever its `admission.submit`
+  // operation eventually succeeds in the background
+  final StreamController<int> _admissionSubmittedController = StreamController<int>.broadcast();
+  // Emits a registration draft's local id whenever its `registration.submit`
+  // operation eventually succeeds in the background
+  final StreamController<int> _registrationSubmittedController = StreamController<int>.broadcast();
+  final Map<int, bool> _admissionAuthRequired = {};
+  final Map<int, bool> _registrationAuthRequired = {};
+  final Map<int, bool> _registrationAlreadySubmittedElsewhere = {};
+
+  /// Whether the last known HTTP response for [draftId]'s admission
+  /// create/submit/document-upload calls was a 401.
+  bool admissionRequiresAuth(int draftId) => _admissionAuthRequired[draftId] ?? false;
+
+  /// Whether the last known HTTP response for [draftId]'s registration
+  /// create/submit/document-upload calls was a 401.
+  bool registrationRequiresAuth(int draftId) => _registrationAuthRequired[draftId] ?? false;
+
+  /// Whether a document.upload for [draftId] was permanently rejected
+  /// because that registration was already finalized ("Cette demande ne
+  /// peut plus recevoir de document.") — a terminal state, distinct from a
+  /// transient network/server error: retrying it will never succeed.
+  bool registrationAlreadySubmittedElsewhere(int draftId) =>
+      _registrationAlreadySubmittedElsewhere[draftId] ?? false;
+
+  void _recordAdmissionAuthStatus(int draftId, int? statusCode) {
+    if (statusCode == 401) {
+      _admissionAuthRequired[draftId] = true;
+    } else if (statusCode != null) {
+      _admissionAuthRequired[draftId] = false;
+    }
+  }
+
+  void _recordRegistrationAuthStatus(int draftId, int? statusCode) {
+    if (statusCode == 401) {
+      _registrationAuthRequired[draftId] = true;
+    } else if (statusCode != null) {
+      _registrationAuthRequired[draftId] = false;
+    }
+  }
 
   void start() {
     if (_connectivitySub != null) return;
@@ -56,6 +96,8 @@ class SyncEngine {
   }
 
   Stream<void> get onPublicationsSynced => _publicationsSyncedController.stream;
+  Stream<int> get onAdmissionSubmitted => _admissionSubmittedController.stream;
+  Stream<int> get onRegistrationSubmitted => _registrationSubmittedController.stream;
 
   void stop() {
     _connectivitySub?.cancel();
@@ -70,6 +112,14 @@ class SyncEngine {
       await _processQueue();
     }
   }
+
+  /// Triggers a processing pass over the whole pending queue and returns its
+  /// [Future]. Exposed so callers (e.g. `AdmissionRepository.submitDraft`)
+  /// can bound how long *they* wait for it — via `.timeout(...)` — without
+  /// cancelling the pass itself: Dart futures can't be cancelled, so the
+  /// processing keeps running to completion in the background regardless of
+  /// whether the caller gave up waiting on it.
+  Future<void> processQueueNow() => _processQueue();
 
   /// Processes the pending queue, guaranteeing that every caller's own
   /// awaited call results in at least one full pass over the queue that
@@ -95,7 +145,27 @@ class SyncEngine {
     return future;
   }
 
+  /// Runs one pass over the queue. Must never let an exception escape: this
+  /// is awaited directly by UI code (e.g. `AdmissionUploadSection`, via
+  /// `processQueueNow()`) with no enclosing try/catch of its own, on the
+  /// assumption that "the pass didn't finish in time" is the only way this
+  /// can fail to produce a definitive answer. A DB hiccup in the queue
+  /// bookkeeping itself (outside any single operation's own try/catch
+  /// below) used to violate that: it rejected the whole shared processing
+  /// future, which then propagated into whatever UI call was awaiting it —
+  /// leaving e.g. a document upload stuck showing "Envoi en cours" forever,
+  /// since the code that would flip it to "queued" never ran.
   Future<void> _runProcessQueue() async {
+    try {
+      await _runProcessQueueUnsafe();
+    } catch (error, stackTrace) {
+      debugPrint('[SYNC][ERROR] exception non gérée dans _runProcessQueue: '
+          'type=${error.runtimeType} error=$error');
+      debugPrint('[SYNC][ERROR] stackTrace=$stackTrace');
+    }
+  }
+
+  Future<void> _runProcessQueueUnsafe() async {
     final ops = await _queue.all;
     if (ops.isEmpty) return;
 
@@ -348,18 +418,39 @@ class SyncEngine {
             final file = File(filePath);
             if (!await file.exists()) return false;
 
-            // Use AdmissionRequestService for upload (works for both)
-            final prepared = await service.prepareFileForUpload(file, docRow.fileName ?? 'document');
-            final success = await service.uploadDocument(remoteRegistrationId, attachmentType, prepared);
+            final regService = RegistrationService();
+            final docType = docRow.documentType ?? attachmentType;
+            final success = await regService.uploadDocumentFile(
+              remoteRegistrationId,
+              docType,
+              file,
+              fileName: docRow.fileName,
+              idempotencyKey: op.clientOperationId,
+            );
+            _recordRegistrationAuthStatus(draftId, regService.lastStatusCode);
+            if (regService.lastDocumentUploadRejectedFinal) {
+              _registrationAlreadySubmittedElsewhere[draftId] = true;
+            }
+
             if (success) {
               await (database.update(database.registrationDocuments)
                     ..where((d) => d.id.equals(docRow.id)))
                   .write(
                 adb.RegistrationDocumentsCompanion(
-                  uploadStatus: Value('synced'),
+                  uploadStatus: const Value('synced'),
                   retryCount: Value(docRow.retryCount),
                 ),
               );
+              return true;
+            }
+
+            if (regService.lastDocumentUploadRejectedFinal) {
+              // Permanent rejection (registration already finalized):
+              // retrying will never succeed, so stop hammering the server —
+              // drop this operation from the queue instead of the usual
+              // retry-up-to-5-times path. The document stays un-synced
+              // locally; RegistrationRepository.submitDraft reads the flag
+              // set above to report this as its own outcome.
               return true;
             }
             return false;
@@ -414,8 +505,14 @@ class SyncEngine {
             debugPrint('[ADMISSION][UPLOAD] URL exacte appelée=$url fichier=${docRow.fileName}');
 
             final prepared = await service.prepareFileForUpload(file, docRow.fileName ?? 'document');
-            final success = await service.uploadDocument(remoteRequestId, attachmentType, prepared);
+            final success = await service.uploadDocument(
+              remoteRequestId,
+              attachmentType,
+              prepared,
+              idempotencyKey: op.clientOperationId,
+            );
             debugPrint('[ADMISSION][UPLOAD] code HTTP reçu=${service.lastStatusCode} documentId=$docId');
+            _recordAdmissionAuthStatus(draftId, service.lastStatusCode);
 
             if (success) {
               await (database.update(database.documents)
@@ -474,8 +571,12 @@ class SyncEngine {
           debugPrint('[ADMISSION][FINALIZE] URL exacte appelée=$url remoteId=$remoteId');
 
           // Try to submit the admission request to remote
-          final result = await service.submitAdmissionRequest(remoteId);
+          final result = await service.submitAdmissionRequest(
+            remoteId,
+            idempotencyKey: op.clientOperationId,
+          );
           debugPrint('[ADMISSION][FINALIZE] code HTTP reçu=${service.lastStatusCode}');
+          _recordAdmissionAuthStatus(draftId, service.lastStatusCode);
 
           if (result != null && result.success) {
             // Update draft status to submitted
@@ -488,6 +589,9 @@ class SyncEngine {
               ),
             );
             debugPrint('[ADMISSION][FINALIZE] fin admission.submit succès draftId=$draftId statut final=submitted');
+            try {
+              _admissionSubmittedController.add(draftId);
+            } catch (_) {}
             return true;
           }
 
@@ -543,8 +647,13 @@ class SyncEngine {
           debugPrint('[ADMISSION][CREATE] payload envoyé (clés uniquement)=${draftDataMap.keys.toList()}');
 
           // Try to create the admission request on remote
-          final result = await service.createAdmissionRequest(campaignId, model);
+          final result = await service.createAdmissionRequest(
+            campaignId,
+            model,
+            idempotencyKey: op.clientOperationId,
+          );
           debugPrint('[ADMISSION][CREATE] code HTTP reçu=${service.lastStatusCode}');
+          _recordAdmissionAuthStatus(draftId, service.lastStatusCode);
 
           if (result != null && result.id > 0) {
             debugPrint('[ADMISSION][CREATE] remoteId obtenu=${result.id}');
@@ -582,30 +691,41 @@ class SyncEngine {
               .getSingleOrNull();
           if (draftRow == null) return false;
 
-          final draftDataMap = jsonDecode(draftRow.dataJson) as Map<String, dynamic>? ?? {};
-          final draft = _buildRegistrationDraft(draftDataMap);
-          final documents = (await (database.select(database.registrationDocuments)
-                    ..where((d) => d.draftId.equals(draftId)))
-                .get())
-              .map((row) => RegistrationDocument(
-                    fileName: row.fileName ?? row.localPath.split('/').last,
-                    filePath: row.localPath,
-                    type: row.mimeType ?? 'OTHER',
-                    sizeBytes: row.size ?? 0,
-                  ))
-              .toList();
+          final remoteId = draftRow.remoteId;
+          if (remoteId == null) {
+            // Registration not yet created remotely; wait for registration.create
+            return false;
+          }
+
+          // Check if all documents for this draft are synced
+          final docs = await (database.select(database.registrationDocuments)
+                ..where((d) => d.draftId.equals(draftId)))
+              .get();
+          final allDocsSynced = docs.every((d) => d.uploadStatus == 'synced');
+          if (!allDocsSynced) {
+            // Documents still pending upload; wait for document.upload operations
+            return false;
+          }
 
           final registrationService = RegistrationService();
-          final ok = await registrationService.submitRegistration(draft, documents);
+          final ok = await registrationService.finalizeRegistration(
+            remoteId,
+            idempotencyKey: op.clientOperationId,
+          );
+          _recordRegistrationAuthStatus(draftId, registrationService.lastStatusCode);
+
           if (ok) {
             await (database.update(database.registrationDrafts)
                   ..where((t) => t.id.equals(draftId)))
                 .write(
               adb.RegistrationDraftsCompanion(
-                status: Value('submitted'),
+                status: const Value('submitted'),
                 updatedAt: Value(DateTime.now()),
               ),
             );
+            try {
+              _registrationSubmittedController.add(draftId);
+            } catch (_) {}
             return true;
           }
           return false;
@@ -623,29 +743,26 @@ class SyncEngine {
               .getSingleOrNull();
           if (draftRow == null) return false;
 
+          // Skip if already has remote ID
           if (draftRow.remoteId != null) return true;
 
           final draftDataMap = jsonDecode(draftRow.dataJson) as Map<String, dynamic>? ?? {};
-          final draft = _buildRegistrationDraft(draftDataMap);
-          final documents = (await (database.select(database.registrationDocuments)
-                    ..where((d) => d.draftId.equals(draftId)))
-                .get())
-              .map((row) => RegistrationDocument(
-                    fileName: row.fileName ?? row.localPath.split('/').last,
-                    filePath: row.localPath,
-                    type: row.mimeType ?? 'OTHER',
-                    sizeBytes: row.size ?? 0,
-                  ))
-              .toList();
+          final draft = RegistrationDraft.fromJson(draftDataMap);
 
           final registrationService = RegistrationService();
-          final ok = await registrationService.submitRegistration(draft, documents);
-          if (ok) {
+          final result = await registrationService.createRegistration(
+            draft,
+            idempotencyKey: op.clientOperationId,
+          );
+          _recordRegistrationAuthStatus(draftId, registrationService.lastStatusCode);
+
+          if (result != null && result.registrationId > 0) {
             await (database.update(database.registrationDrafts)
                   ..where((t) => t.id.equals(draftId)))
                 .write(
               adb.RegistrationDraftsCompanion(
-                status: Value('created'),
+                remoteId: Value(result.registrationId),
+                status: const Value('created'),
                 updatedAt: Value(DateTime.now()),
               ),
             );

@@ -133,8 +133,16 @@ class RegistrationDocuments extends Table {
   TextColumn get fileName => text().nullable()();
   TextColumn get mimeType => text().nullable()();
   IntColumn get size => integer().nullable()();
+  TextColumn get documentType => text().nullable()();
   TextColumn get uploadStatus => text().withDefault(const Constant('pending'))();
   IntColumn get retryCount => integer().withDefault(const Constant(0))();
+}
+
+class RegistrationReferentials extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get referentialsJson => text()();
+  TextColumn get statusJson => text().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
 }
 
 class PostulationDrafts extends Table {
@@ -184,6 +192,7 @@ class SyncOperations extends Table {
     Documents,
     RegistrationDrafts,
     RegistrationDocuments,
+    RegistrationReferentials,
     PostulationDrafts,
     PostulationDocuments,
     SyncOperations,
@@ -234,10 +243,15 @@ class AppDatabase extends _$AppDatabase {
               // Add documentType (concours attribute slug) to PostulationDocuments when upgrading to schemaVersion 6
               await m.addColumn(postulationDocuments, postulationDocuments.documentType);
             }
+            if (from < 7) {
+              // Create RegistrationReferentials table and add documentType to RegistrationDocuments when upgrading to schemaVersion 7
+              await m.createTable(registrationReferentials);
+              await m.addColumn(registrationDocuments, registrationDocuments.documentType);
+            }
         },
       );
 
     @override
-    int get schemaVersion => 6;
+    int get schemaVersion => 7;
 }
 

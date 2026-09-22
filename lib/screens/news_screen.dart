@@ -9,6 +9,7 @@ import '../../models/news/news_model.dart';
 import '../../routes/app_routes.dart';
 import '../../services/news/news_service.dart';
 import '../../core/connectivity/connectivity_service.dart';
+import '../../core/ui/auto_refresh_mixin.dart';
 import '../../data/local/news_local_datasource.dart';
 import '../../data/remote/news_remote_datasource.dart';
 import '../../data/repositories/news_repository.dart';
@@ -24,7 +25,7 @@ class NewsScreen extends StatefulWidget {
   State<NewsScreen> createState() => _NewsScreenState();
 }
 
-class _NewsScreenState extends State<NewsScreen> {
+class _NewsScreenState extends State<NewsScreen> with AutoRefreshMixin<NewsScreen> {
   final NewsService _service = NewsService();
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -48,10 +49,25 @@ class _NewsScreenState extends State<NewsScreen> {
     _loadCategories();
     _loadFeaturedNews();
     _loadInitialNews();
+    startAutoRefresh();
+  }
+
+  // The main paginated list deliberately isn't refreshed here: it would
+  // mean resetting `_news`/scroll position out from under someone mid-read
+  // (see _loadInitialNews, which always clears the list first). The
+  // featured carousel and category chips are self-contained and safe to
+  // silently re-check instead — pull-to-refresh (already present) remains
+  // the way to force the main list current.
+  @override
+  Future<void> onAutoRefresh() async {
+    await _loadFeaturedNews();
+    if (!mounted) return;
+    await _loadCategories();
   }
 
   @override
   void dispose() {
+    stopAutoRefresh();
     _debounceTimer?.cancel();
     _searchController.dispose();
     _scrollController.dispose();

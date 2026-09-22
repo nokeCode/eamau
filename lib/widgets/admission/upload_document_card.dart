@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-enum UploadStatus { none, selected, uploading, success, failure }
+enum UploadStatus { none, selected, uploading, queued, success, failure }
 
 class UploadDocumentCard extends StatelessWidget {
   final String title;
@@ -60,6 +60,14 @@ class UploadDocumentCard extends StatelessWidget {
         );
         statusLabel = 'Envoi en cours...';
         statusColor = Colors.blue.shade700;
+        break;
+      case UploadStatus.queued:
+        actionWidget = IconButton(
+          onPressed: onUpload,
+          icon: Icon(Icons.schedule, color: Colors.orange.shade800),
+        );
+        statusLabel = 'Sauvegardé localement, en attente de synchronisation';
+        statusColor = Colors.orange.shade800;
         break;
       case UploadStatus.success:
         actionWidget = IconButton(

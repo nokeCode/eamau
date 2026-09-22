@@ -1,21 +1,37 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../data/local/registration_local_datasource.dart';
+import '../../data/remote/registration_remote_datasource.dart';
+import '../../data/repositories/registration_repository.dart';
 import '../../models/profile/user_model.dart';
 import '../../models/registration/registration_referential_model.dart';
 import '../../models/registration/registration_status_model.dart';
+import '../../models/registration/registration_submit_outcome.dart';
 import '../../services/profile/profile_service.dart';
-import '../../services/registration/registration_service.dart';
 
-enum RegistrationFlowStatus { idle, loading, submitting, success, error }
+enum RegistrationFlowStatus { idle, loading, saving, submitting, success, error }
 
 class RegistrationProvider extends ChangeNotifier {
-  final RegistrationService _service = RegistrationService();
-  final ProfileService _profileService = ProfileService();
+  final RegistrationRepository _repository;
+  final ProfileService _profileService;
+
+  RegistrationProvider({
+    RegistrationRepository? repository,
+    ProfileService? profileService,
+  })  : _repository = repository ??
+            RegistrationRepository(
+              local: RegistrationLocalDatasource(),
+              remote: RegistrationRemoteDatasource(),
+            ),
+        _profileService = profileService ?? ProfileService();
 
   RegistrationFlowStatus status = RegistrationFlowStatus.idle;
+  RegistrationSubmitOutcome? lastSubmitOutcome;
   String? message;
+  int? localDraftId;
   RegistrationReferentialCollection? referentials;
   RegistrationStatus? registrationStatus;
   bool isRegistrationStatusLoading = false;
@@ -32,11 +48,15 @@ class RegistrationProvider extends ChangeNotifier {
 
     try {
       await _loadUserProfile();
-      referentials = await _service.getReferentials();
+      referentials = await _repository.getReferentials();
+      registrationStatus = await _repository.getRegistrationStatus();
+      if (registrationStatus?.activeSchoolYear != null && draft.schoolYear == null) {
+        draft = draft.copyWith(schoolYear: registrationStatus!.activeSchoolYear);
+      }
       status = RegistrationFlowStatus.idle;
     } catch (error) {
       status = RegistrationFlowStatus.error;
-      message = "Impossible de charger les référentiels depuis l'API.";
+      message = "Impossible de charger les référentiels.";
     }
 
     notifyListeners();
@@ -45,15 +65,17 @@ class RegistrationProvider extends ChangeNotifier {
   Future<void> _loadUserProfile() async {
     try {
       userProfile = await _profileService.getProfile();
-      // Remplir les champs firstName et lastName avec les données du profil
       if (userProfile != null && userProfile!.firstName.isNotEmpty) {
         draft = draft.copyWith(
-          firstName: userProfile!.firstName,
-          lastName: userProfile!.lastName,
+          firstName: draft.firstName.isEmpty ? userProfile!.firstName : draft.firstName,
+          lastName: draft.lastName.isEmpty ? userProfile!.lastName : draft.lastName,
+          email: draft.email.isEmpty ? userProfile!.email : draft.email,
+          phone: draft.phone.isEmpty ? userProfile!.phone : draft.phone,
+          matricule: draft.matricule.isEmpty ? userProfile!.matricule : draft.matricule,
         );
       }
-    } catch (error) {
-      // Continuer même si le chargement du profil échoue
+    } catch (_) {
+      // Continue seamlessly if profile cannot be fetched
     }
   }
 
@@ -63,18 +85,44 @@ class RegistrationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final status = await _service.getRegistrationStatus();
-      registrationStatus = status;
-      if (status.activeSchoolYear != null && draft.schoolYear == null) {
-        draft = draft.copyWith(schoolYear: status.activeSchoolYear);
+      final stat = await _repository.getRegistrationStatus();
+      registrationStatus = stat;
+      if (stat.activeSchoolYear != null && draft.schoolYear == null) {
+        draft = draft.copyWith(schoolYear: stat.activeSchoolYear);
       }
     } catch (error) {
-      registrationStatusError =
-          'Impossible de vérifier l’état des inscriptions.';
+      registrationStatusError = 'Impossible de vérifier l’état des inscriptions.';
     }
 
     isRegistrationStatusLoading = false;
     notifyListeners();
+  }
+
+  /// Resume and restore an existing local draft
+  Future<void> resumeDraft(int draftId) async {
+    try {
+      final draftRow = await _repository.getDraft(draftId);
+      if (draftRow != null) {
+        localDraftId = draftId;
+        final decoded = jsonDecode(draftRow.dataJson);
+        draft = RegistrationDraft.fromJson(decoded);
+
+        // Load existing attached documents
+        final docRows = await _repository.getDocumentsForDraft(draftId);
+        documents.clear();
+        for (final doc in docRows) {
+          documents.add(RegistrationDocument(
+            fileName: doc.fileName ?? doc.localPath.split('/').last,
+            filePath: doc.localPath,
+            type: doc.documentType ?? doc.mimeType ?? 'OTHER',
+            sizeBytes: doc.size ?? 0,
+          ));
+        }
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[REGISTRATION_PROVIDER] Error resuming draft: $e');
+    }
   }
 
   void updateDraft(RegistrationDraft newDraft) {
@@ -137,7 +185,6 @@ class RegistrationProvider extends ChangeNotifier {
     if (gradeOption == null) return;
     if (referentials == null) return;
 
-    // If user already added semesters manually, don't override.
     if (draft.semesters.isNotEmpty) return;
 
     final label = gradeOption.label.toLowerCase();
@@ -184,11 +231,9 @@ class RegistrationProvider extends ChangeNotifier {
     final sems = referentials?.semesters ?? [];
     for (final opt in sems) {
       final label = opt.label.toLowerCase();
-      // match exact number occurrence
       if (RegExp(r'\b' + number.toString() + r'\b').hasMatch(label)) {
         return opt;
       }
-      // try value if contains number
       if (opt.value.toLowerCase().contains(number.toString())) return opt;
       if (opt.id.toString() == number.toString()) return opt;
     }
@@ -265,7 +310,7 @@ class RegistrationProvider extends ChangeNotifier {
 
       documents.add(document);
       status = RegistrationFlowStatus.success;
-      message = 'Pièce ajoutée avec succès.';
+      message = 'Pièce ajoutée.';
       notifyListeners();
     } catch (error) {
       status = RegistrationFlowStatus.error;
@@ -274,7 +319,6 @@ class RegistrationProvider extends ChangeNotifier {
     }
   }
 
-  /// Add a picked file (already on device) as a registration document.
   void addDocumentFromFilePath({
     required String filePath,
     required String fileName,
@@ -292,7 +336,7 @@ class RegistrationProvider extends ChangeNotifier {
 
       documents.add(document);
       status = RegistrationFlowStatus.success;
-      message = 'Pièce ajoutée avec succès.';
+      message = 'Pièce ajoutée.';
       notifyListeners();
     } catch (e) {
       status = RegistrationFlowStatus.error;
@@ -308,29 +352,76 @@ class RegistrationProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> submitRegistration() async {
+  /// Persist draft and documents locally, then submit through offline queue
+  Future<RegistrationSubmitOutcome> submitRegistration() async {
     status = RegistrationFlowStatus.submitting;
     message = null;
     notifyListeners();
 
     try {
-      final success = await _service.submitRegistration(draft, documents);
-      if (!success) {
-        status = RegistrationFlowStatus.error;
-        message = 'Échec de la soumission. Veuillez réessayer.';
-        notifyListeners();
-        return false;
+      // 1. Save or update draft locally
+      final int draftId;
+      if (localDraftId != null) {
+        draftId = localDraftId!;
+        await _repository.updateDraftLocally(draftId: draftId, draft: draft);
+      } else {
+        draftId = await _repository.saveDraftLocally(draft: draft, status: 'draft');
+        localDraftId = draftId;
       }
 
-      status = RegistrationFlowStatus.success;
-      message = 'Inscription académique soumise avec succès.';
+      // 2. Attach and permanently persist all selected documents
+      for (final doc in documents) {
+        final file = File(doc.filePath);
+        if (await file.exists()) {
+          await _repository.attachDocumentToDraft(
+            draftId: draftId,
+            file: file,
+            fileName: doc.fileName,
+            mimeType: doc.type,
+            documentType: doc.type,
+          );
+        }
+      }
+
+      // 3. Submit draft through repository
+      final outcome = await _repository.submitDraft(draftId);
+      lastSubmitOutcome = outcome;
+
+      switch (outcome) {
+        case RegistrationSubmitOutcome.submittedOnline:
+          status = RegistrationFlowStatus.success;
+          message = 'Inscription académique soumise avec succès.';
+          break;
+        case RegistrationSubmitOutcome.queuedOffline:
+          status = RegistrationFlowStatus.success;
+          message = 'Votre demande est enregistrée localement et sera synchronisée dès le retour de la connexion.';
+          break;
+        case RegistrationSubmitOutcome.queuedAfterError:
+          status = RegistrationFlowStatus.success;
+          message = 'Votre demande est enregistrée localement. La synchronisation se poursuit en arrière-plan.';
+          break;
+        case RegistrationSubmitOutcome.requiresAuthentication:
+          status = RegistrationFlowStatus.error;
+          message = 'Vous devez vous connecter pour continuer votre inscription.';
+          break;
+        case RegistrationSubmitOutcome.alreadySubmittedElsewhere:
+          status = RegistrationFlowStatus.error;
+          message = 'Une demande est déjà soumise via cet email. Consultez-la sur votre tableau de bord.';
+          break;
+        case RegistrationSubmitOutcome.failed:
+          status = RegistrationFlowStatus.error;
+          message = 'Une erreur est survenue lors de l’enregistrement.';
+          break;
+      }
+
       notifyListeners();
-      return true;
+      return outcome;
     } catch (error) {
       status = RegistrationFlowStatus.error;
-      message = 'Une erreur est survenue pendant la soumission.';
+      message = 'Une erreur inattendue est survenue.';
+      lastSubmitOutcome = RegistrationSubmitOutcome.failed;
       notifyListeners();
-      return false;
+      return RegistrationSubmitOutcome.failed;
     }
   }
 
@@ -351,9 +442,11 @@ class RegistrationProvider extends ChangeNotifier {
   void reset() {
     draft = const RegistrationDraft();
     documents.clear();
+    localDraftId = null;
     currentStep = 1;
     status = RegistrationFlowStatus.idle;
     message = null;
+    lastSubmitOutcome = null;
     notifyListeners();
   }
 }

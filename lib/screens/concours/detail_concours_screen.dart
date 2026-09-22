@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/api/api_config.dart';
+import '../../core/ui/auto_refresh_mixin.dart';
 import '../../models/concours/concours_detail_model.dart';
 import '../../data/local/concours_local_datasource.dart';
 import '../../data/remote/concours_remote_datasource.dart';
@@ -22,19 +23,57 @@ class DetailConcoursScreen extends StatefulWidget {
   State<DetailConcoursScreen> createState() => _DetailConcoursScreenState();
 }
 
-class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
+class _DetailConcoursScreenState extends State<DetailConcoursScreen> with AutoRefreshMixin<DetailConcoursScreen> {
 
   final ConcoursRepository _repo = ConcoursRepository(
     local: ConcoursLocalDatasource(),
     remote: ConcoursRemoteDatasource(),
   );
 
-  late Future<ConcoursDetailModel> _future;
+  ConcoursDetailModel? _detail;
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _future = _repo.getConcoursDetail(widget.slug);
+    _loadDetail();
+    startAutoRefresh();
+  }
+
+  @override
+  Future<void> onAutoRefresh() => _loadDetail(silent: true);
+
+  @override
+  void dispose() {
+    stopAutoRefresh();
+    super.dispose();
+  }
+
+  Future<void> _loadDetail({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
+
+    try {
+      final detail = await _repo.getConcoursDetail(widget.slug);
+      if (!mounted) return;
+      setState(() {
+        _detail = detail;
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      if (silent) return; // keep showing the last good detail, don't surface a transient error
+      setState(() {
+        _isLoading = false;
+        _errorMessage = error.toString();
+      });
+    }
   }
 
   @override
@@ -43,19 +82,18 @@ class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: const Color(0xffF7F8FC),
-        body: FutureBuilder<ConcoursDetailModel>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+        body: Builder(
+          builder: (context) {
+            if (_isLoading) {
               return const _ConcoursDetailSkeleton();
             }
 
-            if (snapshot.hasError) {
+            if (_errorMessage != null) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Text(
-                    snapshot.error.toString(),
+                    _errorMessage!,
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.black54),
                   ),
@@ -63,7 +101,7 @@ class _DetailConcoursScreenState extends State<DetailConcoursScreen> {
               );
             }
 
-            final detail = snapshot.data!;
+            final detail = _detail!;
             final imageUrl = ApiConfig.imageUrl(detail.image);
 
             return SafeArea(

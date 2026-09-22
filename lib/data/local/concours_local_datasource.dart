@@ -15,6 +15,15 @@ class ConcoursLocalDatasource {
     final db = AppDatabase();
     for (final c in items) {
       try {
+        if (c.id.isEmpty) {
+          // An empty/missing remote id would make every such item collide
+          // onto the same lookup below (upsert-by-remoteId), silently
+          // overwriting one concours with another instead of inserting a
+          // second row. Logged loudly rather than silently merging them.
+          debugPrint('[CONCOURS][ERROR] id manquant pour "${c.slug}" -> '
+              'risque de collision avec un autre concours, item ignoré');
+          continue;
+        }
         final existing = await (db.select(db.concours)..where((t) => t.remoteId.equals(c.id))).getSingleOrNull();
 
         final now = DateTime.now();
@@ -33,7 +42,7 @@ class ConcoursLocalDatasource {
               updatedAt: Value(now),
             ),
           );
-          debugPrint('[CONCOURS] Détail mis à jour dans SQLite : ${c.slug}');
+          debugPrint('[CONCOURS] Détail mis à jour dans SQLite : ${c.slug} (id=${c.id})');
         } else {
           final companion = ConcoursCompanion(
             remoteId: Value(c.id),
@@ -48,7 +57,7 @@ class ConcoursLocalDatasource {
             updatedAt: Value(now),
           );
           await db.into(db.concours).insert(companion);
-          debugPrint('[CONCOURS] Nouvel item inséré dans SQLite : ${c.slug}');
+          debugPrint('[CONCOURS] Nouvel item inséré dans SQLite : ${c.slug} (id=${c.id})');
         }
       } catch (e) {
         debugPrint('[CONCOURS] Erreur saveConcours ${c.slug}: $e');

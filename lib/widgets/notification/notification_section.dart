@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/notifications/notification_navigation.dart';
 import '../../models/notification/notification_model.dart';
 import '../../providers/notification_provider.dart';
 import 'notification_card.dart';
@@ -56,9 +57,18 @@ class NotificationSection extends StatelessWidget {
                     .read<NotificationProvider>()
                     .markAsRead(notification.id);
 
-                // Ici tu pourras ajouter plus tard
-                // une navigation vers un détail
-                // selon le type de notification.
+                if (!context.mounted) return;
+                // Same routing a tapped push notification already gets
+                // (see main.dart's _handleNavigationFromMessage) — tapping
+                // a notification here now actually opens what it's about,
+                // instead of only marking it read.
+                navigateToNotificationTarget(
+                  Navigator.of(context),
+                  type: notification.type,
+                  route: notification.route,
+                  entityId: notification.entityId,
+                  notificationId: notification.id.toString(),
+                );
               },
             );
           },

@@ -29,6 +29,20 @@ class User {
 
   String get fullName => '${firstName ?? ''} ${lastName ?? ''}'.trim();
 
+  /// True while the account is still an unvalidated "user" role — i.e. it
+  /// hasn't been validated into a student account yet. Mirrors the exact
+  /// role check `ProfileScreen` already uses to decide whether to show its
+  /// "Demande de validation" card, so both screens agree on what "not
+  /// validated" means.
+  bool get needsAccountValidation {
+    final normalizedRole = role?.toLowerCase();
+    if (normalizedRole == null || normalizedRole.isEmpty) return false;
+    return normalizedRole == 'user' ||
+        normalizedRole.contains('role_user') ||
+        normalizedRole.contains('roles_user') ||
+        normalizedRole == 'role';
+  }
+
   int get completedProfileFieldCount {
     int count = 0;
 

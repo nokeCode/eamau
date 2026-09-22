@@ -1,14 +1,107 @@
 import 'dart:io';
 
 import 'package:drift/drift.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/database/app_database.dart';
-import '../../core/sync/sync_engine.dart';
 
-/// Local datasource for registration: saves drafts and documents to SQLite
+/// Local datasource for registration: saves drafts, documents, and referentials to SQLite
 class RegistrationLocalDatasource {
   final AppDatabase _db = AppDatabase();
+
+  /// Persists a picked/selected file permanently into the application's document storage
+  Future<File> persistFilePermanently(File sourceFile, String fileName) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final regDocsDir = Directory(p.join(appDir.path, 'registration_documents'));
+      if (!await regDocsDir.exists()) {
+        await regDocsDir.create(recursive: true);
+      }
+      final uniqueSuffix = const Uuid().v4().substring(0, 8);
+      final safeName = '${uniqueSuffix}_${p.basename(fileName)}';
+      final permanentPath = p.join(regDocsDir.path, safeName);
+      return await sourceFile.copy(permanentPath);
+    } catch (_) {
+      // Fallback to original file if copy fails
+      return sourceFile;
+    }
+  }
+
+  /// Cache the referentials JSON
+  Future<void> cacheReferentials(String referentialsJson) async {
+    final existing = await (_db.select(_db.registrationReferentials)..limit(1)).getSingleOrNull();
+    final now = DateTime.now();
+
+    if (existing == null) {
+      final companion = RegistrationReferentialsCompanion(
+        referentialsJson: Value(referentialsJson),
+        statusJson: const Value.absent(),
+        updatedAt: Value(now),
+      );
+      await _db.into(_db.registrationReferentials).insert(companion);
+    } else {
+      await (_db.update(_db.registrationReferentials)..where((t) => t.id.equals(existing.id))).write(
+        RegistrationReferentialsCompanion(
+          referentialsJson: Value(referentialsJson),
+          updatedAt: Value(now),
+        ),
+      );
+    }
+  }
+
+  /// Get cached referentials JSON if available
+  Future<String?> getCachedReferentials() async {
+    try {
+      final row = await (_db.select(_db.registrationReferentials)..limit(1)).getSingleOrNull();
+      return row?.referentialsJson;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Cache the registration campaign status JSON
+  Future<void> cacheStatus(String statusJson) async {
+    final existing = await (_db.select(_db.registrationReferentials)..limit(1)).getSingleOrNull();
+    final now = DateTime.now();
+
+    if (existing == null) {
+      final companion = RegistrationReferentialsCompanion(
+        referentialsJson: const Value('{}'),
+        statusJson: Value(statusJson),
+        updatedAt: Value(now),
+      );
+      await _db.into(_db.registrationReferentials).insert(companion);
+    } else {
+      await (_db.update(_db.registrationReferentials)..where((t) => t.id.equals(existing.id))).write(
+        RegistrationReferentialsCompanion(
+          statusJson: Value(statusJson),
+          updatedAt: Value(now),
+        ),
+      );
+    }
+  }
+
+  /// Get cached status JSON if available
+  Future<String?> getCachedStatus() async {
+    try {
+      final row = await (_db.select(_db.registrationReferentials)..limit(1)).getSingleOrNull();
+      return row?.statusJson;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Get timestamp of last cache update
+  Future<DateTime?> getCachedReferentialsUpdatedAt() async {
+    try {
+      final row = await (_db.select(_db.registrationReferentials)..limit(1)).getSingleOrNull();
+      return row?.updatedAt;
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Save a registration draft locally
   Future<int> saveDraft({
@@ -31,7 +124,17 @@ class RegistrationLocalDatasource {
     return _db.into(_db.registrationDrafts).insert(companion);
   }
 
-  /// Attach a document to a draft and enqueue sync
+  /// Update an existing draft's data in place
+  Future<void> updateDraftData(int draftId, String dataJson) async {
+    await (_db.update(_db.registrationDrafts)..where((t) => t.id.equals(draftId))).write(
+      RegistrationDraftsCompanion(
+        dataJson: Value(dataJson),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// Attach a document to a draft, persisting the physical file permanently
   Future<int> attachDocument({
     required int draftId,
     required File file,
@@ -39,8 +142,10 @@ class RegistrationLocalDatasource {
     required String mimeType,
     String? documentType,
   }) async {
-    final fileSize = await file.length();
-    final localPath = file.absolute.path;
+    // Copy the file to permanent application storage so it is never lost when /cache is purged
+    final permanentFile = await persistFilePermanently(file, fileName);
+    final fileSize = await permanentFile.length();
+    final localPath = permanentFile.absolute.path;
 
     final companion = RegistrationDocumentsCompanion(
       draftId: Value(draftId),
@@ -48,20 +153,12 @@ class RegistrationLocalDatasource {
       fileName: Value(fileName),
       mimeType: Value(mimeType),
       size: Value(fileSize),
-      uploadStatus: Value('pending'),
+      documentType: documentType != null ? Value(documentType) : const Value.absent(),
+      uploadStatus: const Value('pending'),
       retryCount: const Value(0),
     );
 
-    final docId = await _db.into(_db.registrationDocuments).insert(companion);
-
-    // Enqueue document upload to sync engine
-    await SyncEngine().enqueueDocumentUpload(
-      docId,
-      isRegistration: true,
-      attachmentType: documentType ?? 'OTHER',
-    );
-
-    return docId;
+    return _db.into(_db.registrationDocuments).insert(companion);
   }
 
   /// Get a draft by ID
@@ -100,7 +197,7 @@ class RegistrationLocalDatasource {
     }
   }
 
-  /// Update draft status (e.g., after remote submission)
+  /// Update draft status (e.g. 'pending_sync', 'created', 'submitted')
   Future<void> updateDraftStatus(int draftId, String status, {int? remoteId}) async {
     await (_db.update(_db.registrationDrafts)
           ..where((t) => t.id.equals(draftId)))
@@ -109,6 +206,15 @@ class RegistrationLocalDatasource {
         status: Value(status),
         remoteId: remoteId != null ? Value(remoteId) : const Value.absent(),
         updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// Update upload status of a single document
+  Future<void> updateDocumentStatus(int docId, String uploadStatus) async {
+    await (_db.update(_db.registrationDocuments)..where((d) => d.id.equals(docId))).write(
+      RegistrationDocumentsCompanion(
+        uploadStatus: Value(uploadStatus),
       ),
     );
   }

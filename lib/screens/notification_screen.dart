@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'package:provider/provider.dart';
-import '../../providers/notification_provider.dart';
 import '../../widgets/notification/notification_app_bar.dart';
 import '../../widgets/notification/notification_section.dart';
 import '../../widgets/notification/notification_tabs.dart';
+import '../core/ui/auto_refresh_mixin.dart';
 import '../providers/notification_provider.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -16,7 +15,8 @@ class NotificationScreen extends StatefulWidget {
   State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> {
+class _NotificationScreenState extends State<NotificationScreen>
+    with AutoRefreshMixin<NotificationScreen> {
   @override
   void initState() {
     super.initState();
@@ -24,7 +24,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
     Future.microtask(() {
       context.read<NotificationProvider>().loadNotifications();
     });
+    startAutoRefresh();
   }
+
+  @override
+  void dispose() {
+    stopAutoRefresh();
+    super.dispose();
+  }
+
+  @override
+  Future<void> onAutoRefresh() =>
+      context.read<NotificationProvider>().loadNotifications(silent: true);
 
   @override
   Widget build(BuildContext context) {

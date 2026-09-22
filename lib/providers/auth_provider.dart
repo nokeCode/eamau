@@ -130,16 +130,27 @@ class AuthProvider extends ChangeNotifier {
         sound: true,
       );
 
+      debugPrint('[PUSH][AUTH] authorizationStatus=${notificationSettings.authorizationStatus}');
       if (notificationSettings.authorizationStatus == AuthorizationStatus.denied) {
+        // Silent before: if the user denied notifications once (possibly
+        // during earlier testing, before POST_NOTIFICATIONS was even
+        // declared in the manifest), Android remembers that denial across
+        // app launches and this bails out here every time — no device
+        // token is ever sent to the backend, so it has nothing to push to,
+        // and nothing in the logs explained why.
+        debugPrint('[PUSH][AUTH] permission refusée -> device jamais enregistré, '
+            'aucun push ne pourra être reçu tant que ce n\'est pas réactivé '
+            'manuellement dans les réglages système de l\'app');
         return;
       }
 
       final token = await messaging.getToken();
       if (token == null || token.isEmpty) {
+        debugPrint('[PUSH][AUTH] messaging.getToken() a renvoyé null/vide -> device jamais enregistré');
         return;
       }
 
-      debugPrint('FCM TOKEN: $token');
+      debugPrint('[PUSH][AUTH] FCM TOKEN: $token');
 
       final packageInfo = await PackageInfo.fromPlatform();
       final payload = {
@@ -163,13 +174,21 @@ class AuthProvider extends ChangeNotifier {
 
       final resp = await NotificationService().registerDevice(payload);
 
-      // Persist token and optionally device id returned by backend
-      await deviceStorage.saveDeviceToken(token);
+      // Only remember this token as "sent to the backend" if it actually
+      // was — persisting it unconditionally (as before) meant a single
+      // failed registration call got permanently mistaken for success:
+      // the next launch's `stored == token` check above would then skip
+      // ever retrying it, leaving the backend with no valid token for this
+      // install indefinitely, with nothing wrong-looking in the UI.
       if (resp != null) {
+        await deviceStorage.saveDeviceToken(token);
         final id = resp['id'] ?? resp['deviceId'] ?? resp['device_id'];
         if (id != null) {
           await deviceStorage.saveDeviceId(id.toString());
         }
+        debugPrint('[PUSH][AUTH] device enregistré avec succès');
+      } else {
+        debugPrint('[PUSH][AUTH] échec enregistrement device -> sera retenté au prochain lancement');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -199,8 +218,8 @@ class AuthProvider extends ChangeNotifier {
       };
 
       final resp = await NotificationService().registerDevice(payload);
-      await deviceStorage.saveDeviceToken(token);
       if (resp != null) {
+        await deviceStorage.saveDeviceToken(token);
         final id = resp['id'] ?? resp['deviceId'] ?? resp['device_id'];
         if (id != null) {
           await deviceStorage.saveDeviceId(id.toString());

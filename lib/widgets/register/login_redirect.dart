@@ -4,7 +4,20 @@ import 'package:flutter/material.dart';
 import '../../screens/login_screen.dart';
 
 class LoginRedirect extends StatelessWidget {
-  const LoginRedirect({super.key});
+  final int? resumeAdmissionCampaignId;
+  final int? resumeAdmissionDraftId;
+  final int? resumeRegistrationDraftId;
+  final String? redirectRoute;
+  final Object? redirectArguments;
+
+  const LoginRedirect({
+    super.key,
+    this.resumeAdmissionCampaignId,
+    this.resumeAdmissionDraftId,
+    this.resumeRegistrationDraftId,
+    this.redirectRoute,
+    this.redirectArguments,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +46,13 @@ class LoginRedirect extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const LoginScreen(),
+                        builder: (_) => LoginScreen(
+                          resumeAdmissionCampaignId: resumeAdmissionCampaignId,
+                          resumeAdmissionDraftId: resumeAdmissionDraftId,
+                          resumeRegistrationDraftId: resumeRegistrationDraftId,
+                          redirectRoute: redirectRoute,
+                          redirectArguments: redirectArguments,
+                        ),
                       ),
                     );
                   },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/ui/auto_refresh_mixin.dart';
 import '../../models/concours/suivi_candidature_model.dart';
 import '../../services/concours/suivi_candidature_service.dart';
 import '../../widgets/concours/candidature_resume_card.dart';
@@ -15,22 +16,57 @@ class SuiviCandidatureScreen extends StatefulWidget {
   State<SuiviCandidatureScreen> createState() => _SuiviCandidatureScreenState();
 }
 
-class _SuiviCandidatureScreenState extends State<SuiviCandidatureScreen> {
+class _SuiviCandidatureScreenState extends State<SuiviCandidatureScreen>
+    with AutoRefreshMixin<SuiviCandidatureScreen> {
   final SuiviCandidatureService _service = SuiviCandidatureService();
 
-  late Future<SuiviCandidatureModel> _future;
+  SuiviCandidatureModel? _suivi;
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _future = _service.getSuivi(widget.reference);
+    _load();
+    startAutoRefresh();
   }
 
-  void _reload() {
-    setState(() {
-      _future = _service.getSuivi(widget.reference);
-    });
+  @override
+  void dispose() {
+    stopAutoRefresh();
+    super.dispose();
   }
+
+  @override
+  Future<void> onAutoRefresh() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
+
+    try {
+      final suivi = await _service.getSuivi(widget.reference);
+      if (!mounted) return;
+      setState(() {
+        _suivi = suivi;
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      if (silent) return; // keep showing the last good data
+      setState(() {
+        _isLoading = false;
+        _errorMessage = error.toString();
+      });
+    }
+  }
+
+  void _reload() => _load();
 
   String _formatDate(BuildContext context, String value) {
     final date = DateTime.tryParse(value);
@@ -44,14 +80,13 @@ class _SuiviCandidatureScreenState extends State<SuiviCandidatureScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: const Color(0xffF4F7FC),
-        body: FutureBuilder<SuiviCandidatureModel>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+        body: Builder(
+          builder: (context) {
+            if (_isLoading) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            if (snapshot.hasError || !snapshot.hasData) {
+            if (_errorMessage != null || _suivi == null) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
@@ -61,8 +96,7 @@ class _SuiviCandidatureScreenState extends State<SuiviCandidatureScreen> {
                       const Icon(Icons.error_outline, size: 48),
                       const SizedBox(height: 16),
                       Text(
-                        snapshot.error?.toString() ??
-                            'Aucune donnée de suivi disponible.',
+                        _errorMessage ?? 'Aucune donnée de suivi disponible.',
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
@@ -77,7 +111,7 @@ class _SuiviCandidatureScreenState extends State<SuiviCandidatureScreen> {
               );
             }
 
-            final suivi = snapshot.data!;
+            final suivi = _suivi!;
 
             return Column(
               children: [

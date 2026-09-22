@@ -1,17 +1,26 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/connectivity/connectivity_service.dart';
+import '../../core/sync/sync_engine.dart';
 import '../../services/admission/admission_request_service.dart';
 import '../../data/repositories/admission_repository.dart';
 import '../../data/local/admission_local_datasource.dart';
+import '../../data/remote/admission_remote_datasource.dart';
 import 'upload_document_card.dart';
 
 enum _UploadSource { camera, gallery, document }
+
+/// Outcome of [AdmissionUploadSectionState._uploadOrQueue], distinct enough
+/// to tell the user *why* a document ended up queued instead of uploaded:
+/// no network at all vs. a network that's up but couldn't reach the API
+/// (Wi-Fi connected != API reachable).
+enum _DocumentSyncOutcome { uploaded, queuedOffline, queuedApiUnreachable, failed }
 
 /// Upload section supports two modes:
 /// - remoteRequestId != null: upload immediately via `service`
@@ -76,146 +85,132 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
     "CV": null,
   };
 
-  Future<bool> uploadPendingDocuments() async {
-    // Remote flow: use service
-    if (widget.remoteRequestId != null && widget.service != null) {
-      final pendingFiles = documents.entries
-          .where(
-            (entry) =>
-                entry.value != null &&
-                _documentStatus[entry.key] != UploadStatus.success,
-          )
-          .toList();
-      if (pendingFiles.isEmpty) return false;
+  /// How long [_uploadOrQueue] waits for the upload to actually finish
+  /// before giving up on the UI's behalf, same idea as `AdmissionRepository.
+  /// _quickSyncAttempt`: the document is already durably saved locally
+  /// before this wait even starts, so timing out here only means "still
+  /// queued", never "lost".
+  static const Duration _quickUploadAttempt = Duration(seconds: 10);
 
-      bool allSuccess = true;
-      for (final entry in pendingFiles) {
+  /// Saves a just-picked file for [key] locally (durable, instant — never
+  /// blocks on the network) and, if online, gives the upload a short bounded
+  /// window to actually finish before falling back to "queued". Previously
+  /// this awaited the full attach-and-upload chain unbounded, which is why
+  /// picking a document could feel stuck for as long as the underlying HTTP
+  /// timeout (up to ~30s) even though it would eventually succeed.
+  Future<_DocumentSyncOutcome> _uploadOrQueue(String key, File file) async {
+    if (widget.localDraftId == null) {
+      if (mounted) {
         setState(() {
-          _documentStatus[entry.key] = UploadStatus.uploading;
-          _documentErrors[entry.key] = null;
+          _documentStatus[key] = UploadStatus.failure;
+          _documentErrors[key] = 'Aucune demande active pour joindre ce document.';
         });
-
-        try {
-          final preparedFile = await widget.service!.prepareFileForUpload(
-            entry.value!,
-            entry.key,
-          );
-          final attachmentType =
-              AdmissionRequestService.normalizeAttachmentTypeCode(entry.key);
-          final success = await widget.service!.uploadDocument(
-            widget.remoteRequestId!,
-            attachmentType,
-            preparedFile,
-          );
-
-          if (success) {
-            setState(() {
-              _documentStatus[entry.key] = UploadStatus.success;
-              _documentErrors[entry.key] = null;
-            });
-            continue;
-          }
-
-          allSuccess = false;
-          setState(() {
-            _documentStatus[entry.key] = UploadStatus.failure;
-            _documentErrors[entry.key] = widget.service!.lastErrorMessage;
-          });
-        } catch (error) {
-          allSuccess = false;
-          setState(() {
-            _documentStatus[entry.key] = UploadStatus.failure;
-            _documentErrors[entry.key] = error.toString();
-          });
-        }
       }
-
-      return allSuccess;
+      debugPrint('[ADMISSION][DOCUMENT][ERROR] localDraftId indisponible clé=$key');
+      return _DocumentSyncOutcome.failed;
     }
 
-    // Offline/local flow: attach to local draft and let SyncEngine handle upload
-    if (widget.localDraftId != null) {
-      final repo = AdmissionRepository(
-        local: AdmissionLocalDatasource(),
-        remote: null as dynamic,
+    final attachmentType = AdmissionRequestService.normalizeAttachmentTypeCode(key);
+    debugPrint('[ADMISSION][DOCUMENT] sélection fichier=${file.path.split('/').last} clé=$key');
+
+    if (mounted) {
+      setState(() {
+        _documentStatus[key] = UploadStatus.uploading;
+        _documentErrors[key] = null;
+      });
+    }
+
+    // `remote` is never actually used by attachDocumentToDraft/
+    // getDocumentsForDraft below (only `local` is), but the constructor
+    // requires a real, non-null instance — `null as dynamic` used to be
+    // passed here instead, which throws "type 'Null' is not a subtype of
+    // type 'AdmissionRemoteDatasource'" the moment this line runs (Dart's
+    // sound null safety rejects assigning null to a non-nullable field even
+    // through a dynamic cast). AdmissionRemoteDatasource is itself just an
+    // unused stub, so constructing a real one here is free and harmless.
+    final repo = AdmissionRepository(local: AdmissionLocalDatasource(), remote: AdmissionRemoteDatasource());
+    final int docId;
+    try {
+      docId = await repo.attachDocumentToDraft(
+        draftId: widget.localDraftId!,
+        file: file,
+        fileName: file.path.split('/').last,
+        mimeType: 'application/octet-stream',
+        attachmentType: attachmentType,
       );
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _documentStatus[key] = UploadStatus.failure;
+          _documentErrors[key] = error.toString();
+        });
+      }
+      debugPrint('[ADMISSION][DOCUMENT][ERROR] échec sauvegarde locale clé=$key error=$error');
+      return _DocumentSyncOutcome.failed;
+    }
+    debugPrint('[ADMISSION][DOCUMENT] sauvegardé localement documentId=$docId clé=$key');
 
-      final entries = documents.entries.where((e) => e.value != null).toList();
-      if (entries.isEmpty) return false;
+    // The document is already durably saved at this point — everything
+    // below is just "did it also finish uploading within our short
+    // window?". It must never leave the UI stuck on "uploading": any
+    // unexpected exception here (SyncEngine hiccup, a transient DB read
+    // error...) falls back to "queued" rather than propagating and
+    // silently freezing the spinner forever.
+    var online = false;
+    var synced = false;
+    try {
+      online = await ConnectivityService().isOnline();
+      debugPrint('[ADMISSION][DOCUMENT] documentId=$docId online=$online');
 
-      for (final entry in entries) {
-        try {
-          await repo.attachDocumentToDraft(
-            draftId: widget.localDraftId!,
-            file: entry.value!,
-            fileName: entry.value!.path.split('/').last,
-            mimeType: 'application/octet-stream',
-            attachmentType: AdmissionRequestService.normalizeAttachmentTypeCode(entry.key),
-          );
-          setState(() {
-            _documentStatus[entry.key] = UploadStatus.selected;
-            _documentErrors[entry.key] = null;
-          });
-        } catch (e) {
-          setState(() {
-            _documentStatus[entry.key] = UploadStatus.failure;
-            _documentErrors[entry.key] = e.toString();
-          });
-        }
+      if (online) {
+        debugPrint('[ADMISSION][DOCUMENT] tentative réseau courte (max ${_quickUploadAttempt.inSeconds}s) '
+            'documentId=$docId');
+        await SyncEngine().processQueueNow().timeout(
+          _quickUploadAttempt,
+          onTimeout: () {
+            debugPrint('[ADMISSION][DOCUMENT] tentative réseau courte non terminée documentId=$docId '
+                '-> la synchronisation continue en arrière-plan');
+          },
+        );
       }
 
-      return true;
+      final docs = await repo.getDocumentsForDraft(widget.localDraftId!);
+      synced = docs.any((d) => d.id == docId && d.uploadStatus == 'synced');
+    } catch (error, stackTrace) {
+      debugPrint('[ADMISSION][DOCUMENT][ERROR] exception pendant la tentative réseau documentId=$docId '
+          'type=${error.runtimeType} error=$error -> considéré comme en attente');
+      debugPrint('[ADMISSION][DOCUMENT][ERROR] stackTrace=$stackTrace');
+      synced = false;
+    }
+    debugPrint('[ADMISSION][DOCUMENT] statut final documentId=$docId synced=$synced clé=$key');
+
+    if (mounted) {
+      setState(() {
+        _documentStatus[key] = synced ? UploadStatus.success : UploadStatus.queued;
+        _documentErrors[key] = null;
+      });
     }
 
-    return false;
+    if (synced) return _DocumentSyncOutcome.uploaded;
+    return online ? _DocumentSyncOutcome.queuedApiUnreachable : _DocumentSyncOutcome.queuedOffline;
   }
 
-  Future<void> _uploadPendingDocumentsAndNotify() async {
-    final success = await uploadPendingDocuments();
-    if (!mounted) return;
+  Future<bool> uploadPendingDocuments() async {
+    final pendingFiles = documents.entries
+        .where(
+          (entry) =>
+              entry.value != null &&
+              _documentStatus[entry.key] != UploadStatus.success,
+        )
+        .toList();
+    if (pendingFiles.isEmpty) return false;
 
-    if (!success) {
-      final rawError = widget.service?.lastErrorMessage;
-      final message = _formatUploadError(rawError);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          backgroundColor: const Color(0xFFB00020),
-          content: Text.rich(
-            TextSpan(
-              children: [
-                const TextSpan(
-                  text: 'Échec de l’envoi des documents\n',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                TextSpan(
-                  text: message,
-                  style: const TextStyle(color: Colors.white70),
-                ),
-              ],
-            ),
-          ),
-          duration: const Duration(seconds: 8),
-        ),
-      );
-      return;
+    bool allSuccess = true;
+    for (final entry in pendingFiles) {
+      final outcome = await _uploadOrQueue(entry.key, entry.value!);
+      if (outcome == _DocumentSyncOutcome.failed) allSuccess = false;
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        backgroundColor: const Color(0xFF2E7D32),
-        content: const Text('Documents uploadés avec succès.'),
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    return allSuccess;
   }
 
   String _formatUploadError(String? rawError) {
@@ -235,7 +230,39 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
     return rawError.trim();
   }
 
+  // Documents always go through the local draft + SyncQueue path now (see
+  // _uploadOrQueue), so localDraftId is the only thing that actually gates
+  // whether there's somewhere to attach a document to.
+  bool get _hasActiveRequest => widget.localDraftId != null;
+
   Future<void> pickDocument(String key) async {
+    if (!_hasActiveRequest) {
+      // Nothing to attach the document to yet: no local draft, no remote
+      // request. This happens when the user reaches the "Pièces à joindre"
+      // section (same scrollable form) before validating the base
+      // information — there is genuinely no draft/request id to read at
+      // that point, it isn't lost or misplumbed. Guard before even opening
+      // the file picker so the message is immediate and unambiguous,
+      // instead of letting them pick a file first and only then failing.
+      debugPrint('[ADMISSION][DOCUMENT] pickDocument bloqué clé=$key: aucune demande active '
+          '(remoteRequestId et localDraftId sont tous les deux null)');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
+            backgroundColor: Color(0xFFB07D00),
+            content: Text(
+              'Veuillez d’abord valider vos informations personnelles (bouton « Continuer ») '
+              'avant de joindre vos documents.',
+            ),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      return;
+    }
+
     final source = await showModalBottomSheet<_UploadSource>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -304,23 +331,7 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
         _documentErrors[key] = null;
       });
 
-      // If a remote request exists, upload immediately. Otherwise, attach
-      // file to the local draft via AdmissionRepository so it will be synced.
-      if (widget.remoteRequestId != null && widget.service != null) {
-        await _uploadPendingDocumentsAndNotify();
-      } else if (widget.localDraftId != null) {
-        final repo = AdmissionRepository(
-          local: AdmissionLocalDatasource(),
-          remote: null as dynamic,
-        );
-        await repo.attachDocumentToDraft(
-          draftId: widget.localDraftId!,
-          file: picked,
-          fileName: picked.path.split('/').last,
-          mimeType: 'application/octet-stream',
-          attachmentType: AdmissionRequestService.normalizeAttachmentTypeCode(key),
-        );
-      }
+      await _pickedFileAndNotify(key, picked);
       return;
     }
 
@@ -348,21 +359,55 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
       _documentErrors[key] = null;
     });
 
-    if (widget.remoteRequestId != null && widget.service != null) {
-      await _uploadPendingDocumentsAndNotify();
-    } else if (widget.localDraftId != null) {
-      final repo = AdmissionRepository(
-        local: AdmissionLocalDatasource(),
-        remote: null as dynamic,
+    await _pickedFileAndNotify(key, picked);
+  }
+
+  /// Runs the upload-or-queue decision for a just-picked file and shows a
+  /// SnackBar reflecting what actually happened, matching the outcome
+  /// recorded in [_documentStatus] — with a message that tells offline
+  /// apart from "Wi-Fi connected but API unreachable", per outcome 3 of the
+  /// spec (that distinction is the whole point: a connected Wi-Fi icon
+  /// doesn't mean the API answered).
+  Future<void> _pickedFileAndNotify(String key, File picked) async {
+    final outcome = await _uploadOrQueue(key, picked);
+    if (!mounted) return;
+
+    if (outcome == _DocumentSyncOutcome.failed) {
+      final message = _formatUploadError(_documentErrors[key]);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          backgroundColor: const Color(0xFFB00020),
+          content: Text('Échec de l’envoi : $message'),
+          duration: const Duration(seconds: 8),
+        ),
       );
-      await repo.attachDocumentToDraft(
-        draftId: widget.localDraftId!,
-        file: picked,
-        fileName: picked.path.split('/').last,
-        mimeType: 'application/octet-stream',
-        attachmentType: AdmissionRequestService.normalizeAttachmentTypeCode(key),
-      );
+      return;
     }
+
+    final (Color color, String message) = switch (outcome) {
+      _DocumentSyncOutcome.uploaded => (const Color(0xFF2E7D32), 'Document envoyé.'),
+      _DocumentSyncOutcome.queuedOffline => (
+          const Color(0xFFB07D00),
+          'Pas de connexion. Le document a été enregistré et sera envoyé automatiquement.',
+        ),
+      _DocumentSyncOutcome.queuedApiUnreachable => (
+          const Color(0xFFB07D00),
+          'Connexion au serveur impossible. Le document a été enregistré et sera envoyé automatiquement.',
+        ),
+      _DocumentSyncOutcome.failed => (const Color(0xFFB00020), ''), // unreachable, handled above
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        backgroundColor: color,
+        content: Text(message),
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   Future<File> _writeTempFile(Uint8List bytes, String name) async {
@@ -377,26 +422,53 @@ class AdmissionUploadSectionState extends State<AdmissionUploadSection> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
-        children: documents.entries.map((doc) {
-          return UploadDocumentCard(
-            title: doc.key,
-            subtitle: "PDF, JPG, PNG - Max 5 Mo",
-            icon: Icons.description_outlined,
-            file: doc.value,
-            previewFile: _previewFiles[doc.key],
-            status: _documentStatus[doc.key] ?? UploadStatus.none,
-            failureMessage: _documentErrors[doc.key],
-            onUpload: () => pickDocument(doc.key),
-            onDelete: () {
-              setState(() {
-                documents[doc.key] = null;
-                _previewFiles[doc.key] = null;
-                _documentStatus[doc.key] = UploadStatus.none;
-                _documentErrors[doc.key] = null;
-              });
-            },
-          );
-        }).toList(),
+        children: [
+          if (!_hasActiveRequest)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF4E0),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFFD98E)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, color: Color(0xFFB07D00), size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Validez d’abord vos informations personnelles ci-dessus (bouton « Continuer ») '
+                      'pour pouvoir joindre vos documents.',
+                      style: TextStyle(color: Color(0xFFB07D00), fontSize: 12.5, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ...documents.entries.map((doc) {
+            return UploadDocumentCard(
+              title: doc.key,
+              subtitle: "PDF, JPG, PNG - Max 5 Mo",
+              icon: Icons.description_outlined,
+              file: doc.value,
+              previewFile: _previewFiles[doc.key],
+              status: _documentStatus[doc.key] ?? UploadStatus.none,
+              failureMessage: _documentErrors[doc.key],
+              onUpload: () => pickDocument(doc.key),
+              onDelete: () {
+                setState(() {
+                  documents[doc.key] = null;
+                  _previewFiles[doc.key] = null;
+                  _documentStatus[doc.key] = UploadStatus.none;
+                  _documentErrors[doc.key] = null;
+                });
+              },
+            );
+          }),
+        ],
       ),
     );
   }

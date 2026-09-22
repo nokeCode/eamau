@@ -76,4 +76,49 @@ void main() {
     expect(option.label, 'Certificat Médical');
     expect(option.value, 'Certificat Médical');
   });
+
+  test('RegistrationDraft preserves all local fields including semesters across serialization', () {
+    const draft = RegistrationDraft(
+      firstName: 'Germain',
+      lastName: 'Kouassi',
+      email: 'germain@eamau.tg',
+      phone: '+22890000000',
+      matricule: 'MAT1234',
+      alreadyRegistered: true,
+      schoolYear: RegistrationOption(id: '5', label: '2026-2027', value: '2026-2027'),
+      filiere: RegistrationOption(id: '1', label: 'Architecture', value: 'Architecture'),
+      grade: RegistrationOption(id: '2', label: 'Licence 2', value: 'Licence 2'),
+      group: RegistrationOption(id: '3', label: 'Groupe A', value: 'Groupe A'),
+      semesters: [
+        RegistrationSemesterEntry(
+          semester: RegistrationOption(id: '3', label: 'Semestre 3', value: 'Semestre 3'),
+          status: RegistrationOption(id: '1', label: 'Validé', value: 'Validé'),
+        ),
+      ],
+    );
+
+    final localMap = draft.toLocalMap();
+    final restored = RegistrationDraft.fromJson(localMap);
+
+    expect(restored.firstName, 'Germain');
+    expect(restored.lastName, 'Kouassi');
+    expect(restored.email, 'germain@eamau.tg');
+    expect(restored.matricule, 'MAT1234');
+    expect(restored.alreadyRegistered, isTrue);
+    expect(restored.schoolYear?.id, '5');
+    expect(restored.filiere?.label, 'Architecture');
+    expect(restored.grade?.label, 'Licence 2');
+    expect(restored.group?.label, 'Groupe A');
+    expect(restored.semesters, hasLength(1));
+    expect(restored.semesters.first.semester?.label, 'Semestre 3');
+    expect(restored.semesters.first.status?.label, 'Validé');
+
+    final apiJson = draft.toApiJson();
+    expect(apiJson['anneeScolaireId'], '5');
+    expect(apiJson['filiereId'], '1');
+    expect(apiJson['gradeId'], '2');
+    expect(apiJson['groupeId'], '3');
+    expect(apiJson['matricule'], 'MAT1234');
+    expect(apiJson['oldStudent'], isTrue);
+  });
 }

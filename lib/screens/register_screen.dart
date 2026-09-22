@@ -7,9 +7,25 @@ import '../widgets/register/login_redirect.dart';
 import '../widgets/register/register_button.dart';
 import '../widgets/register/register_form.dart';
 import '../widgets/register/register_header.dart';
+import 'profile_screen.dart';
+import 'registration/registration_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  /// See LoginScreen's fields of the same name.
+  final int? resumeAdmissionCampaignId;
+  final int? resumeAdmissionDraftId;
+  final int? resumeRegistrationDraftId;
+  final String? redirectRoute;
+  final Object? redirectArguments;
+
+  const RegisterScreen({
+    super.key,
+    this.resumeAdmissionCampaignId,
+    this.resumeAdmissionDraftId,
+    this.resumeRegistrationDraftId,
+    this.redirectRoute,
+    this.redirectArguments,
+  });
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -78,7 +94,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
 
-      Navigator.pushReplacementNamed(context, AppRoutes.profile);
+      if (widget.resumeRegistrationDraftId != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RegistrationScreen(
+              resumeDraftId: widget.resumeRegistrationDraftId,
+            ),
+          ),
+        );
+      } else if (widget.redirectRoute != null) {
+        Navigator.pushReplacementNamed(
+          context,
+          widget.redirectRoute!,
+          arguments: widget.redirectArguments,
+        );
+      } else if (widget.resumeAdmissionCampaignId != null && widget.resumeAdmissionDraftId != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProfileScreen(
+              resumeAdmissionCampaignId: widget.resumeAdmissionCampaignId,
+              resumeAdmissionDraftId: widget.resumeAdmissionDraftId,
+            ),
+          ),
+        );
+      } else {
+        Navigator.pushReplacementNamed(context, AppRoutes.profile);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -124,7 +167,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               },
             ),
             const SizedBox(height: 24),
-            const LoginRedirect(),
+            LoginRedirect(
+              resumeAdmissionCampaignId: widget.resumeAdmissionCampaignId,
+              resumeAdmissionDraftId: widget.resumeAdmissionDraftId,
+              resumeRegistrationDraftId: widget.resumeRegistrationDraftId,
+              redirectRoute: widget.redirectRoute,
+              redirectArguments: widget.redirectArguments,
+            ),
             const SizedBox(height: 30),
           ],
         ),

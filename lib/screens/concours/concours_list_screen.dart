@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/ui/auto_refresh_mixin.dart';
 import '../../models/concours/concours_model.dart';
 import '../../data/local/concours_local_datasource.dart';
 import '../../data/remote/concours_remote_datasource.dart';
@@ -19,7 +20,7 @@ class ConcoursListScreen extends StatefulWidget {
   State<ConcoursListScreen> createState() => _ConcoursListScreenState();
 }
 
-class _ConcoursListScreenState extends State<ConcoursListScreen> {
+class _ConcoursListScreenState extends State<ConcoursListScreen> with AutoRefreshMixin<ConcoursListScreen> {
   final ConcoursRepository _repo = ConcoursRepository(
     local: ConcoursLocalDatasource(),
     remote: ConcoursRemoteDatasource(),
@@ -37,14 +38,26 @@ class _ConcoursListScreenState extends State<ConcoursListScreen> {
   void initState() {
     super.initState();
     _loadConcours();
+    startAutoRefresh();
   }
 
-  Future<void> _loadConcours({String? query}) async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  @override
+  Future<void> onAutoRefresh() => _loadConcours(silent: true);
 
+  Future<void> _loadConcours({String? query, bool silent = false}) async {
+    // `silent` (periodic ticks, app-resume) never shows the loading
+    // skeleton over an already-displayed list — only the very first load
+    // and pull-to-refresh do that.
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
+
+    // ConcoursRepository.getConcours() already decides correctly: fresh
+    // from the network when online (so an unpublished concours disappears
+    // immediately, no stale flash), SQLite only as an offline fallback.
     try {
       final concours = await _repo.getConcours(query: query);
       if (!mounted) return;
@@ -55,11 +68,17 @@ class _ConcoursListScreenState extends State<ConcoursListScreen> {
       });
     } catch (error) {
       if (!mounted) return;
+      if (silent) return; // keep showing the last good list, don't surface a transient error
       setState(() {
         _isLoading = false;
         _errorMessage = error.toString();
       });
     }
+  }
+
+  Future<void> _onRefresh() {
+    final query = _searchController.text.trim();
+    return _loadConcours(query: query.isEmpty ? null : query);
   }
 
   void _applyFilters() {
@@ -91,6 +110,7 @@ class _ConcoursListScreenState extends State<ConcoursListScreen> {
 
   @override
   void dispose() {
+    stopAutoRefresh();
     _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -142,25 +162,39 @@ class _ConcoursListScreenState extends State<ConcoursListScreen> {
                       itemCount: 5,
                       itemBuilder: (_, _) => const _ConcoursSkeleton(),
                     )
-                  : _errorMessage != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Text(
-                              _errorMessage!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.black54),
+                  : RefreshIndicator(
+                      onRefresh: _onRefresh,
+                      child: _errorMessage != null
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
+                              child: Text(
+                                _errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.black54),
+                              ),
                             ),
-                          ),
+                          ],
                         )
                       : _filteredConcours.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'Aucun concours disponible',
-                                style: TextStyle(fontSize: 16),
-                              ),
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: const [
+                                Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 80),
+                                  child: Center(
+                                    child: Text(
+                                      'Aucun concours disponible',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             )
                           : ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
                               padding: const EdgeInsets.symmetric(horizontal: 20),
                               itemCount: _filteredConcours.length,
                               itemBuilder: (context, index) {
@@ -178,6 +212,7 @@ class _ConcoursListScreenState extends State<ConcoursListScreen> {
                                 );
                               },
                             ),
+                    ),
             ),
           ],
         ),

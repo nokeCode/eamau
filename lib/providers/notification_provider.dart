@@ -26,9 +26,16 @@ class NotificationProvider extends ChangeNotifier {
   int get unreadCount =>
       _notifications.where((e) => !e.isRead).length;
 
-  Future<void> loadNotifications() async {
-    _isLoading = true;
-    notifyListeners();
+  /// [silent]: skips the `isLoading = true` flip — used for background
+  /// auto-refresh (a timer, app-resume) so `NotificationScreen`'s
+  /// unconditional "isLoading -> full-screen spinner" doesn't blank out an
+  /// already-populated list on every tick. The initial load and explicit
+  /// pull-to-refresh should still show it, so they don't pass this.
+  Future<void> loadNotifications({bool silent = false}) async {
+    if (!silent) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     _notifications = await _service.getNotifications();
 
@@ -36,7 +43,9 @@ class NotificationProvider extends ChangeNotifier {
           (a, b) => b.createdAt.compareTo(a.createdAt),
     );
 
-    _isLoading = false;
+    if (!silent) {
+      _isLoading = false;
+    }
     notifyListeners();
   }
 

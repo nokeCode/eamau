@@ -4094,6 +4094,12 @@ class $RegistrationDocumentsTable extends RegistrationDocuments
   late final GeneratedColumn<int> size = GeneratedColumn<int>(
       'size', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _documentTypeMeta =
+      const VerificationMeta('documentType');
+  @override
+  late final GeneratedColumn<String> documentType = GeneratedColumn<String>(
+      'document_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _uploadStatusMeta =
       const VerificationMeta('uploadStatus');
   @override
@@ -4118,6 +4124,7 @@ class $RegistrationDocumentsTable extends RegistrationDocuments
         fileName,
         mimeType,
         size,
+        documentType,
         uploadStatus,
         retryCount
       ];
@@ -4157,6 +4164,12 @@ class $RegistrationDocumentsTable extends RegistrationDocuments
       context.handle(
           _sizeMeta, size.isAcceptableOrUnknown(data['size']!, _sizeMeta));
     }
+    if (data.containsKey('document_type')) {
+      context.handle(
+          _documentTypeMeta,
+          documentType.isAcceptableOrUnknown(
+              data['document_type']!, _documentTypeMeta));
+    }
     if (data.containsKey('upload_status')) {
       context.handle(
           _uploadStatusMeta,
@@ -4190,6 +4203,8 @@ class $RegistrationDocumentsTable extends RegistrationDocuments
           .read(DriftSqlType.string, data['${effectivePrefix}mime_type']),
       size: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}size']),
+      documentType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}document_type']),
       uploadStatus: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}upload_status'])!,
       retryCount: attachedDatabase.typeMapping
@@ -4211,6 +4226,7 @@ class RegistrationDocument extends DataClass
   final String? fileName;
   final String? mimeType;
   final int? size;
+  final String? documentType;
   final String uploadStatus;
   final int retryCount;
   const RegistrationDocument(
@@ -4220,6 +4236,7 @@ class RegistrationDocument extends DataClass
       this.fileName,
       this.mimeType,
       this.size,
+      this.documentType,
       required this.uploadStatus,
       required this.retryCount});
   @override
@@ -4238,6 +4255,9 @@ class RegistrationDocument extends DataClass
     }
     if (!nullToAbsent || size != null) {
       map['size'] = Variable<int>(size);
+    }
+    if (!nullToAbsent || documentType != null) {
+      map['document_type'] = Variable<String>(documentType);
     }
     map['upload_status'] = Variable<String>(uploadStatus);
     map['retry_count'] = Variable<int>(retryCount);
@@ -4258,6 +4278,9 @@ class RegistrationDocument extends DataClass
           ? const Value.absent()
           : Value(mimeType),
       size: size == null && nullToAbsent ? const Value.absent() : Value(size),
+      documentType: documentType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documentType),
       uploadStatus: Value(uploadStatus),
       retryCount: Value(retryCount),
     );
@@ -4273,6 +4296,7 @@ class RegistrationDocument extends DataClass
       fileName: serializer.fromJson<String?>(json['fileName']),
       mimeType: serializer.fromJson<String?>(json['mimeType']),
       size: serializer.fromJson<int?>(json['size']),
+      documentType: serializer.fromJson<String?>(json['documentType']),
       uploadStatus: serializer.fromJson<String>(json['uploadStatus']),
       retryCount: serializer.fromJson<int>(json['retryCount']),
     );
@@ -4287,6 +4311,7 @@ class RegistrationDocument extends DataClass
       'fileName': serializer.toJson<String?>(fileName),
       'mimeType': serializer.toJson<String?>(mimeType),
       'size': serializer.toJson<int?>(size),
+      'documentType': serializer.toJson<String?>(documentType),
       'uploadStatus': serializer.toJson<String>(uploadStatus),
       'retryCount': serializer.toJson<int>(retryCount),
     };
@@ -4299,6 +4324,7 @@ class RegistrationDocument extends DataClass
           Value<String?> fileName = const Value.absent(),
           Value<String?> mimeType = const Value.absent(),
           Value<int?> size = const Value.absent(),
+          Value<String?> documentType = const Value.absent(),
           String? uploadStatus,
           int? retryCount}) =>
       RegistrationDocument(
@@ -4308,6 +4334,8 @@ class RegistrationDocument extends DataClass
         fileName: fileName.present ? fileName.value : this.fileName,
         mimeType: mimeType.present ? mimeType.value : this.mimeType,
         size: size.present ? size.value : this.size,
+        documentType:
+            documentType.present ? documentType.value : this.documentType,
         uploadStatus: uploadStatus ?? this.uploadStatus,
         retryCount: retryCount ?? this.retryCount,
       );
@@ -4319,6 +4347,9 @@ class RegistrationDocument extends DataClass
       fileName: data.fileName.present ? data.fileName.value : this.fileName,
       mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
       size: data.size.present ? data.size.value : this.size,
+      documentType: data.documentType.present
+          ? data.documentType.value
+          : this.documentType,
       uploadStatus: data.uploadStatus.present
           ? data.uploadStatus.value
           : this.uploadStatus,
@@ -4336,6 +4367,7 @@ class RegistrationDocument extends DataClass
           ..write('fileName: $fileName, ')
           ..write('mimeType: $mimeType, ')
           ..write('size: $size, ')
+          ..write('documentType: $documentType, ')
           ..write('uploadStatus: $uploadStatus, ')
           ..write('retryCount: $retryCount')
           ..write(')'))
@@ -4344,7 +4376,7 @@ class RegistrationDocument extends DataClass
 
   @override
   int get hashCode => Object.hash(id, draftId, localPath, fileName, mimeType,
-      size, uploadStatus, retryCount);
+      size, documentType, uploadStatus, retryCount);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4355,6 +4387,7 @@ class RegistrationDocument extends DataClass
           other.fileName == this.fileName &&
           other.mimeType == this.mimeType &&
           other.size == this.size &&
+          other.documentType == this.documentType &&
           other.uploadStatus == this.uploadStatus &&
           other.retryCount == this.retryCount);
 }
@@ -4367,6 +4400,7 @@ class RegistrationDocumentsCompanion
   final Value<String?> fileName;
   final Value<String?> mimeType;
   final Value<int?> size;
+  final Value<String?> documentType;
   final Value<String> uploadStatus;
   final Value<int> retryCount;
   const RegistrationDocumentsCompanion({
@@ -4376,6 +4410,7 @@ class RegistrationDocumentsCompanion
     this.fileName = const Value.absent(),
     this.mimeType = const Value.absent(),
     this.size = const Value.absent(),
+    this.documentType = const Value.absent(),
     this.uploadStatus = const Value.absent(),
     this.retryCount = const Value.absent(),
   });
@@ -4386,6 +4421,7 @@ class RegistrationDocumentsCompanion
     this.fileName = const Value.absent(),
     this.mimeType = const Value.absent(),
     this.size = const Value.absent(),
+    this.documentType = const Value.absent(),
     this.uploadStatus = const Value.absent(),
     this.retryCount = const Value.absent(),
   }) : localPath = Value(localPath);
@@ -4396,6 +4432,7 @@ class RegistrationDocumentsCompanion
     Expression<String>? fileName,
     Expression<String>? mimeType,
     Expression<int>? size,
+    Expression<String>? documentType,
     Expression<String>? uploadStatus,
     Expression<int>? retryCount,
   }) {
@@ -4406,6 +4443,7 @@ class RegistrationDocumentsCompanion
       if (fileName != null) 'file_name': fileName,
       if (mimeType != null) 'mime_type': mimeType,
       if (size != null) 'size': size,
+      if (documentType != null) 'document_type': documentType,
       if (uploadStatus != null) 'upload_status': uploadStatus,
       if (retryCount != null) 'retry_count': retryCount,
     });
@@ -4418,6 +4456,7 @@ class RegistrationDocumentsCompanion
       Value<String?>? fileName,
       Value<String?>? mimeType,
       Value<int?>? size,
+      Value<String?>? documentType,
       Value<String>? uploadStatus,
       Value<int>? retryCount}) {
     return RegistrationDocumentsCompanion(
@@ -4427,6 +4466,7 @@ class RegistrationDocumentsCompanion
       fileName: fileName ?? this.fileName,
       mimeType: mimeType ?? this.mimeType,
       size: size ?? this.size,
+      documentType: documentType ?? this.documentType,
       uploadStatus: uploadStatus ?? this.uploadStatus,
       retryCount: retryCount ?? this.retryCount,
     );
@@ -4453,6 +4493,9 @@ class RegistrationDocumentsCompanion
     if (size.present) {
       map['size'] = Variable<int>(size.value);
     }
+    if (documentType.present) {
+      map['document_type'] = Variable<String>(documentType.value);
+    }
     if (uploadStatus.present) {
       map['upload_status'] = Variable<String>(uploadStatus.value);
     }
@@ -4471,8 +4514,284 @@ class RegistrationDocumentsCompanion
           ..write('fileName: $fileName, ')
           ..write('mimeType: $mimeType, ')
           ..write('size: $size, ')
+          ..write('documentType: $documentType, ')
           ..write('uploadStatus: $uploadStatus, ')
           ..write('retryCount: $retryCount')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RegistrationReferentialsTable extends RegistrationReferentials
+    with TableInfo<$RegistrationReferentialsTable, RegistrationReferential> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RegistrationReferentialsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _referentialsJsonMeta =
+      const VerificationMeta('referentialsJson');
+  @override
+  late final GeneratedColumn<String> referentialsJson = GeneratedColumn<String>(
+      'referentials_json', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _statusJsonMeta =
+      const VerificationMeta('statusJson');
+  @override
+  late final GeneratedColumn<String> statusJson = GeneratedColumn<String>(
+      'status_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, referentialsJson, statusJson, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'registration_referentials';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<RegistrationReferential> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('referentials_json')) {
+      context.handle(
+          _referentialsJsonMeta,
+          referentialsJson.isAcceptableOrUnknown(
+              data['referentials_json']!, _referentialsJsonMeta));
+    } else if (isInserting) {
+      context.missing(_referentialsJsonMeta);
+    }
+    if (data.containsKey('status_json')) {
+      context.handle(
+          _statusJsonMeta,
+          statusJson.isAcceptableOrUnknown(
+              data['status_json']!, _statusJsonMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RegistrationReferential map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RegistrationReferential(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      referentialsJson: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}referentials_json'])!,
+      statusJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status_json']),
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $RegistrationReferentialsTable createAlias(String alias) {
+    return $RegistrationReferentialsTable(attachedDatabase, alias);
+  }
+}
+
+class RegistrationReferential extends DataClass
+    implements Insertable<RegistrationReferential> {
+  final int id;
+  final String referentialsJson;
+  final String? statusJson;
+  final DateTime updatedAt;
+  const RegistrationReferential(
+      {required this.id,
+      required this.referentialsJson,
+      this.statusJson,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['referentials_json'] = Variable<String>(referentialsJson);
+    if (!nullToAbsent || statusJson != null) {
+      map['status_json'] = Variable<String>(statusJson);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  RegistrationReferentialsCompanion toCompanion(bool nullToAbsent) {
+    return RegistrationReferentialsCompanion(
+      id: Value(id),
+      referentialsJson: Value(referentialsJson),
+      statusJson: statusJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(statusJson),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory RegistrationReferential.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RegistrationReferential(
+      id: serializer.fromJson<int>(json['id']),
+      referentialsJson: serializer.fromJson<String>(json['referentialsJson']),
+      statusJson: serializer.fromJson<String?>(json['statusJson']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'referentialsJson': serializer.toJson<String>(referentialsJson),
+      'statusJson': serializer.toJson<String?>(statusJson),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  RegistrationReferential copyWith(
+          {int? id,
+          String? referentialsJson,
+          Value<String?> statusJson = const Value.absent(),
+          DateTime? updatedAt}) =>
+      RegistrationReferential(
+        id: id ?? this.id,
+        referentialsJson: referentialsJson ?? this.referentialsJson,
+        statusJson: statusJson.present ? statusJson.value : this.statusJson,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  RegistrationReferential copyWithCompanion(
+      RegistrationReferentialsCompanion data) {
+    return RegistrationReferential(
+      id: data.id.present ? data.id.value : this.id,
+      referentialsJson: data.referentialsJson.present
+          ? data.referentialsJson.value
+          : this.referentialsJson,
+      statusJson:
+          data.statusJson.present ? data.statusJson.value : this.statusJson,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RegistrationReferential(')
+          ..write('id: $id, ')
+          ..write('referentialsJson: $referentialsJson, ')
+          ..write('statusJson: $statusJson, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, referentialsJson, statusJson, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RegistrationReferential &&
+          other.id == this.id &&
+          other.referentialsJson == this.referentialsJson &&
+          other.statusJson == this.statusJson &&
+          other.updatedAt == this.updatedAt);
+}
+
+class RegistrationReferentialsCompanion
+    extends UpdateCompanion<RegistrationReferential> {
+  final Value<int> id;
+  final Value<String> referentialsJson;
+  final Value<String?> statusJson;
+  final Value<DateTime> updatedAt;
+  const RegistrationReferentialsCompanion({
+    this.id = const Value.absent(),
+    this.referentialsJson = const Value.absent(),
+    this.statusJson = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  RegistrationReferentialsCompanion.insert({
+    this.id = const Value.absent(),
+    required String referentialsJson,
+    this.statusJson = const Value.absent(),
+    required DateTime updatedAt,
+  })  : referentialsJson = Value(referentialsJson),
+        updatedAt = Value(updatedAt);
+  static Insertable<RegistrationReferential> custom({
+    Expression<int>? id,
+    Expression<String>? referentialsJson,
+    Expression<String>? statusJson,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (referentialsJson != null) 'referentials_json': referentialsJson,
+      if (statusJson != null) 'status_json': statusJson,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  RegistrationReferentialsCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? referentialsJson,
+      Value<String?>? statusJson,
+      Value<DateTime>? updatedAt}) {
+    return RegistrationReferentialsCompanion(
+      id: id ?? this.id,
+      referentialsJson: referentialsJson ?? this.referentialsJson,
+      statusJson: statusJson ?? this.statusJson,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (referentialsJson.present) {
+      map['referentials_json'] = Variable<String>(referentialsJson.value);
+    }
+    if (statusJson.present) {
+      map['status_json'] = Variable<String>(statusJson.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RegistrationReferentialsCompanion(')
+          ..write('id: $id, ')
+          ..write('referentialsJson: $referentialsJson, ')
+          ..write('statusJson: $statusJson, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
@@ -6351,6 +6670,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $RegistrationDraftsTable(this);
   late final $RegistrationDocumentsTable registrationDocuments =
       $RegistrationDocumentsTable(this);
+  late final $RegistrationReferentialsTable registrationReferentials =
+      $RegistrationReferentialsTable(this);
   late final $PostulationDraftsTable postulationDrafts =
       $PostulationDraftsTable(this);
   late final $PostulationDocumentsTable postulationDocuments =
@@ -6374,6 +6695,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         documents,
         registrationDrafts,
         registrationDocuments,
+        registrationReferentials,
         postulationDrafts,
         postulationDocuments,
         syncOperations,
@@ -8083,6 +8405,7 @@ typedef $$RegistrationDocumentsTableCreateCompanionBuilder
   Value<String?> fileName,
   Value<String?> mimeType,
   Value<int?> size,
+  Value<String?> documentType,
   Value<String> uploadStatus,
   Value<int> retryCount,
 });
@@ -8094,6 +8417,7 @@ typedef $$RegistrationDocumentsTableUpdateCompanionBuilder
   Value<String?> fileName,
   Value<String?> mimeType,
   Value<int?> size,
+  Value<String?> documentType,
   Value<String> uploadStatus,
   Value<int> retryCount,
 });
@@ -8122,6 +8446,7 @@ class $$RegistrationDocumentsTableTableManager extends RootTableManager<
             Value<String?> fileName = const Value.absent(),
             Value<String?> mimeType = const Value.absent(),
             Value<int?> size = const Value.absent(),
+            Value<String?> documentType = const Value.absent(),
             Value<String> uploadStatus = const Value.absent(),
             Value<int> retryCount = const Value.absent(),
           }) =>
@@ -8132,6 +8457,7 @@ class $$RegistrationDocumentsTableTableManager extends RootTableManager<
             fileName: fileName,
             mimeType: mimeType,
             size: size,
+            documentType: documentType,
             uploadStatus: uploadStatus,
             retryCount: retryCount,
           ),
@@ -8142,6 +8468,7 @@ class $$RegistrationDocumentsTableTableManager extends RootTableManager<
             Value<String?> fileName = const Value.absent(),
             Value<String?> mimeType = const Value.absent(),
             Value<int?> size = const Value.absent(),
+            Value<String?> documentType = const Value.absent(),
             Value<String> uploadStatus = const Value.absent(),
             Value<int> retryCount = const Value.absent(),
           }) =>
@@ -8152,6 +8479,7 @@ class $$RegistrationDocumentsTableTableManager extends RootTableManager<
             fileName: fileName,
             mimeType: mimeType,
             size: size,
+            documentType: documentType,
             uploadStatus: uploadStatus,
             retryCount: retryCount,
           ),
@@ -8183,6 +8511,11 @@ class $$RegistrationDocumentsTableFilterComposer
 
   ColumnFilters<int> get size => $state.composableBuilder(
       column: $state.table.size,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get documentType => $state.composableBuilder(
+      column: $state.table.documentType,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -8241,6 +8574,11 @@ class $$RegistrationDocumentsTableOrderingComposer
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
+  ColumnOrderings<String> get documentType => $state.composableBuilder(
+      column: $state.table.documentType,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
   ColumnOrderings<String> get uploadStatus => $state.composableBuilder(
       column: $state.table.uploadStatus,
       builder: (column, joinBuilders) =>
@@ -8266,6 +8604,113 @@ class $$RegistrationDocumentsTableOrderingComposer
                     parentComposers)));
     return composer;
   }
+}
+
+typedef $$RegistrationReferentialsTableCreateCompanionBuilder
+    = RegistrationReferentialsCompanion Function({
+  Value<int> id,
+  required String referentialsJson,
+  Value<String?> statusJson,
+  required DateTime updatedAt,
+});
+typedef $$RegistrationReferentialsTableUpdateCompanionBuilder
+    = RegistrationReferentialsCompanion Function({
+  Value<int> id,
+  Value<String> referentialsJson,
+  Value<String?> statusJson,
+  Value<DateTime> updatedAt,
+});
+
+class $$RegistrationReferentialsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $RegistrationReferentialsTable,
+    RegistrationReferential,
+    $$RegistrationReferentialsTableFilterComposer,
+    $$RegistrationReferentialsTableOrderingComposer,
+    $$RegistrationReferentialsTableCreateCompanionBuilder,
+    $$RegistrationReferentialsTableUpdateCompanionBuilder> {
+  $$RegistrationReferentialsTableTableManager(
+      _$AppDatabase db, $RegistrationReferentialsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          filteringComposer: $$RegistrationReferentialsTableFilterComposer(
+              ComposerState(db, table)),
+          orderingComposer: $$RegistrationReferentialsTableOrderingComposer(
+              ComposerState(db, table)),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> referentialsJson = const Value.absent(),
+            Value<String?> statusJson = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+          }) =>
+              RegistrationReferentialsCompanion(
+            id: id,
+            referentialsJson: referentialsJson,
+            statusJson: statusJson,
+            updatedAt: updatedAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String referentialsJson,
+            Value<String?> statusJson = const Value.absent(),
+            required DateTime updatedAt,
+          }) =>
+              RegistrationReferentialsCompanion.insert(
+            id: id,
+            referentialsJson: referentialsJson,
+            statusJson: statusJson,
+            updatedAt: updatedAt,
+          ),
+        ));
+}
+
+class $$RegistrationReferentialsTableFilterComposer
+    extends FilterComposer<_$AppDatabase, $RegistrationReferentialsTable> {
+  $$RegistrationReferentialsTableFilterComposer(super.$state);
+  ColumnFilters<int> get id => $state.composableBuilder(
+      column: $state.table.id,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get referentialsJson => $state.composableBuilder(
+      column: $state.table.referentialsJson,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get statusJson => $state.composableBuilder(
+      column: $state.table.statusJson,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<DateTime> get updatedAt => $state.composableBuilder(
+      column: $state.table.updatedAt,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+}
+
+class $$RegistrationReferentialsTableOrderingComposer
+    extends OrderingComposer<_$AppDatabase, $RegistrationReferentialsTable> {
+  $$RegistrationReferentialsTableOrderingComposer(super.$state);
+  ColumnOrderings<int> get id => $state.composableBuilder(
+      column: $state.table.id,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get referentialsJson => $state.composableBuilder(
+      column: $state.table.referentialsJson,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get statusJson => $state.composableBuilder(
+      column: $state.table.statusJson,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<DateTime> get updatedAt => $state.composableBuilder(
+      column: $state.table.updatedAt,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
 }
 
 typedef $$PostulationDraftsTableCreateCompanionBuilder
@@ -9073,6 +9518,9 @@ class $AppDatabaseManager {
       $$RegistrationDraftsTableTableManager(_db, _db.registrationDrafts);
   $$RegistrationDocumentsTableTableManager get registrationDocuments =>
       $$RegistrationDocumentsTableTableManager(_db, _db.registrationDocuments);
+  $$RegistrationReferentialsTableTableManager get registrationReferentials =>
+      $$RegistrationReferentialsTableTableManager(
+          _db, _db.registrationReferentials);
   $$PostulationDraftsTableTableManager get postulationDrafts =>
       $$PostulationDraftsTableTableManager(_db, _db.postulationDrafts);
   $$PostulationDocumentsTableTableManager get postulationDocuments =>

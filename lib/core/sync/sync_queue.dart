@@ -153,7 +153,12 @@ class SyncQueue {
   Future<void> _refreshFromDatabase() async {
     try {
       final db = AppDatabase();
-      final rows = await db.select(db.syncOperations).get();
+      // Ordered by insertion (id) so operations enqueued for the same draft
+      // (create -> document uploads -> submit) are always processed in that
+      // same order, instead of an unspecified row order.
+      final rows = await (db.select(db.syncOperations)
+            ..orderBy([(t) => OrderingTerm.asc(t.id)]))
+          .get();
       _queue
         ..clear()
         ..addAll(rows.map(SyncOperation.fromRow));

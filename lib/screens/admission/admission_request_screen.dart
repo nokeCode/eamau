@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../core/sync/sync_engine.dart';
 import '../../routes/app_routes.dart';
 import '../../models/admission/admission_campaign_detail_model.dart';
 import '../../models/admission/admission_request_model.dart';
@@ -19,15 +21,23 @@ import '../../widgets/admission/admission_date_field.dart';
 import '../../widgets/admission/admission_phone_field.dart';
 import '../../widgets/admission/admission_upload_section.dart';
 import '../../widgets/admission/admission_submit_button.dart';
+import '../login_screen.dart';
 
 class AdmissionRequestScreen extends StatefulWidget {
   final int campaignId;
   final AdmissionRequestService? service;
 
+  /// Set when returning here from the profile screen's resume banner after the
+  /// user was sent to log in mid-submission (admission.create got a 401).
+  /// The draft with this id already holds whatever they'd typed before —
+  /// it gets loaded and the form pre-filled instead of starting blank.
+  final int? resumeDraftId;
+
   const AdmissionRequestScreen({
     super.key,
     required this.campaignId,
     this.service,
+    this.resumeDraftId,
   });
 
   @override
@@ -49,6 +59,7 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
   int? _localDraftId;
   bool _summaryLoading = false;
   String? _summaryError;
+  StreamSubscription<int>? _admissionSubmittedSub;
 
   final firstNameController = TextEditingController();
   final lastNameController = TextEditingController();
@@ -126,11 +137,109 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
       local: AdmissionLocalDatasource(),
       remote: AdmissionRemoteDatasource(),
     );
-    loadData();
+    // Fires when a draft's admission.submit eventually succeeds in the
+    // background, after the UI already gave up waiting on the short "quick
+    // attempt" window in AdmissionRepository.submitDraft — so the user
+    // still gets a real confirmation instead of never hearing back.
+    _admissionSubmittedSub = SyncEngine().onAdmissionSubmitted.listen((syncedDraftId) {
+      if (!mounted || syncedDraftId != _localDraftId) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.green,
+          content: Text('Votre demande a bien été soumise (synchronisation terminée en arrière-plan).'),
+        ),
+      );
+    });
+    loadData().then((_) {
+      if (widget.resumeDraftId != null) {
+        _prefillFromResumeDraft(widget.resumeDraftId!);
+      }
+    });
+  }
+
+  /// Loads a previously-saved local draft (created before the user was sent
+  /// to log in) and fills the form with it, so they don't have to retype
+  /// everything. Best-effort: dropdown-backed fields (nationality, diploma,
+  /// level, program) are only restored if a matching item is still present
+  /// in `formData`/the campaign's own lists; otherwise the user re-picks
+  /// them rather than the app silently showing something wrong.
+  Future<void> _prefillFromResumeDraft(int draftId) async {
+    final draft = await _repository.getDraft(draftId);
+    if (draft == null || !mounted) return;
+
+    Map<String, dynamic> data;
+    try {
+      final decoded = jsonDecode(draft.dataJson);
+      data = decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    } catch (_) {
+      data = <String, dynamic>{};
+    }
+
+    final model = AdmissionRequestModel.fromJson(data);
+
+    // `DropdownButtonFormField` asserts that its `value` is `==` to exactly
+    // one entry of `items` — anything else (including a raw string that
+    // isn't literally one of the items) crashes the widget. So unlike text
+    // fields, a dropdown value can only ever be restored to an item that
+    // still exists, verbatim, in the currently-loaded list; there is no
+    // safe "keep it anyway" fallback here.
+    dynamic matchInList(String listKey, String storedValue) {
+      if (storedValue.isEmpty) return null;
+      final items = formData[listKey];
+      if (items is List) {
+        for (final item in items) {
+          if (_extractValue(item) == storedValue) return item;
+        }
+      }
+      return null;
+    }
+
+    // `currentLevel`/`requestedLevel` are stored already normalized (e.g.
+    // "L3"), but the `diplomas` list holds human labels ("Licence") — a
+    // plain value match against that list would never succeed. Compare
+    // through the same normalization used when the draft was saved instead.
+    dynamic matchByNormalizedLevel(String listKey, String storedValue) {
+      if (storedValue.isEmpty) return null;
+      final items = formData[listKey];
+      if (items is List) {
+        for (final item in items) {
+          if (_normalizeAcademicLevel(item) == storedValue) return item;
+        }
+      }
+      return null;
+    }
+
+    setState(() {
+      firstNameController.text = model.firstName;
+      lastNameController.text = model.lastName;
+      emailController.text = model.email;
+      phoneController.text = model.phone;
+      if (model.birthDate != null) {
+        final d = model.birthDate!;
+        birthController.text =
+            '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year.toString().padLeft(4, '0')}';
+      }
+      professionController.text = model.profession;
+      addressController.text = model.address;
+      schoolController.text = model.universityOrigin;
+      currentFieldController.text = model.currentField;
+
+      nationality = matchInList('nationalities', model.nationality);
+      diploma = matchByNormalizedLevel('diplomas', model.currentLevel);
+      if (model.requestedLevel.isNotEmpty) {
+        level = matchInList('levels', model.requestedLevel) ??
+            matchByNormalizedLevel('levels', model.requestedLevel);
+      }
+      program = matchInList('programs', model.requestedField);
+
+      _localDraftId = draftId;
+      _requestId = draft.remoteId;
+    });
   }
 
   @override
   void dispose() {
+    _admissionSubmittedSub?.cancel();
     firstNameController.dispose();
     lastNameController.dispose();
     emailController.dispose();
@@ -331,13 +440,24 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
     );
 
     try {
-      // Persist draft locally via repository and enqueue sync operations
+      // Persist draft locally via repository and enqueue sync operations.
+      // Reuse the existing local draft (this session's or one resumed after
+      // a login redirect) instead of creating a new one each retry — that's
+      // what previously left duplicate local drafts (and duplicate
+      // admission.create retry loops) behind whenever the first attempt
+      // didn't fully succeed.
       final draftMap = model.toJson();
       draftMap['campaignId'] = widget.campaignId;
-      final draftId = await _repository.saveDraftLocally(
-        draftData: draftMap,
-        status: 'draft',
-      );
+      final int draftId;
+      if (_localDraftId != null) {
+        draftId = _localDraftId!;
+        await _repository.updateDraftLocally(draftId: draftId, draftData: draftMap);
+      } else {
+        draftId = await _repository.saveDraftLocally(
+          draftData: draftMap,
+          status: 'draft',
+        );
+      }
 
       final outcome = await _repository.submitDraft(draftId);
 
@@ -354,14 +474,45 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
         return;
       }
 
+      if (outcome == AdmissionSubmitOutcome.requiresAuthentication) {
+        setState(() {
+          _requestId = null;
+          _localDraftId = draftId;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.orange,
+            content: Text(
+              'Vous devez vous connecter pour continuer votre demande d’admission. '
+              'Vos informations ont été enregistrées.',
+            ),
+            duration: Duration(seconds: 4),
+          ),
+        );
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => LoginScreen(
+              resumeAdmissionCampaignId: widget.campaignId,
+              resumeAdmissionDraftId: draftId,
+            ),
+          ),
+        );
+        return;
+      }
+
       final snackBarMessage = switch (outcome) {
         AdmissionSubmitOutcome.submittedOnline =>
           'Votre demande a été soumise avec succès.',
         AdmissionSubmitOutcome.queuedOffline =>
-          'Votre demande est sauvegardée localement et sera synchronisée dès que la connexion sera rétablie.',
+          'Votre demande a été sauvegardée localement. Elle sera envoyée automatiquement dès que la connexion sera disponible.',
         AdmissionSubmitOutcome.queuedAfterError =>
-          'Votre demande est sauvegardée localement suite à une erreur d’envoi et sera synchronisée automatiquement.',
-        AdmissionSubmitOutcome.failed => 'Impossible d’enregistrer la demande localement.',
+          'Demande enregistrée, synchronisation en attente : le serveur met du temps à répondre. '
+              'Vous serez notifié dès que ce sera confirmé.',
+        AdmissionSubmitOutcome.failed ||
+        AdmissionSubmitOutcome.requiresAuthentication =>
+          'Impossible d’enregistrer la demande localement.',
       };
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -371,10 +522,15 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
         ),
       );
 
-      // After local submission, pass the draftId to the upload section so
-      // selected documents are attached to the local draft and queued.
+      // admission.create may have already succeeded (even if the overall
+      // outcome is queuedAfterError, e.g. a timeout on the later submit
+      // step) — read the refreshed draft to recover the remoteId so the
+      // upload section can switch to immediate-upload mode. localDraftId
+      // stays set regardless, as the offline-first fallback.
+      final refreshedDraft = await _repository.getDraft(draftId);
+      if (!mounted) return;
       setState(() {
-        _requestId = null;
+        _requestId = refreshedDraft?.remoteId;
         _localDraftId = draftId;
       });
     } catch (error) {
@@ -402,7 +558,19 @@ class _AdmissionRequestScreenState extends State<AdmissionRequestScreen> {
         SnackBar(backgroundColor: Colors.red, content: Text(message)),
       );
       if (_service.lastStatusCode == 401) {
-        Navigator.pushNamed(context, AppRoutes.login);
+        if (_localDraftId != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => LoginScreen(
+                resumeAdmissionCampaignId: widget.campaignId,
+                resumeAdmissionDraftId: _localDraftId,
+              ),
+            ),
+          );
+        } else {
+          Navigator.pushNamed(context, AppRoutes.login);
+        }
       }
       return;
     }

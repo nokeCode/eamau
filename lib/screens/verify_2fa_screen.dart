@@ -1,14 +1,32 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:eamau/providers/auth_provider.dart';
 import 'package:eamau/routes/app_routes.dart';
 import '../widgets/verfy2fa/otp_box.dart';
-import 'dart:async';
+import 'profile_screen.dart';
+import 'registration/registration_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
   final String? email;
 
-  const VerificationScreen({super.key, this.email});
+  /// See [LoginScreen.resumeAdmissionCampaignId] — carried through when 2FA
+  /// is required so the resume prompt is shown after verification too.
+  final int? resumeAdmissionCampaignId;
+  final int? resumeAdmissionDraftId;
+  final int? resumeRegistrationDraftId;
+  final String? redirectRoute;
+  final Object? redirectArguments;
+
+  const VerificationScreen({
+    super.key,
+    this.email,
+    this.resumeAdmissionCampaignId,
+    this.resumeAdmissionDraftId,
+    this.resumeRegistrationDraftId,
+    this.redirectRoute,
+    this.redirectArguments,
+  });
 
   @override
   State<VerificationScreen> createState() =>
@@ -83,7 +101,34 @@ class _VerificationScreenState extends State<VerificationScreen> {
     if (!mounted) return;
 
     if (result) {
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+      if (widget.resumeRegistrationDraftId != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RegistrationScreen(
+              resumeDraftId: widget.resumeRegistrationDraftId,
+            ),
+          ),
+        );
+      } else if (widget.redirectRoute != null) {
+        Navigator.pushReplacementNamed(
+          context,
+          widget.redirectRoute!,
+          arguments: widget.redirectArguments,
+        );
+      } else if (widget.resumeAdmissionCampaignId != null && widget.resumeAdmissionDraftId != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProfileScreen(
+              resumeAdmissionCampaignId: widget.resumeAdmissionCampaignId,
+              resumeAdmissionDraftId: widget.resumeAdmissionDraftId,
+            ),
+          ),
+        );
+      } else {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

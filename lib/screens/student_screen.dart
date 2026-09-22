@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/ui/auto_refresh_mixin.dart';
 import '../providers/registration/registration_provider.dart';
 import '../providers/student/dashboard_provider.dart';
 import '../routes/app_routes.dart';
 import '../widgets/common/main_bottom_navigation.dart';
+import '../widgets/common/tracking_shortcuts_banner.dart';
 import '../widgets/student/dashboard_app_bar.dart';
 import '../widgets/student/dashboard_menu.dart';
 import '../widgets/student/notification_section.dart';
 import '../widgets/student/quick_stats_section.dart';
+import '../widgets/student/registration_history_section.dart';
 import '../widgets/student/student_header.dart';
 
 class StudentScreen extends StatefulWidget {
@@ -18,7 +21,7 @@ class StudentScreen extends StatefulWidget {
   State<StudentScreen> createState() => _StudentScreenState();
 }
 
-class _StudentScreenState extends State<StudentScreen> {
+class _StudentScreenState extends State<StudentScreen> with AutoRefreshMixin<StudentScreen> {
   @override
   void initState() {
     super.initState();
@@ -27,6 +30,23 @@ class _StudentScreenState extends State<StudentScreen> {
       context.read<DashboardProvider>().loadDashboard();
       context.read<RegistrationProvider>().loadRegistrationStatus();
     });
+    startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    stopAutoRefresh();
+    super.dispose();
+  }
+
+  // DashboardProvider/RegistrationProvider only show a full-screen spinner
+  // while their data is still null (see build() below), so calling these
+  // again on a timer is already silent — no separate "quiet" path needed.
+  @override
+  Future<void> onAutoRefresh() async {
+    await context.read<DashboardProvider>().refresh();
+    if (!mounted) return;
+    await context.read<RegistrationProvider>().loadRegistrationStatus();
   }
 
   Future<void> _refresh() async {
@@ -136,6 +156,14 @@ class _StudentScreenState extends State<StudentScreen> {
                         style: const TextStyle(color: Color(0xFF475569)),
                       ),
                     ),
+
+                  const SizedBox(height: 28),
+
+                  const RegistrationHistorySection(),
+
+                  const SizedBox(height: 28),
+
+                  const TrackingShortcutsBanner(),
 
                   const SizedBox(height: 28),
 

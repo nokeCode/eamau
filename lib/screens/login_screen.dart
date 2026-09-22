@@ -7,9 +7,31 @@ import 'package:provider/provider.dart';
 import '../routes/app_routes.dart';
 import '../widgets/login/custom_text_field.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../screens/profile_screen.dart';
+import '../screens/registration/registration_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  /// Set when the user was sent here from the middle of an admission
+  /// submission (the API rejected it with 401 because they weren't logged
+  /// in). On success, instead of the normal post-login destination, they're
+  /// sent to their profile, which shows a banner to pick the submission
+  /// back up (see [ProfileScreen.resumeAdmissionCampaignId]).
+  final int? resumeAdmissionCampaignId;
+  final int? resumeAdmissionDraftId;
+  final int? resumeRegistrationDraftId;
+  final String? redirectRoute;
+  final Object? redirectArguments;
+  final String? infoMessage;
+
+  const LoginScreen({
+    super.key,
+    this.resumeAdmissionCampaignId,
+    this.resumeAdmissionDraftId,
+    this.resumeRegistrationDraftId,
+    this.redirectRoute,
+    this.redirectArguments,
+    this.infoMessage,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -30,6 +52,84 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  int? get resumeAdmissionCampaignId =>
+      widget.resumeAdmissionCampaignId ??
+      ((ModalRoute.of(context)?.settings.arguments is Map)
+          ? (ModalRoute.of(context)!.settings.arguments
+              as Map)['resumeAdmissionCampaignId'] as int?
+          : null);
+
+  int? get resumeAdmissionDraftId =>
+      widget.resumeAdmissionDraftId ??
+      ((ModalRoute.of(context)?.settings.arguments is Map)
+          ? (ModalRoute.of(context)!.settings.arguments
+              as Map)['resumeAdmissionDraftId'] as int?
+          : null);
+
+  int? get resumeRegistrationDraftId =>
+      widget.resumeRegistrationDraftId ??
+      ((ModalRoute.of(context)?.settings.arguments is Map)
+          ? (ModalRoute.of(context)!.settings.arguments
+              as Map)['resumeRegistrationDraftId'] as int?
+          : null);
+
+  String? get redirectRoute =>
+      widget.redirectRoute ??
+      ((ModalRoute.of(context)?.settings.arguments is Map)
+          ? (ModalRoute.of(context)!.settings.arguments
+              as Map)['redirectRoute'] as String?
+          : (ModalRoute.of(context)?.settings.arguments is String)
+              ? ModalRoute.of(context)!.settings.arguments as String
+              : null);
+
+  Object? get redirectArguments =>
+      widget.redirectArguments ??
+      ((ModalRoute.of(context)?.settings.arguments is Map)
+          ? (ModalRoute.of(context)!.settings.arguments
+              as Map)['redirectArguments']
+          : null);
+
+  String? get infoMessage =>
+      widget.infoMessage ??
+      ((ModalRoute.of(context)?.settings.arguments is Map)
+          ? (ModalRoute.of(context)!.settings.arguments
+              as Map)['infoMessage'] as String?
+          : null);
+
+  /// Where to go once auth succeeds and there's no pending 2FA: back to the
+  /// interrupted submission or requested redirect route if specified,
+  /// otherwise the normal post-login destination.
+  void _navigateAfterAuthSuccess() {
+    if (resumeRegistrationDraftId != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RegistrationScreen(
+            resumeDraftId: resumeRegistrationDraftId,
+          ),
+        ),
+      );
+    } else if (redirectRoute != null) {
+      Navigator.pushReplacementNamed(
+        context,
+        redirectRoute!,
+        arguments: redirectArguments,
+      );
+    } else if (resumeAdmissionCampaignId != null && resumeAdmissionDraftId != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProfileScreen(
+            resumeAdmissionCampaignId: resumeAdmissionCampaignId,
+            resumeAdmissionDraftId: resumeAdmissionDraftId!,
+          ),
+        ),
+      );
+    } else {
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
+    }
+  }
+
   Future<void> _login(AuthProvider authProvider) async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -40,12 +140,33 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
+    // AuthProvider.login() returns false both on a genuine failure AND when
+    // 2FA is required (its own comment: "Retourner false pour indiquer 2FA
+    // requis") — so which case this is can only be told apart by checking
+    // pending2FA, and that check must happen regardless of `result`. It was
+    // previously nested inside `if (result)`, which that false-for-2FA
+    // return value can never enter: login with 2FA enabled always fell
+    // through to the generic "Erreur lors de la connexion" SnackBar and
+    // never reached the verification screen.
+    if (authProvider.pending2FA && authProvider.pending2FAEmail != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VerificationScreen(
+            email: authProvider.pending2FAEmail,
+            resumeAdmissionCampaignId: resumeAdmissionCampaignId,
+            resumeAdmissionDraftId: resumeAdmissionDraftId,
+            resumeRegistrationDraftId: resumeRegistrationDraftId,
+            redirectRoute: redirectRoute,
+            redirectArguments: redirectArguments,
+          ),
+        ),
+      );
+      return;
+    }
+
     if (result) {
-      if (authProvider.pending2FA && authProvider.pending2FAEmail != null) {
-        Navigator.pushNamed(context, AppRoutes.verify2fa);
-      } else {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
-      }
+      _navigateAfterAuthSuccess();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -145,9 +266,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (result) {
       if (authProvider.pending2FA && authProvider.pending2FAEmail != null) {
-        Navigator.pushNamed(context, AppRoutes.verify2fa);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VerificationScreen(
+              email: authProvider.pending2FAEmail,
+              resumeAdmissionCampaignId: resumeAdmissionCampaignId,
+              resumeAdmissionDraftId: resumeAdmissionDraftId,
+              resumeRegistrationDraftId: resumeRegistrationDraftId,
+              redirectRoute: redirectRoute,
+              redirectArguments: redirectArguments,
+            ),
+          ),
+        );
       } else {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+        _navigateAfterAuthSuccess();
       }
     } else {
       // If 2FA is pending, navigate to verification screen with email
@@ -155,8 +288,14 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                VerificationScreen(email: authProvider.pending2FAEmail),
+            builder: (_) => VerificationScreen(
+              email: authProvider.pending2FAEmail,
+              resumeAdmissionCampaignId: resumeAdmissionCampaignId,
+              resumeAdmissionDraftId: resumeAdmissionDraftId,
+              resumeRegistrationDraftId: resumeRegistrationDraftId,
+              redirectRoute: redirectRoute,
+              redirectArguments: redirectArguments,
+            ),
           ),
         );
         return;
@@ -229,6 +368,44 @@ class _LoginScreenState extends State<LoginScreen> {
                         "Connectez-vous à votre compte\npour accéder à votre espace.",
                         textAlign: TextAlign.center,
                       ),
+                      if (infoMessage != null && infoMessage!.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFF59E0B),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                color: Color(0xFFD97706),
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  infoMessage!,
+                                  style: const TextStyle(
+                                    color: Color(0xFF92400E),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 25),
                       CustomTextField(
                         label: "E-mail",
@@ -377,7 +554,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => const RegisterScreen(),
+                                      builder: (_) => RegisterScreen(
+                                        resumeAdmissionCampaignId: resumeAdmissionCampaignId,
+                                        resumeAdmissionDraftId: resumeAdmissionDraftId,
+                                        resumeRegistrationDraftId: resumeRegistrationDraftId,
+                                        redirectRoute: redirectRoute,
+                                        redirectArguments: redirectArguments,
+                                      ),
                                     ),
                                   );
                                 },

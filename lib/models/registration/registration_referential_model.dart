@@ -132,6 +132,32 @@ class RegistrationSemesterEntry {
 
   const RegistrationSemesterEntry({this.semester, this.status});
 
+  factory RegistrationSemesterEntry.fromJson(dynamic source) {
+    if (source is Map) {
+      final map = Map<String, dynamic>.from(source);
+      final semOpt = map['semester'] != null
+          ? RegistrationOption.fromJson(map['semester'])
+          : (map['semesterId'] != null
+              ? RegistrationOption(
+                  id: map['semesterId'].toString(),
+                  value: map['semesterId'].toString(),
+                  label: map['semesterId'].toString(),
+                )
+              : null);
+      final statOpt = map['status'] != null
+          ? RegistrationOption.fromJson(map['status'])
+          : (map['statusId'] != null
+              ? RegistrationOption(
+                  id: map['statusId'].toString(),
+                  value: map['statusId'].toString(),
+                  label: map['statusId'].toString(),
+                )
+              : null);
+      return RegistrationSemesterEntry(semester: semOpt, status: statOpt);
+    }
+    return const RegistrationSemesterEntry();
+  }
+
   RegistrationSemesterEntry copyWith({
     RegistrationOption? semester,
     RegistrationOption? status,
@@ -144,6 +170,8 @@ class RegistrationSemesterEntry {
 
   Map<String, dynamic> toJson() {
     return {
+      if (semester != null) 'semester': semester!.toJson(),
+      if (status != null) 'status': status!.toJson(),
       if (semester != null) 'semesterId': semester!.id,
       if (status != null) 'statusId': status!.id,
     };
@@ -155,13 +183,29 @@ class RegistrationDocument {
   final String filePath;
   final String type;
   final int sizeBytes;
+  final String uploadStatus;
 
   const RegistrationDocument({
     required this.fileName,
     required this.filePath,
     required this.type,
     required this.sizeBytes,
+    this.uploadStatus = 'pending',
   });
+
+  factory RegistrationDocument.fromJson(dynamic source) {
+    if (source is Map) {
+      final map = Map<String, dynamic>.from(source);
+      return RegistrationDocument(
+        fileName: map['fileName']?.toString() ?? '',
+        filePath: map['filePath']?.toString() ?? '',
+        type: map['type']?.toString() ?? 'OTHER',
+        sizeBytes: int.tryParse(map['sizeBytes']?.toString() ?? '0') ?? 0,
+        uploadStatus: map['uploadStatus']?.toString() ?? 'pending',
+      );
+    }
+    return const RegistrationDocument(fileName: '', filePath: '', type: 'OTHER', sizeBytes: 0);
+  }
 
   String get extension => fileName.split('.').last.toLowerCase();
 
@@ -216,6 +260,59 @@ class RegistrationDraft {
     this.semesters = const [],
   });
 
+  factory RegistrationDraft.fromJson(dynamic source) {
+    if (source is! Map) return const RegistrationDraft();
+    final map = Map<String, dynamic>.from(source);
+
+    RegistrationOption? parseOpt(dynamic optSource, String? fallbackId) {
+      if (optSource != null) {
+        return RegistrationOption.fromJson(optSource);
+      }
+      if (fallbackId != null && fallbackId.isNotEmpty) {
+        return RegistrationOption(id: fallbackId, value: fallbackId, label: fallbackId);
+      }
+      return null;
+    }
+
+    final semsList = <RegistrationSemesterEntry>[];
+    if (map['semesters'] is List) {
+      for (final item in map['semesters'] as List) {
+        semsList.add(RegistrationSemesterEntry.fromJson(item));
+      }
+    }
+
+    return RegistrationDraft(
+      firstName: map['firstName']?.toString() ?? '',
+      lastName: map['lastName']?.toString() ?? '',
+      email: map['email']?.toString() ?? '',
+      phone: map['phone']?.toString() ?? '',
+      matricule: map['matricule']?.toString() ?? '',
+      author: map['author']?.toString() ?? '',
+      alreadyRegistered: map['alreadyRegistered'] == true || map['oldStudent'] == true,
+      schoolYear: parseOpt(
+        map['schoolYear'],
+        map['schoolYearId']?.toString() ?? map['anneeScolaireId']?.toString(),
+      ),
+      status: parseOpt(
+        map['status'],
+        map['statusId']?.toString(),
+      ),
+      filiere: parseOpt(
+        map['filiere'],
+        map['filiereId']?.toString(),
+      ),
+      grade: parseOpt(
+        map['grade'],
+        map['gradeId']?.toString(),
+      ),
+      group: parseOpt(
+        map['group'],
+        map['groupeId']?.toString() ?? map['groupId']?.toString(),
+      ),
+      semesters: semsList,
+    );
+  }
+
   RegistrationDraft copyWith({
     String? firstName,
     String? lastName,
@@ -248,11 +345,36 @@ class RegistrationDraft {
     );
   }
 
-  Map<String, dynamic> toJson() {
+  /// Full representation for durable local SQLite caching
+  Map<String, dynamic> toLocalMap() {
     return {
-      // Backend récupère firstName, lastName, email, phone du JWT/profil utilisateur
-      // Ne pas les envoyer ici
+      'firstName': firstName,
+      'lastName': lastName,
+      'email': email,
+      'phone': phone,
+      'matricule': matricule,
+      'author': author,
+      'alreadyRegistered': alreadyRegistered,
+      'oldStudent': alreadyRegistered,
+      if (schoolYear != null) 'schoolYear': schoolYear!.toJson(),
+      if (schoolYear != null) 'anneeScolaireId': schoolYear!.id,
+      if (status != null) 'status': status!.toJson(),
+      if (filiere != null) 'filiere': filiere!.toJson(),
+      if (filiere != null) 'filiereId': filiere!.id,
+      if (grade != null) 'grade': grade!.toJson(),
+      if (grade != null) 'gradeId': grade!.id,
+      if (group != null) 'group': group!.toJson(),
+      if (group != null) 'groupeId': group!.id,
+      'semesters': semesters.map((s) => s.toJson()).toList(),
+    };
+  }
+
+  /// Payload format expected by the Symfony backend API
+  Map<String, dynamic> toApiJson() {
+    return {
       'anneeScolaireId': schoolYear?.id,
+      if (status != null) 'statusId': status!.id,
+      if (status != null) 'statutId': status!.id,
       if (matricule.isNotEmpty) 'matricule': matricule,
       'oldStudent': alreadyRegistered,
       if (filiere != null) 'filiereId': filiere!.id,
@@ -260,4 +382,6 @@ class RegistrationDraft {
       if (group != null) 'groupeId': group!.id,
     };
   }
+
+  Map<String, dynamic> toJson() => toLocalMap();
 }

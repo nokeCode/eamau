@@ -7,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
+import 'core/notifications/notification_navigation.dart';
 import 'providers/admission_provider.dart';
 import 'providers/admission_tracking_provider.dart';
 import 'providers/auth_provider.dart';
@@ -18,6 +19,85 @@ import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
 import 'core/database/app_database.dart';
 import 'core/sync/sync_engine.dart';
+
+const _pushChannel = AndroidNotificationChannel(
+  'eamau_channel',
+  'EAMAU Notifications',
+  description: 'Channel for EAMAU push notifications',
+  importance: Importance.max,
+);
+
+/// FCM messages come in two shapes: a "notification message" (has a
+/// `notification` block the OS/plugin can read directly) and a "data-only
+/// message" (only `data`, no `notification` block — the app has to build
+/// its own local notification from whatever fields the backend put in
+/// `data`). The app only ever handled the first shape: both the foreground
+/// listener and the background handler below used to silently do nothing
+/// for a data-only push, since they only acted when `message.notification`
+/// was non-null. That's exactly why a backend-sent notification could show
+/// up in the in-app notification list (a separate REST fetch) while never
+/// producing an actual system push. Field names are read defensively since
+/// there's no confirmed sample of what the backend puts in `data` for this.
+(String title, String body) _extractTitleAndBody(RemoteMessage message) {
+  final notification = message.notification;
+  final title = notification?.title?.trim().isNotEmpty == true
+      ? notification!.title!
+      : notificationStringValue(message.data, ['title', 'notificationTitle']);
+  final body = notification?.body?.trim().isNotEmpty == true
+      ? notification!.body!
+      : notificationStringValue(message.data, ['body', 'message', 'notificationBody']);
+  return (title, body);
+}
+
+Map<String, dynamic> _buildNotificationPayload(RemoteMessage message) {
+  return {
+    'type': notificationStringValue(
+      message.data,
+      ['type', 'notificationType', 'notification_type'],
+    ),
+    'notificationId': notificationStringValue(
+      message.data,
+      ['notificationId', 'notification_id', 'notificationid'],
+    ),
+    'entityId': notificationStringValue(
+      message.data,
+      ['entityId', 'entity_id', 'entityid', 'id', 'resource_id', 'slug'],
+    ),
+    'route': notificationStringValue(
+      message.data,
+      ['route', 'deepLink', 'deeplink'],
+    ),
+    'raw': message.data,
+  };
+}
+
+Future<void> _showLocalNotification(
+  RemoteMessage message,
+  FlutterLocalNotificationsPlugin plugin,
+) async {
+  final (title, body) = _extractTitleAndBody(message);
+  if (title.isEmpty && body.isEmpty) return;
+
+  const androidDetails = AndroidNotificationDetails(
+    'eamau_channel',
+    'EAMAU Notifications',
+    channelDescription: 'Channel for EAMAU push notifications',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+  const details = NotificationDetails(
+    android: androidDetails,
+    iOS: DarwinNotificationDetails(),
+  );
+
+  await plugin.show(
+    message.hashCode,
+    title.isNotEmpty ? title : null,
+    body.isNotEmpty ? body : null,
+    details,
+    payload: jsonEncode(_buildNotificationPayload(message)),
+  );
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,12 +128,6 @@ Future<void> main() async {
     debugPrint("======================================");
 
     final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    const channel = AndroidNotificationChannel(
-      'eamau_channel',
-      'EAMAU Notifications',
-      description: 'Channel for EAMAU push notifications',
-      importance: Importance.max,
-    );
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
@@ -62,56 +136,24 @@ Future<void> main() async {
     await flutterLocalNotificationsPlugin.initialize(
       const InitializationSettings(android: androidSettings, iOS: iosSettings),
     );
+    final androidPlugin = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    await androidPlugin?.createNotificationChannel(_pushChannel);
+    // Belt-and-suspenders alongside FirebaseMessaging.requestPermission()
+    // above: explicitly ask for Android 13+'s POST_NOTIFICATIONS at the
+    // plugin level too, since that's what actually gates whether
+    // flutterLocalNotificationsPlugin.show() has any effect at all.
+    final grantedNotifications = await androidPlugin?.requestNotificationsPermission();
+    debugPrint('Android POST_NOTIFICATIONS granted: $grantedNotifications');
 
-    // Foreground messages: show a local notification
+    // Foreground messages: show a local notification. Handles both a
+    // "notification message" (message.notification present) and a
+    // data-only message (title/body read from message.data instead) — see
+    // _extractTitleAndBody for why this matters.
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      debugPrint("Notification reçue (foreground)");
-      debugPrint(message.notification?.title ?? '');
-      debugPrint(message.notification?.body ?? '');
-
-      final notification = message.notification;
-      final payloadData = {
-        'type': _notificationStringValue(
-          message.data,
-          ['type', 'notificationType', 'notification_type'],
-        ),
-        'notificationId': _notificationStringValue(
-          message.data,
-          ['notificationId', 'notification_id', 'notificationid'],
-        ),
-        'entityId': _notificationStringValue(
-          message.data,
-          ['entityId', 'entity_id', 'entityid', 'id', 'resource_id', 'slug'],
-        ),
-        'route': _notificationStringValue(
-          message.data,
-          ['route', 'deepLink', 'deeplink'],
-        ),
-        'raw': message.data,
-      };
-
-      if (notification != null) {
-        final androidDetails = AndroidNotificationDetails(
-          channel.id,
-          channel.name,
-          channelDescription: channel.description,
-          importance: Importance.max,
-          priority: Priority.high,
-        );
-
-        final details = NotificationDetails(
-          android: androidDetails,
-          iOS: const DarwinNotificationDetails(),
-        );
-
-        await flutterLocalNotificationsPlugin.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          details,
-          payload: jsonEncode(payloadData),
-        );
-      }
+      debugPrint("Notification reçue (foreground): data=${message.data}");
+      await _showLocalNotification(message, flutterLocalNotificationsPlugin);
     });
 
     // When the app is opened from a notification
@@ -163,131 +205,59 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     );
   } catch (_) {}
 
-  // Keep background handling minimal; rely on system notification when provided.
-  // Log for debugging.
-  debugPrint('Background message received: ${message.messageId}');
+  debugPrint('Background message received: ${message.messageId} data=${message.data}');
+
+  // A "notification message" (message.notification present) is already
+  // auto-displayed by the OS/FCM SDK while the app isn't in the foreground —
+  // showing it again here would duplicate it. This handler previously did
+  // nothing beyond logging for EVERY message, on the assumption the system
+  // always takes care of display ("rely on system notification when
+  // provided") — true only for that case. A data-only message (no
+  // `notification` block, e.g. what a backend event might send when it
+  // wants the app to decide how to render it) is never auto-displayed by
+  // anything, so it silently never appeared as a push at all.
+  if (message.notification != null) return;
+
+  final plugin = FlutterLocalNotificationsPlugin();
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const iosSettings = DarwinInitializationSettings();
+  await plugin.initialize(
+    const InitializationSettings(android: androidSettings, iOS: iosSettings),
+  );
+  await plugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(_pushChannel);
+
+  await _showLocalNotification(message, plugin);
 }
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-String _notificationStringValue(
-  Map<String, dynamic> data,
-  List<String> keys, {
-  String fallback = '',
-}) {
-  for (final key in keys) {
-    final value = data[key];
-    if (value != null && value.toString().trim().isNotEmpty) {
-      return value.toString();
-    }
-  }
-  return fallback;
-}
-
 void _handleNavigationFromMessage(RemoteMessage message) {
-  final data = message.data;
-
-  final type = _notificationStringValue(
-    data,
-    ['type', 'notificationType', 'notification_type'],
-  ).toUpperCase();
-  final route = _notificationStringValue(
-    data,
-    ['route', 'deepLink', 'deeplink'],
-  );
-  final notificationId = _notificationStringValue(
-    data,
-    ['notificationId', 'notification_id', 'notificationid'],
-  );
-  final entityId = _notificationStringValue(
-    data,
-    ['entityId', 'entity_id', 'entityid', 'id', 'resource_id', 'slug'],
-  );
-
   final nav = navigatorKey.currentState;
   if (nav == null) return;
 
-  final normalizedRoute = route.trim();
-  final normalizedType = type.trim();
-
-  if (normalizedRoute.isNotEmpty) {
-    final routeName = normalizedRoute.replaceFirst(RegExp(r'^/'), '').split('?').first;
-    final routeValue = routeName.trim().toLowerCase().replaceAll('_', '-');
-
-    if (routeValue == 'news-detail' ||
-        routeValue == 'news' ||
-        routeValue.startsWith('news-') ||
-        routeValue.contains('news')) {
-      nav.pushNamed(
-        AppRoutes.newsDetail,
-        arguments: entityId.isNotEmpty ? entityId : 'news',
-      );
-      return;
-    }
-
-    if (routeValue == 'concours' ||
-        routeValue == 'contest' ||
-        routeValue == 'concours-detail' ||
-        routeValue.contains('concours')) {
-      nav.pushNamed(AppRoutes.concours);
-      return;
-    }
-
-    if (routeValue == 'admission' ||
-        routeValue == 'admission-tracking' ||
-        routeValue == 'admissiontracking' ||
-        routeValue.startsWith('admission') ||
-        routeValue.contains('admission')) {
-      final requestId = int.tryParse(entityId) ?? 0;
-      nav.pushNamed(AppRoutes.admissionTracking, arguments: requestId);
-      return;
-    }
-
-    if (routeValue == 'registration' ||
-        routeValue == 'inscription' ||
-        routeValue.contains('registration') ||
-        routeValue.contains('inscription')) {
-      nav.pushNamed(AppRoutes.registration);
-      return;
-    }
-
-    if (routeValue == 'notifications' ||
-        routeValue == 'notification' ||
-        routeValue.contains('notification')) {
-      nav.pushNamed('/notifications');
-      return;
-    }
-  }
-
-  switch (normalizedType) {
-    case 'NEWS':
-      nav.pushNamed(
-        AppRoutes.newsDetail,
-        arguments: entityId.isNotEmpty ? entityId : 'news',
-      );
-      return;
-    case 'CONCOURS':
-      nav.pushNamed(AppRoutes.concours);
-      return;
-    case 'ADMISSION':
-    case 'ADMISSION_DECISION':
-      final requestId = int.tryParse(entityId) ?? 0;
-      nav.pushNamed(AppRoutes.admissionTracking, arguments: requestId);
-      return;
-    case 'INSCRIPTION':
-      nav.pushNamed(AppRoutes.registration);
-      return;
-    case 'SYSTEM':
-      nav.pushNamed('/notifications');
-      return;
-  }
-
-  if (notificationId.isNotEmpty || entityId.isNotEmpty) {
-    nav.pushNamed('/notifications');
-    return;
-  }
-
-  nav.pushNamed('/notifications');
+  final data = message.data;
+  navigateToNotificationTarget(
+    nav,
+    type: notificationStringValue(
+      data,
+      ['type', 'notificationType', 'notification_type'],
+    ),
+    route: notificationStringValue(
+      data,
+      ['route', 'deepLink', 'deeplink'],
+    ),
+    entityId: notificationStringValue(
+      data,
+      ['entityId', 'entity_id', 'entityid', 'id', 'resource_id', 'slug'],
+    ),
+    notificationId: notificationStringValue(
+      data,
+      ['notificationId', 'notification_id', 'notificationid'],
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -77,6 +78,19 @@ class AdmissionLocalDatasource {
     return _db.into(_db.admissionDrafts).insert(companion);
   }
 
+  /// Update an existing admission draft's data in place (used when resuming
+  /// a draft after the user was sent to log in mid-submission, so we don't
+  /// create a second local draft — and a second admission.create retry loop
+  /// — for the same request).
+  Future<void> updateDraftData(int draftId, String dataJson) async {
+    await (_db.update(_db.admissionDrafts)..where((t) => t.id.equals(draftId))).write(
+      AdmissionDraftsCompanion(
+        dataJson: Value(dataJson),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   /// Attach a document to a draft and enqueue sync
   Future<int> attachDocument({
     required int draftId,
@@ -100,10 +114,19 @@ class AdmissionLocalDatasource {
 
     final docId = await _db.into(_db.documents).insert(companion);
 
-    // Enqueue document upload to sync engine
-    await SyncEngine().enqueueDocumentUpload(
-      docId,
-      attachmentType: attachmentType ?? 'OTHER',
+    // Enqueue document upload to sync engine. Deliberately not awaited: the
+    // document is already durably saved locally by the insert above: that's
+    // what this method's caller actually needs to know "succeeded". The
+    // network attempt is a separate background concern — awaiting it here
+    // (as before) meant every call blocked for as long as the underlying
+    // HTTP attempt took (up to its full timeout), which is what made
+    // picking a document feel stuck. Callers that want to know whether it
+    // actually finished uploading within some short window now do that
+    // themselves via `SyncEngine().processQueueNow().timeout(...)`.
+    unawaited(
+      SyncEngine()
+          .enqueueDocumentUpload(docId, attachmentType: attachmentType ?? 'OTHER')
+          .catchError((_) {}),
     );
 
     return docId;

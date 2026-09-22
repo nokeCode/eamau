@@ -3,12 +3,15 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../core/api/api_client.dart';
 import '../models/auth/user.dart';
 import '../models/profile/profile_academic_model.dart';
 import '../models/profile/user_model.dart';
+import '../providers/auth_provider.dart';
 import '../routes/app_routes.dart';
+import '../screens/admission/admission_request_screen.dart';
 import '../services/auth/auth_service.dart';
 import '../services/profile/profile_service.dart';
 import '../widgets/login/custom_text_field.dart';
@@ -21,7 +24,18 @@ import '../widgets/profile/validation_profile_section.dart';
 enum ValidationGender { male, female }
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  /// Set when the user was sent here right after logging in/signing up from
+  /// the middle of an admission submission (see [LoginScreen]'s fields of
+  /// the same name). Shows a banner offering to resume that submission
+  /// instead of silently dropping the user on their profile.
+  final int? resumeAdmissionCampaignId;
+  final int? resumeAdmissionDraftId;
+
+  const ProfileScreen({
+    super.key,
+    this.resumeAdmissionCampaignId,
+    this.resumeAdmissionDraftId,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -206,6 +220,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadProfileData() async {
+    // Grabbed before any `await` below, so using it afterwards doesn't rely
+    // on `context` still being attached to a live widget after an async gap.
+    final authProvider = context.read<AuthProvider>();
+
     setState(() {
       _loading = true;
     });
@@ -227,7 +245,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
-      authUser = await _authService.getCurrentUser();
+      // Goes through AuthProvider (rather than calling `_authService.
+      // getCurrentUser()` directly, as this used to) so a fresh role/
+      // account-status also updates the app-wide session — otherwise this
+      // screen alone would see up-to-date data while everywhere else
+      // (e.g. HomeScreen's `needsAccountValidation` check) kept reading
+      // whatever was fetched at login, stale until the next login/2FA/
+      // cold-start/Dashboard-tab-tap.
+      await authProvider.refreshSessionFromBackend();
+      authUser = authProvider.user;
     } catch (_) {
       // Ignore auth/me failure.
     }
@@ -1573,6 +1599,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return payload;
   }
 
+  Widget _buildAdmissionResumeBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.check_circle, color: Color(0xFF2E7D32)),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Vous pouvez maintenant continuer votre demande d’admission',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Les informations que vous aviez déjà saisies ont été conservées.',
+            style: TextStyle(color: Colors.black54, fontSize: 13),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AdmissionRequestScreen(
+                      campaignId: widget.resumeAdmissionCampaignId!,
+                      resumeDraftId: widget.resumeAdmissionDraftId,
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF18336E),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: const Text(
+                'Continuer ma demande d’admission',
+                style: TextStyle(color: Colors.white, fontSize: 15),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAcademicSection() {
     return Container(
       width: double.infinity,
@@ -1767,6 +1853,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Column(
                               children: [
+                                if (widget.resumeAdmissionCampaignId != null &&
+                                    widget.resumeAdmissionDraftId != null) ...[
+                                  _buildAdmissionResumeBanner(),
+                                  const SizedBox(height: 24),
+                                ],
                                 ProfileCard(user: _user, onEdit: _showEditProfileSheet),
                                 const SizedBox(height: 24),
                                 ProfileSection(user: _user),

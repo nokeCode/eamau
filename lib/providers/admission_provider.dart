@@ -122,6 +122,8 @@ class AdmissionProvider extends ChangeNotifier {
           'Votre demande est sauvegardée localement et sera synchronisée dès que la connexion sera rétablie.',
         AdmissionSubmitOutcome.queuedAfterError =>
           'Votre demande est sauvegardée localement suite à une erreur d’envoi et sera synchronisée automatiquement.',
+        AdmissionSubmitOutcome.requiresAuthentication =>
+          'Vous devez vous connecter pour continuer votre demande d’admission.',
         AdmissionSubmitOutcome.failed => 'La soumission a échoué.',
       };
       notifyListeners();

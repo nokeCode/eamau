@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../core/api/api_endpoints.dart';
 import '../../core/api/dio_client.dart';
 import '../../models/notification/notification_model.dart';
@@ -97,14 +99,26 @@ class NotificationService {
     }
   }
 
-  Future<Map<String, dynamic>> registerDevice(
+  /// Registers this device's FCM token with the backend. Returns `null` on
+  /// any failure — distinct from a successful response with no useful
+  /// `data` field (`{}`) — so the caller can tell "registered" apart from
+  /// "failed" instead of treating both the same. That distinction matters:
+  /// AuthProvider only remembers a token as "already sent to the backend"
+  /// (to skip re-sending it on the next launch) when this actually
+  /// succeeded — previously it persisted that regardless of outcome, so a
+  /// single failed registration meant the backend permanently had no valid
+  /// token to push to, silently, for the rest of that install.
+  Future<Map<String, dynamic>?> registerDevice(
     Map<String, dynamic> payload,
   ) async {
+    debugPrint('[PUSH][DEVICE] POST ${ApiEndpoints.devicesRegister} '
+        'deviceToken=${payload['deviceToken']}');
     try {
       final response = await _dioClient.dio.post(
         ApiEndpoints.devicesRegister,
         data: payload,
       );
+      debugPrint('[PUSH][DEVICE] status=${response.statusCode} body=${response.data}');
 
       final dynamic body = response.data;
       if (body is Map<String, dynamic> && body['data'] is Map<String, dynamic>) {
@@ -112,8 +126,16 @@ class NotificationService {
       }
 
       return {};
-    } catch (_) {
-      return {};
+    } catch (error) {
+      // This used to be swallowed silently (`catch (_) { return {}; }`),
+      // so a failed device registration — meaning the backend has no valid
+      // token to send push to at all — left zero trace anywhere: a push
+      // that never arrives looks identical whether the backend never sent
+      // it, sent it to a stale/unregistered token, or it's a client-side
+      // display bug. This is the one of those three the previous code made
+      // impossible to tell apart from the other two.
+      debugPrint('[PUSH][DEVICE][ERROR] échec enregistrement device: $error');
+      return null;
     }
   }
 

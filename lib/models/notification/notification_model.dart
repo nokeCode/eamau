@@ -6,6 +6,17 @@ class NotificationModel {
   final bool isRead;
   final DateTime createdAt;
 
+  /// Raw type/route/entity fields, kept around (unlike before, where only
+  /// `type` survived parsing and only to compute `icon`) so tapping a
+  /// notification in the list can be routed the same way a tapped push
+  /// notification already is — see `navigateToNotificationTarget`. Field
+  /// names are read defensively, mirroring what the FCM `data` payload
+  /// parsing in main.dart already tries, since there's no confirmed sample
+  /// of this REST endpoint's exact per-item shape for these fields.
+  final String type;
+  final String entityId;
+  final String route;
+
   const NotificationModel({
     required this.id,
     required this.title,
@@ -13,6 +24,9 @@ class NotificationModel {
     required this.icon,
     required this.isRead,
     required this.createdAt,
+    this.type = '',
+    this.entityId = '',
+    this.route = '',
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +36,14 @@ class NotificationModel {
     final readAtRaw = json['readAt'];
     final type = (json['type'] ?? json['icon'] ?? 'notification').toString();
     final status = (json['status'] ?? '').toString().toUpperCase();
+    final entityId = (json['entityId'] ??
+            json['entity_id'] ??
+            json['resourceId'] ??
+            json['resource_id'] ??
+            json['slug'] ??
+            '')
+        .toString();
+    final route = (json['route'] ?? json['deepLink'] ?? json['deeplink'] ?? '').toString();
 
     return NotificationModel(
       id: json['id'] ?? 0,
@@ -31,6 +53,9 @@ class NotificationModel {
       isRead: readAtRaw != null || status == 'READ',
       createdAt: DateTime.tryParse(createdAtRaw?.toString() ?? '') ??
           DateTime.now(),
+      type: type,
+      entityId: entityId,
+      route: route,
     );
   }
 
@@ -62,6 +87,9 @@ class NotificationModel {
       'icon': icon,
       'isRead': isRead,
       'created_at': createdAt.toIso8601String(),
+      'type': type,
+      'entityId': entityId,
+      'route': route,
     };
   }
 
@@ -72,6 +100,9 @@ class NotificationModel {
     String? icon,
     bool? isRead,
     DateTime? createdAt,
+    String? type,
+    String? entityId,
+    String? route,
   }) {
     return NotificationModel(
       id: id ?? this.id,
@@ -80,6 +111,9 @@ class NotificationModel {
       icon: icon ?? this.icon,
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
+      type: type ?? this.type,
+      entityId: entityId ?? this.entityId,
+      route: route ?? this.route,
     );
   }
 }

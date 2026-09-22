@@ -68,5 +68,51 @@ void main() {
         ApiConfig.imageUrl('uploads/couverture.jpg'),
       );
     });
+
+    test('parses scientific publication fields and formats citations', () {
+      final json = {
+        'id': 42,
+        'title': 'Modélisation du confort thermique dans les habitats vernaculaires en Afrique de l\'Ouest',
+        'summary': 'Cette étude analyse les propriétés thermiques des matériaux locaux dans l\'architecture sahélienne.',
+        'slug': 'modelisation-confort-thermique-habitat-afrique-ouest',
+        'publishedAt': '2024-06-15T00:00:00Z',
+        'authors': ['Dr. Koffi Mensah', 'Prof. Amadou Diallo'],
+        'affiliation': 'EAMAU - Département d\'Architecture et Développement Durable',
+        'journal': 'Revue Africaine d\'Architecture et d\'Urbanisme',
+        'volume': '18',
+        'issue': '2',
+        'pages': '45-62',
+        'doi': '10.1234/eamau.2024.18.2.45',
+        'pdfUrl': 'uploads/publications/confort_thermique.pdf',
+        'keywords': ['Confort thermique', 'Habitat vernaculaire', 'Matériaux locaux', 'Sahel'],
+        'peer_reviewed': true,
+        'language': 'Français',
+        'type': 'Article de recherche',
+      };
+
+      final pub = NewsModel.fromJson(json);
+
+      expect(pub.id, 42);
+      expect(pub.authors.length, 2);
+      expect(pub.formattedAuthors, 'Dr. Koffi Mensah, Prof. Amadou Diallo');
+      expect(pub.affiliation, 'EAMAU - Département d\'Architecture et Développement Durable');
+      expect(pub.journal, 'Revue Africaine d\'Architecture et d\'Urbanisme');
+      expect(pub.volume, '18');
+      expect(pub.issue, '2');
+      expect(pub.pages, '45-62');
+      expect(pub.hasDoi, true);
+      expect(pub.cleanDoi, '10.1234/eamau.2024.18.2.45');
+      expect(pub.hasPdf, true);
+      expect(pub.keywords, contains('Confort thermique'));
+      expect(pub.peerReviewed, true);
+      expect(pub.publicationYear, '2024');
+
+      // Citations
+      expect(pub.apaCitation, contains('Dr. Koffi Mensah, Prof. Amadou Diallo (2024).'));
+      expect(pub.apaCitation, contains('https://doi.org/10.1234/eamau.2024.18.2.45'));
+      expect(pub.bibtexCitation, contains('@article{eamau_42_2024'));
+      expect(pub.bibtexCitation, contains('author = {Dr. Koffi Mensah and Prof. Amadou Diallo}'));
+      expect(pub.ieeeCitation, contains('vol. 18, no. 2, pp. 45-62, 2024'));
+    });
   });
 }

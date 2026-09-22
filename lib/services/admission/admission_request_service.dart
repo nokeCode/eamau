@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
@@ -12,17 +13,28 @@ import '../../models/admission/admission_request_model.dart';
 import '../../models/admission/admission_request_response_model.dart';
 import '../../models/admission/admission_request_submit_response_model.dart';
 import '../../models/admission/admission_request_summary_model.dart';
+import '../../models/admission/my_admission_request_model.dart';
 import '../../data/local/admission_local_datasource.dart';
 
 class AdmissionRequestService {
   static const String baseUrl = ApiConfig.fullBaseUrl;
+
+  // `SyncEngine` and `AdmissionRequestScreen` each create a fresh
+  // `AdmissionRequestService()` per call/screen, and nothing ever called
+  // `http.Client.close()` on it. Every retry of a queued operation therefore
+  // leaked its own `http.Client` (its own underlying socket/connection pool)
+  // instead of reusing one. Sharing a single client by default keeps
+  // connections bounded across retries; callers can still inject their own
+  // client (e.g. in tests).
+  static final http.Client _sharedClient = http.Client();
+
   final TokenStorage _tokenStorage;
   final http.Client _client;
   int? lastStatusCode;
   String? lastErrorMessage;
 
   AdmissionRequestService({http.Client? client, TokenStorage? tokenStorage})
-    : _client = client ?? http.Client(),
+    : _client = client ?? _sharedClient,
       _tokenStorage = tokenStorage ?? TokenStorage();
 
   final AdmissionLocalDatasource _local = AdmissionLocalDatasource();
@@ -134,6 +146,50 @@ class AdmissionRequestService {
     return {};
   }
 
+  List<dynamic> _extractListPayload(dynamic decoded) {
+    if (decoded is List) return decoded;
+    if (decoded is Map) {
+      final map = Map<String, dynamic>.from(decoded);
+      if (map['data'] is List) return map['data'] as List<dynamic>;
+      if (map['data'] is Map) {
+        final inner = Map<String, dynamic>.from(map['data'] as Map);
+        if (inner['items'] is List) return inner['items'] as List<dynamic>;
+        if (inner['requests'] is List) return inner['requests'] as List<dynamic>;
+      }
+      if (map['items'] is List) return map['items'] as List<dynamic>;
+    }
+    return const [];
+  }
+
+  /// The authenticated user's own admission requests, across every
+  /// campaign — `GET /admission/requests` (`AdmissionService::
+  /// listRequestsForCurrentUser`). Returns an empty list on any failure
+  /// (offline, unauthenticated, server error) rather than throwing: callers
+  /// treat "no requests known" and "couldn't check" the same way.
+  Future<List<MyAdmissionRequestModel>> listMyRequests() async {
+    final url = '$baseUrl/admission/requests';
+    try {
+      final response = await _withTimeout(
+        () async => _client.get(Uri.parse(url), headers: await _headers()),
+      );
+      lastStatusCode = response.statusCode;
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        return _extractListPayload(decoded)
+            .whereType<Map>()
+            .map((e) => MyAdmissionRequestModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+      lastErrorMessage = response.body;
+    } catch (error) {
+      lastErrorMessage = error is TimeoutException
+          ? error.message?.toString() ??
+                'Le serveur met trop de temps à répondre. Veuillez réessayer.'
+          : error.toString();
+    }
+    return [];
+  }
+
   static String normalizeAttachmentTypeCode(String label) {
     const mapping = {
       'Photo d\'identité': 'PHOTO',
@@ -151,27 +207,37 @@ class AdmissionRequestService {
 
   Future<AdmissionRequestResponseModel?> createAdmissionRequest(
     int campaignId,
-    AdmissionRequestModel model,
-  ) async {
+    AdmissionRequestModel model, {
+    String? idempotencyKey,
+  }) async {
+    final url = '$baseUrl/admission-campaigns/$campaignId/requests';
     try {
+      final headers = await _headers();
+      if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
+        headers['Idempotency-Key'] = idempotencyKey;
+      }
+      debugPrint('[ADMISSION][HTTP] POST $url idempotencyKey=$idempotencyKey');
       final response = await _withTimeout(
         () async => _client.post(
-          Uri.parse('$baseUrl/admission-campaigns/$campaignId/requests'),
-          headers: await _headers(),
+          Uri.parse(url),
+          headers: headers,
           body: jsonEncode(model.toJson()),
         ),
       );
       lastStatusCode = response.statusCode;
+      debugPrint('[ADMISSION][HTTP] status=${response.statusCode} url=$url');
       if (response.statusCode == 200 || response.statusCode == 201) {
         final decoded = jsonDecode(response.body);
         return AdmissionRequestResponseModel.fromJson(_extractPayload(decoded));
       }
       lastErrorMessage = response.body;
+      debugPrint('[ADMISSION][HTTP] body=${response.body}');
     } catch (error) {
       lastErrorMessage = error is TimeoutException
           ? error.message?.toString() ??
                 'Le serveur met trop de temps à répondre. Veuillez réessayer.'
           : error.toString();
+      debugPrint('[ADMISSION][HTTP][ERROR] url=$url exceptionType=${error.runtimeType} error=$error');
     }
     return null;
   }
@@ -179,23 +245,26 @@ class AdmissionRequestService {
   Future<bool> uploadDocument(
     int requestId,
     String attachmentType,
-    File file,
-  ) async {
+    File file, {
+    String? idempotencyKey,
+  }) async {
+    final url = '$baseUrl/admission/requests/$requestId/documents';
     try {
       final bytes = await file.readAsBytes();
       if (bytes.isEmpty) {
         lastErrorMessage = 'Le fichier est vide ou introuvable.';
+        debugPrint('[ADMISSION][HTTP][ERROR] fichier vide ou introuvable path=${file.path}');
         return false;
       }
 
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/admission/requests/$requestId/documents'),
-      );
+      final request = http.MultipartRequest('POST', Uri.parse(url));
 
       final token = await _tokenStorage.getAccessToken();
       if (token != null && token.isNotEmpty) {
         request.headers['Authorization'] = 'Bearer $token';
+      }
+      if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
+        request.headers['Idempotency-Key'] = idempotencyKey;
       }
 
       request.fields['attachmentType'] = attachmentType;
@@ -207,9 +276,16 @@ class AdmissionRequestService {
         ),
       );
 
+      final sizeKb = (bytes.length / 1024).toStringAsFixed(1);
+      debugPrint('[ADMISSION][HTTP] POST $url attachmentType=$attachmentType '
+          'fileSizeKB=$sizeKb idempotencyKey=$idempotencyKey');
+      final stopwatch = Stopwatch()..start();
       final response = await _withTimeout(() async => request.send());
       final responseBody = await response.stream.bytesToString();
+      stopwatch.stop();
       lastStatusCode = response.statusCode;
+      debugPrint('[ADMISSION][HTTP] status=${response.statusCode} url=$url '
+          'fileSizeKB=$sizeKb durationMs=${stopwatch.elapsedMilliseconds}');
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       }
@@ -217,12 +293,14 @@ class AdmissionRequestService {
       lastErrorMessage = responseBody.isNotEmpty
           ? responseBody
           : 'Erreur HTTP ${response.statusCode}.';
+      debugPrint('[ADMISSION][HTTP] body=$responseBody');
       return false;
     } catch (error) {
       lastErrorMessage = error is TimeoutException
           ? error.message?.toString() ??
                 'Le serveur met trop de temps à répondre. Veuillez réessayer.'
           : error.toString();
+      debugPrint('[ADMISSION][HTTP][ERROR] url=$url exceptionType=${error.runtimeType} error=$error');
       return false;
     }
   }
@@ -258,31 +336,49 @@ class AdmissionRequestService {
   }
 
   Future<AdmissionRequestSubmitResponseModel?> submitAdmissionRequest(
-    int requestId,
-  ) async {
+    int requestId, {
+    String? idempotencyKey,
+  }) async {
+    final url = '$baseUrl/admission/requests/$requestId/submit';
     try {
+      final headers = await _headers();
+      if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
+        headers['Idempotency-Key'] = idempotencyKey;
+      }
+      debugPrint('[ADMISSION][HTTP] POST $url idempotencyKey=$idempotencyKey');
       final response = await _withTimeout(
         () async => _client.post(
-          Uri.parse('$baseUrl/admission/requests/$requestId/submit'),
-          headers: await _headers(),
+          Uri.parse(url),
+          headers: headers,
         ),
       );
       lastStatusCode = response.statusCode;
+      debugPrint('[ADMISSION][HTTP] status=${response.statusCode} url=$url');
       if (response.statusCode == 200 || response.statusCode == 201) {
         final decoded = jsonDecode(response.body);
         final detail = _extractPayload(decoded);
 
         if (detail.isEmpty) {
+          lastErrorMessage = response.body;
+          debugPrint('[ADMISSION][HTTP][ERROR] réponse ${response.statusCode} sans payload exploitable '
+              'body=${response.body}');
           return null;
         }
 
         return AdmissionRequestSubmitResponseModel.fromJson(detail);
       }
+
+      // Bug fixé : cette branche ne renseignait pas lastErrorMessage, ce qui
+      // faisait apparaître "body=null" dans les logs même sur une vraie
+      // réponse 400/422/500 du backend.
+      lastErrorMessage = response.body;
+      debugPrint('[ADMISSION][HTTP] body=${response.body}');
     } catch (error) {
       lastErrorMessage = error is TimeoutException
           ? error.message?.toString() ??
                 'Le serveur met trop de temps à répondre. Veuillez réessayer.'
           : error.toString();
+      debugPrint('[ADMISSION][HTTP][ERROR] url=$url exceptionType=${error.runtimeType} error=$error');
     }
     return null;
   }

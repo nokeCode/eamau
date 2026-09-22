@@ -30,6 +30,12 @@ enum AdmissionSubmitOutcome {
 
   /// The draft could not even be saved/queued locally.
   failed,
+
+  /// The device was online and the API answered, but rejected the request
+  /// with 401 (Authentification requise): the user isn't logged in. The
+  /// draft is preserved locally so the UI can send them to log in and come
+  /// back to finish this exact submission afterwards.
+  requiresAuthentication,
 }
 
 class AdmissionRepository {
@@ -50,6 +56,16 @@ class AdmissionRepository {
       dataJson: jsonEncode(draftData),
       status: status,
     );
+  }
+
+  /// Update an already-existing local draft's data in place, instead of
+  /// creating a new one — used when resuming a submission after the user
+  /// was sent to log in (same draftId, same admission.create retry loop).
+  Future<void> updateDraftLocally({
+    required int draftId,
+    required Map<String, dynamic> draftData,
+  }) async {
+    await local.updateDraftData(draftId, jsonEncode(draftData));
   }
 
   /// Attach a document to a draft (saves locally and enqueues upload)
@@ -84,15 +100,25 @@ class AdmissionRepository {
     return await local.getDocumentsForDraft(draftId);
   }
 
+  /// How long [submitDraft] waits for a "try now" network attempt before
+  /// giving up on the UI's behalf and returning [AdmissionSubmitOutcome.
+  /// queuedAfterError]. Deliberately much shorter than the HTTP client
+  /// timeouts (30-60s): the goal is a snappy UI, not a definitive answer.
+  /// SyncEngine keeps processing in the background regardless — see
+  /// [SyncEngine.processQueueNow].
+  static const Duration _quickSyncAttempt = Duration(seconds: 10);
+
   /// Submit a draft.
   ///
   /// Always saves the draft and its operations through the existing
   /// offline-first queue (SyncQueue/SyncEngine) so no data is ever lost.
-  /// When the device is online, [SyncEngine.enqueueOperation] processes the
-  /// queue immediately and this method waits for that attempt so it can
-  /// report whether the request was actually submitted to the API, or only
-  /// saved locally (because the device is offline, or because the online
-  /// attempt failed and fell back to the queue).
+  /// When the device is online, this gives the queue a short window to
+  /// finish create -> documents -> submit before returning, so it can
+  /// report a real online success. If that window elapses (slow/unreachable
+  /// API), it returns [AdmissionSubmitOutcome.queuedAfterError] immediately
+  /// instead of blocking the UI for the full HTTP timeout — the queue keeps
+  /// working in the background and [SyncEngine.onAdmissionSubmitted] fires
+  /// once it actually finishes.
   Future<AdmissionSubmitOutcome> submitDraft(int draftId) async {
     debugPrint('[ADMISSION][SUBMIT] submitDraft() appelé draftId=$draftId');
     try {
@@ -114,7 +140,11 @@ class AdmissionRepository {
       // Only log field names, never their values, to avoid leaking personal data.
       debugPrint('[ADMISSION][SUBMIT] payload draft (clés uniquement)=${draftDataMap.keys.toList()}');
 
-      // Enqueue operations in the correct order: create -> upload documents -> submit
+      // Persist the operations to the queue first (fast, local-only writes)
+      // in the correct dependency order: create -> upload documents ->
+      // submit. Network processing is triggered once, below, as a single
+      // bounded pass — instead of the previous 3 separate calls that each
+      // re-scanned and re-attempted the whole queue.
       final createOpId = const Uuid().v4();
       final createOp = SyncOperation(
         clientOperationId: createOpId,
@@ -125,11 +155,9 @@ class AdmissionRepository {
           'campaignId': campaignId,
         },
       );
-
       debugPrint('[ADMISSION][SUBMIT] opération ajoutée à SyncQueue: type=admission.create clientOperationId=$createOpId');
-      await SyncEngine().enqueueOperation(createOp);
+      await SyncQueue().enqueue(createOp);
 
-      // Enqueue document uploads for existing attached documents
       final pendingDocs = await local.getDocumentsForDraft(draftId);
       debugPrint('[ADMISSION][SUBMIT] documents en attente pour draftId=$draftId: count=${pendingDocs.length}');
       for (final doc in pendingDocs) {
@@ -145,10 +173,9 @@ class AdmissionRepository {
           },
         );
         debugPrint('[ADMISSION][SUBMIT] opération ajoutée à SyncQueue: type=document.upload documentId=${doc.id} clientOperationId=$docOpId');
-        await SyncEngine().enqueueOperation(docOp);
+        await SyncQueue().enqueue(docOp);
       }
 
-      // Finally enqueue submit operation which depends on remoteId being available
       final submitOpId = const Uuid().v4();
       final submitOp = SyncOperation(
         clientOperationId: submitOpId,
@@ -158,17 +185,29 @@ class AdmissionRepository {
         },
       );
       debugPrint('[ADMISSION][SUBMIT] opération ajoutée à SyncQueue: type=admission.submit clientOperationId=$submitOpId');
-      await SyncEngine().enqueueOperation(submitOp);
+      await SyncQueue().enqueue(submitOp);
 
       if (!wasOnline) {
         debugPrint('[ADMISSION][SUBMIT] appareil hors-ligne -> outcome=queuedOffline draftId=$draftId');
         return AdmissionSubmitOutcome.queuedOffline;
       }
 
-      // The device was online, so enqueueOperation already attempted to
-      // process the queue synchronously above. Check whether that attempt
-      // actually finished the full flow (create -> documents -> submit)
-      // before claiming a real online success.
+      // Give the network a short, bounded window instead of waiting through
+      // the full per-request HTTP timeout (up to ~60s per call): whatever
+      // hasn't finished by then simply keeps running in SyncEngine's
+      // background queue (processQueueNow() isn't cancelled by the timeout,
+      // only our wait on it is).
+      debugPrint('[ADMISSION][SUBMIT] tentative réseau courte (max ${_quickSyncAttempt.inSeconds}s) draftId=$draftId');
+      await SyncEngine().processQueueNow().timeout(
+        _quickSyncAttempt,
+        onTimeout: () {
+          debugPrint(
+            '[ADMISSION][SUBMIT] tentative réseau courte non terminée en ${_quickSyncAttempt.inSeconds}s '
+            '-> la synchronisation continue en arrière-plan draftId=$draftId',
+          );
+        },
+      );
+
       final refreshedDraft = await local.getDraft(draftId);
       final refreshedDocs = await local.getDocumentsForDraft(draftId);
       final fullySynced = refreshedDraft?.status == 'submitted' &&
@@ -181,9 +220,19 @@ class AdmissionRepository {
         'fullySynced=$fullySynced',
       );
 
-      final outcome = fullySynced
-          ? AdmissionSubmitOutcome.submittedOnline
-          : AdmissionSubmitOutcome.queuedAfterError;
+      AdmissionSubmitOutcome outcome;
+      if (fullySynced) {
+        outcome = AdmissionSubmitOutcome.submittedOnline;
+      } else if (SyncEngine().admissionRequiresAuth(draftId)) {
+        // The API answered (so this isn't a network/timeout issue) but
+        // rejected the request with 401: retrying automatically forever is
+        // pointless without a token, so tell the UI to send the user to log
+        // in instead of the generic "queued, will retry" message.
+        debugPrint('[ADMISSION][SUBMIT] 401 détecté pour draftId=$draftId -> outcome=requiresAuthentication');
+        outcome = AdmissionSubmitOutcome.requiresAuthentication;
+      } else {
+        outcome = AdmissionSubmitOutcome.queuedAfterError;
+      }
       debugPrint('[ADMISSION][SUBMIT] outcome retourné=$outcome draftId=$draftId');
       return outcome;
     } catch (error, stackTrace) {

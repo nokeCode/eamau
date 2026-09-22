@@ -26,7 +26,24 @@ class AppPages {
   static Map<String, WidgetBuilder> routes = {
     AppRoutes.splash: (_) => const SplashScreen(),
     AppRoutes.home: (_) => const HomeScreen(),
-    AppRoutes.login: (_) => const LoginScreen(),
+    AppRoutes.login: (context) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map<String, dynamic>) {
+        return LoginScreen(
+          redirectRoute: args['redirectRoute'] as String?,
+          redirectArguments: args['redirectArguments'],
+          infoMessage: args['infoMessage'] as String?,
+          resumeAdmissionCampaignId: args['resumeAdmissionCampaignId'] as int?,
+          resumeAdmissionDraftId: args['resumeAdmissionDraftId'] as int?,
+          resumeRegistrationDraftId: args['resumeRegistrationDraftId'] as int?,
+        );
+      } else if (args is String) {
+        return LoginScreen(
+          redirectRoute: args,
+        );
+      }
+      return const LoginScreen();
+    },
     AppRoutes.register: (_) => const RegisterScreen(),
     AppRoutes.registration: (_) => const RegistrationScreen(),
     AppRoutes.verify2fa: (_) => const VerificationScreen(),
