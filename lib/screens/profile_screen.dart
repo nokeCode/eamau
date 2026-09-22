@@ -1777,59 +1777,200 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildGuestView() {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const ProfileHeader(),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 3)),
-                ],
-              ),
-              child: Column(
-                children: [
-                  const Icon(Icons.lock_outline, size: 64, color: Color(0xFF1682F8)),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Profil privé',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Vous n'êtes pas encore connecté. Connectez-vous pour accéder à votre profil et à vos informations.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Color(0xFF64748B), height: 1.5),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pushNamed(context, AppRoutes.login);
-                      },
-                      icon: const Icon(Icons.login),
-                      label: const Text('Se connecter'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1682F8),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 20),
+              
+              // Logo EAMAU
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F7FF),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  children: [
+                    Image.asset(
+                      'assets/logos/eamau_logo.gif',
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'EAMAU',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0D4B9C),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'École Africaine des Métiers de l\'Architecture et de l\'Urbanisme',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1682F8),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              
+              const SizedBox(height: 32),
+              
+              // Contenu principal
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0xFFE5E7EB),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.account_circle_outlined,
+                      size: 72,
+                      color: Color(0xFF0D4B9C),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Accès à votre espace personnel',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Pour consulter votre profil, vos inscriptions et vos informations personnelles, veuillez vous connecter.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: const Color(0xFF6B7280),
+                        height: 1.6,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Bouton Se connecter
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pushNamed(context, AppRoutes.login);
+                        },
+                        icon: const Icon(Icons.login_outlined, size: 22),
+                        label: const Text(
+                          'Se connecter',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0D4B9C),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Lien S'inscrire
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppRoutes.register);
+                      },
+                      icon: Icon(Icons.person_add_alt_1_outlined, size: 20, color: const Color(0xFF0D4B9C)),
+                      label: const Text(
+                        "Vous n'avez pas de compte ? Inscrivez-vous",
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF0D4B9C),
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Section Avantages
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3E2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Pourquoi créer un compte ?',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0D4B9C),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFeatureItem(Icons.school, 'Accéder à tes formations et filières'),
+                    const SizedBox(height: 10),
+                    _buildFeatureItem(Icons.assignment, 'Postuler aux admissions et concours'),
+                    const SizedBox(height: 10),
+                    _buildFeatureItem(Icons.notifications, 'Recevoir les notifications importantes'),
+                    const SizedBox(height: 10),
+                    _buildFeatureItem(Icons.history, 'Suivre ton parcours académique'),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFeatureItem(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF1682F8), size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              color: const Color(0xFF374151),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
