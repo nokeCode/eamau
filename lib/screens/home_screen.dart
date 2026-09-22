@@ -267,13 +267,19 @@ class _HomeScreenState extends State<HomeScreen> with AutoRefreshMixin<HomeScree
                     subtitle:
                         'Trouvez rapidement les réponses à vos questions.',
                     color: const Color(0xFF1682F8),
+                    onTap: () {
+                      Navigator.pushNamed(context, AppRoutes.faq);
+                    },
                   ),
 
                   MenuCard(
                     icon: Icons.calendar_month,
-                    title: 'Date Clés',
+                    title: 'Dates Clés',
                     subtitle: 'Calendrier académique et échéances.',
-                    color: Color(0xFF0D4B9C),
+                    color: const Color(0xFF0D4B9C),
+                    onTap: () {
+                      Navigator.pushNamed(context, AppRoutes.keyDates);
+                    },
                   ),
                 ],
               ),
@@ -348,47 +354,53 @@ class _HomeScreenState extends State<HomeScreen> with AutoRefreshMixin<HomeScree
 
               const SizedBox(height: 20),
 
-              Container(
-                padding: const EdgeInsets.all(16),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, AppRoutes.about);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
 
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
 
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                ),
+                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                  ),
 
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.account_balance, size: 40),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.account_balance, size: 40),
 
-                    SizedBox(width: 12),
+                      const SizedBox(width: 12),
 
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "À propos d'EAMAU",
-                            style: TextStyle(
-                              color: Color(0xFF1682F8),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "À propos d'EAMAU",
+                              style: TextStyle(
+                                color: const Color(0xFF1682F8),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
-                          ),
 
-                          SizedBox(height: 4),
+                            const SizedBox(height: 4),
 
-                          Text(
-                            "Une institution d'excellence engagée pour la formation de leaders responsables et innovants.",
-                          ),
-                        ],
+                            Text(
+                              "Une institution d'excellence engagée pour la formation de leaders responsables et innovants.",
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
 
-                    Icon(Icons.chevron_right),
-                  ],
+                      Icon(Icons.chevron_right, color: const Color(0xFF1682F8)),
+                    ],
+                  ),
                 ),
               ),
 

@@ -1,69 +1,33 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-
 import '../../models/home/banner_model.dart';
+import '../slide/slide_service.dart';
 
 class BannerService {
-
-  static const String endpoint =
-      'https://api.eamau.tg/banners';
+  final SlideService _slideService = SlideService();
 
   Future<List<BannerModel>> getBanners() async {
-
     try {
+      final slides = await _slideService.getEnabledSlides();
 
-      final response = await http.get(
-        Uri.parse(endpoint),
-      );
-
-      if (response.statusCode == 200) {
-
-        final List<dynamic> data =
-        jsonDecode(response.body);
-
-        return data.map((item) {
-
-          return BannerModel(
-            title: item['title'],
-            description: item['description'],
-            image: item['image'],
-          );
-
-        }).toList();
+      if (slides.isNotEmpty) {
+        return slides.map((slide) => BannerModel(
+          title: slide.titre,
+          description: slide.contenu ?? '',
+          image: slide.imageUrl ?? slide.imageName ?? '',
+        )).toList();
       }
 
-      return _fallbackBanners();
-
+      return [];
     } catch (e) {
-
-      return _fallbackBanners();
+      return [];
     }
   }
 
-  List<BannerModel> _fallbackBanners() {
-
-    return [
-
-      BannerModel(
-        title: 'Construisez votre avenir avec EAMAU',
-        description:
-        'Excellence académique, leadership de demain.',
-        image: 'assets/images/building.jpg',
-      ),
-
-      BannerModel(
-        title: 'Rejoignez une école d’excellence',
-        description:
-        'Une formation adaptée aux métiers du futur.',
-        image: 'assets/images/building2.jpg',
-      ),
-
-      BannerModel(
-        title: 'Architecture et Urbanisme',
-        description:
-        'Formez-vous aux métiers de demain.',
-        image: 'assets/images/building3.jpg',
-      ),
-    ];
+  Future<bool> hasActiveBanners() async {
+    try {
+      final slides = await _slideService.getEnabledSlides();
+      return slides.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
   }
 }

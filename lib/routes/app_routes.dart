@@ -17,4 +17,7 @@ class AppRoutes {
   static const admission = '/admission';
   static const admissionRequest = '/admissionRequest';
   static const admissionTracking = 'admissionTracking';
+  static const faq = '/faq';
+  static const keyDates = '/key-dates';
+  static const about = '/about';
 }

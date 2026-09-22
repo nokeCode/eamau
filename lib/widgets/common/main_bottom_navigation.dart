@@ -71,6 +71,9 @@ class MainBottomNavigationBar extends StatelessWidget {
             break;
         }
       },
+      selectedItemColor: const Color(0xFF0D4B9C),
+      unselectedItemColor: Colors.grey[600],
+      
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
         BottomNavigationBarItem(icon: Icon(Icons.newspaper_outlined), label: 'Actualités'),

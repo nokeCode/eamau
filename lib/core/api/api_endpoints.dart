@@ -28,4 +28,7 @@ class ApiEndpoints {
   static const String profileAcademic = '/profile/academic';
   static const String profileValidation = '/profile/validation';
   static const String requestVerification = '/profile/request-verification';
+
+  // Slide endpoints
+  static const String slides = '/front/slides';
 }

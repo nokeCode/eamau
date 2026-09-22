@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 
@@ -269,6 +270,9 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'EAMAU',
       navigatorKey: navigatorKey,
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      supportedLocales: const [Locale('fr', 'FR'), Locale('en', 'US')],
+      locale: const Locale('fr', 'FR'),
       //home: const DetailConcoursScreen(concoursId: 1),
       //home: const SuiviCandidatureScreen(candidatureId: 1)
       //home: const AdmissionScreen(),

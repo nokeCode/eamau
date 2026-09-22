@@ -9,6 +9,9 @@ import 'package:flutter/material.dart';
 
 import 'package:eamau/screens/student_screen.dart';
 import 'package:eamau/screens/user_screen.dart';
+import 'package:eamau/screens/about_screen.dart';
+import 'package:eamau/screens/faq_screen.dart';
+import 'package:eamau/screens/key_dates_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/news_detail_screen.dart';
@@ -76,5 +79,8 @@ class AppPages {
       }
       return AdmissionTrackingScreen(requestId: requestId);
     },
+    AppRoutes.faq: (_) => const FAQScreen(),
+    AppRoutes.keyDates: (_) => const KeyDatesScreen(),
+    AppRoutes.about: (_) => const AboutScreen(),
   };
 }
