@@ -31,14 +31,14 @@ class _KeyDatesScreenState extends State<KeyDatesScreen> {
       final dates = await _dateService.getKeyDates();
       if (mounted) {
         setState(() {
-          _dates = dates.isNotEmpty ? dates : _dateService.getFallbackKeyDates();
+          _dates = dates;
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _dates = _dateService.getFallbackKeyDates();
+          _dates = [];
           _isLoading = false;
         });
       }
